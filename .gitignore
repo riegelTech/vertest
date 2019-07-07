@@ -1,1 +1,7 @@
 .idea/
+node_modules/
+testFilesRepo/
+mongoData/*
+!mongoData/.gitkeep
+cloneDir/*
+!cloneDir/.gitkeep

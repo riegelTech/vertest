@@ -1,0 +1,22 @@
+version: "3"
+services:
+
+  mongo:
+    image: mongo
+    volumes:
+      - ./mongoData:/data/db
+
+  node:
+    image: node:10.14.2
+    depends_on:
+      - mongo
+    volumes:
+      - ./:/home/node/smctest/
+    working_dir: /home/node/smctest/
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+    command: bash -c "npm install --only=prod && node app/index.js"
