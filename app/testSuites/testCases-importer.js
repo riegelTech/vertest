@@ -52,14 +52,17 @@ async function extractTestCases(repoUrl, branchName, sourceDir) {
 	}
 
 	await asyncCheckout(branchName);
-	const testFiles= {};
+	const testFiles = [];
 	const basePath = path.join(WORKING_DIR, sourceDir);
 	dirTree(basePath, {
 		extensions: /\.md/,
 		exclude: /.git/
 	}, item => {
 		const testUrl = path.relative(basePath, item.path);
-		testFiles[testUrl] = fs.readFileSync(item.path, 'utf8');
+		testFiles.push({
+			url: testUrl,
+			content: fs.readFileSync(item.path, 'utf8')
+		});
 	});
 
 	return testFiles;

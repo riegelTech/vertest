@@ -7,13 +7,10 @@ const dbConnector = require('../db/db-connector');
 const testCasesImporter = require('./testCases-importer');
 const TestSuite = require('./testSuite');
 
-async function getColl() {
-	const db = await dbConnector.getDb();
-	return db.collection('testSuites');
-}
+const TEST_SUITE_COLL_NAME = 'testSuites';
 
 async function getTestSuites(req, res) {
-	const coll = await getColl();
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 	try {
 		const cursor = await coll.find();
 		const itemsCount = await cursor.count();
@@ -31,15 +28,20 @@ async function getTestSuites(req, res) {
 }
 
 async function createTestSuite(req, res) {
-	const coll = await getColl();
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+
+	const {name, gitRepoUrl, gitBranch, sourceDir} = req.body;
+
 	try {
-		const testSuite = new TestSuite(req.body);
+		const tests = await testCasesImporter(gitRepoUrl, gitBranch, sourceDir);
+		const testSuite = new TestSuite({name, tests, gitBranch});
 		await coll.insertOne(testSuite);
 		res.send({
 			success: true,
 			data: testSuite
 		});
 	} catch(e) {
+		console.error(e);
 		res.send({
 			success: false,
 			msg: e.message
@@ -48,7 +50,7 @@ async function createTestSuite(req, res) {
 }
 
 async function deleteTestSuite(req, res) {
-	const coll = await getColl();
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 	const testUuid = req.params.uuid;
 	try {
 		const filter = {_id: testUuid};
@@ -74,9 +76,9 @@ async function deleteTestSuite(req, res) {
 async function importTestCases(req, res) {
 	const testUuid = req.params.uuid;
 	const {gitRepoUrl, gitBranch, sourceDir} = req.body;
-	const coll = await getColl();
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 	try {
-		const testCases = await testCasesImporter(gitRepoUrl, gitBranch, sourceDir);
+		const tests = await testCasesImporter(gitRepoUrl, gitBranch, sourceDir);
 		const filter = {_id: testUuid};
 		const cursor = await coll.find(filter);
 		const itemsCount = await cursor.count();
@@ -85,7 +87,8 @@ async function importTestCases(req, res) {
 		}
 		await coll.updateOne(filter, {
 			$set: {
-				tests: testCases
+				tests,
+				gitBranch
 			}
 		});
 

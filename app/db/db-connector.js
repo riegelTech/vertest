@@ -31,8 +31,14 @@ async function close() {
 	await client.close();
 }
 
+async function getCollection(collName) {
+	const db = await getDb();
+	return db.collection(collName);
+}
+
 module.exports = {
 	connect,
 	getDb,
+	getCollection,
 	close
 };
