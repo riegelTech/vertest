@@ -37,13 +37,15 @@ class Session {
 }
 
 class User {
-	constructor({login = '', pass = '', email = '', firstName = '', lastName = ''}) {
+	constructor({uuid = uuid(), login = '', pass = '', email = '', firstName = '', lastName = '', readOnly = true}) {
 		// TODO some params validations
+		this._id = uuid;
 		this.login = login;
 		this.pass = this.hashPass(pass);
 		this.email = email;
 		this.firstName = firstName;
 		this.lastName = lastName;
+		this.readOnly = readOnly;
 	}
 
 	static hashPass(clearPass) {
@@ -59,7 +61,7 @@ async function getUsers() {
 	const cursor = await coll.find();
 	const itemsCount = await cursor.count();
 	if (itemsCount > 0){
-		return cursor.toArray();
+		return cursor.toArray().map(rawUser => new User(rawUser));
 	}
 	const err = new Error('No user found in database');
 	err.code = 'ENOUSERFOUND';
@@ -68,11 +70,25 @@ async function getUsers() {
 
 async function addUser(userProps) {
 	const newUser = new User(userProps);
-	// TODO
+	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const sameUserNumber = await coll.find({
+		$or:[
+			{login: newUser.login},
+			{email: newUser.email}
+		]
+	}).count();
+	if (sameUserNumber > 0) {
+		const errUserExists = new Error('User already exists');
+		errUserExists.code = 'EUSEREXISTS';
+		throw errUserExists;
+	}
+
+	await coll.insertOne(newUser);
+	return newUser;
 }
 
 async function authenticate(login, pass, sessId) {
-	const users = getUsers();
+	const users = await getUsers();
 
 	if (!users.find(userItem => userItem.login === login)) {
 		throw new Error('User not found');

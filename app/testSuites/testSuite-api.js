@@ -80,8 +80,7 @@ async function importTestCases(req, res) {
 	try {
 		const tests = await testCasesImporter(gitRepoUrl, gitBranch, sourceDir);
 		const filter = {_id: testUuid};
-		const cursor = await coll.find(filter);
-		const itemsCount = await cursor.count();
+		const itemsCount = await coll.find(filter).count();
 		if (itemsCount === 0) {
 			throw new Error(`No test suite found with id ${testUuid}`);
 		}
@@ -92,8 +91,7 @@ async function importTestCases(req, res) {
 			}
 		});
 
-		const newCursor = await coll.find(filter);
-		const newTestSuite = (await newCursor.toArray())[0];
+		const newTestSuite = (await coll.find(filter).toArray())[0];
 		res.send({
 			success: true,
 			data: newTestSuite

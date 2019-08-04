@@ -5,3 +5,5 @@ mongoData/*
 !mongoData/.gitkeep
 cloneDir/*
 !cloneDir/.gitkeep
+ui/dist/*
+!ui/dist/.gitkeep

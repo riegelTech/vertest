@@ -8,18 +8,22 @@ const usersModule = require('./users');
 
 async function createUser(req, res) {
 	try {
-		const newUser = await usersModule.addUser(_.pick(req.body, ['login', 'pass', 'email', 'firstName', 'lastName']));
+		const newUser = await usersModule.addUser(_.pick(req.body, ['login', 'pass', 'email', 'firstName', 'lastName', 'readOnly']));
 		res.send(newUser);
 	} catch (e) {
-		res.status(500).send(e.message);
+		res.status(500);
+		if (e.code === 'EUSEREXISTS') {
+			res.status(409);
+		}
+		res.send(e.message);
 	}
 	
 }
 
 router.get('/', async (req, res) => res.send(await usersModule.getUsers()))
 	.post('/', createUser)
-	.put('/:uuid', updateUser)
-	.delete('/:uuid', deleteUser);
+	// .put('/:uuid', updateUser)
+	// .delete('/:uuid', deleteUser);
 
 
 module.exports = router;

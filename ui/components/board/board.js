@@ -5,7 +5,7 @@ import VueResource from 'vue-resource';
 import Vuetify from 'vuetify'
 
 Vue.use(VueResource);
-Vue.use(Vuetify)
+Vue.use(Vuetify);
 
 export default {
 	data: function () {
@@ -24,11 +24,11 @@ export default {
 	},
 	methods: {
 		async init() {
-			const response = await this.$http.get('./test-suites/');
+			const response = await this.$http.get('./api/test-suites/');
 			this.testSuites = response.body;
 		},
 		async validate () {
-			await this.$http.post('./test-suites/', this.newTestSuite);
-		},
+			await this.$http.post('./api/test-suites/', this.newTestSuite);
+		}
 	}
 };
