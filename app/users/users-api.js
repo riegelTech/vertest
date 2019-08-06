@@ -20,7 +20,12 @@ async function createUser(req, res) {
 	
 }
 
+async function initSuperAdmin(req, res) {
+	res.send('OK');
+}
+
 router.get('/', async (req, res) => res.send(await usersModule.getUsers()))
+	.post('/init/', initSuperAdmin)
 	.post('/', createUser)
 	// .put('/:uuid', updateUser)
 	// .delete('/:uuid', deleteUser);

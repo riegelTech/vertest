@@ -1,3 +1,16 @@
 <main-layout>
-    <div>INIT</div>
+    <form novalidate>
+        <md-field>
+            <label for="password">Administrator password</label>
+            <md-input name="password" v-model="password" type="password" />
+        </md-field>
+        <md-field>
+            <label for="password_2">Please confirm</label>
+            <md-input name="password_2" v-model="password_2" type="password" />
+        </md-field>
+        <span class="md-error" v-if="error">{{ error }}</span>
+        <md-card-actions>
+            <md-button type="button" @click="send">Send</md-button>
+        </md-card-actions>
+    </form>
 </main-layout>

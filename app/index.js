@@ -13,9 +13,10 @@ const usersRouting = require('./users/users-api');
 const usersModule = require('./users/users');
 
 const initUrl = '/init.html';
+const initApi = '/api/users/init/';
 
 app.all('/api/*', async function (req, res, next) {
-	if (req.url === initUrl) return next();
+	if (req.url === initUrl || req.url === initApi) return next();
 	try {
 		const login = req.body.login;
 		const pass = req.body.pass;

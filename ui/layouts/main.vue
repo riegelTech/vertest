@@ -1,9 +1,12 @@
 <template>
     <div>
-        <h1>Main title</h1>
+        <header>
+            <h1>Main title</h1>
+        </header>
         <div>
             <slot></slot>
         </div>
+        <footer></footer>
     </div>
 </template>
 
