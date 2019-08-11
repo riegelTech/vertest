@@ -1,0 +1,19 @@
+<main-layout>
+    <div>Home</div>
+    <md-dialog :md-active.sync="loginPopup.show" :md-click-outside-to-close="false" :md-close-on-esc="false">
+        <md-dialog-title>Login</md-dialog-title>
+        <form>
+            <md-field>
+                <label for="login">Login</label>
+                <md-input name="login" v-model="loginPopup.login" type="text" />
+            </md-field>
+            <md-field>
+                <label for="password">Password</label>
+                <md-input name="password" v-model="loginPopup.password" type="password" />
+            </md-field>
+            <md-dialog-actions>
+                <md-button class="md-primary" @click="login">Send</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
+</main-layout>

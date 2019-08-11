@@ -1,10 +1,3 @@
-<template>
-
-</template>
-
-<script>
-</script>
-
-<style scoped>
-
-</style>
+<template src="./home.html"/>
+<script src="./home.js"/>
+<style scoped />

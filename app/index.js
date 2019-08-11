@@ -3,7 +3,9 @@
 const path = require('path');
 
 const cookieParser = require('cookie-parser');
+const createNamespace = require('cls-hooked').createNamespace;
 const express = require('express');
+
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -15,23 +17,54 @@ const usersModule = require('./users/users');
 const initUrl = '/init.html';
 const initApi = '/api/users/init/';
 
+const sessionsCls = createNamespace('sessions');
+app.use((req, res, next) => {
+	sessionsCls.bindEmitter(req);
+	sessionsCls.bindEmitter(res);
+	sessionsCls.run(() => {
+		next();
+	});
+});
 app.all('/api/*', async function (req, res, next) {
 	if (req.url === initUrl || req.url === initApi) return next();
+	const login = req.body.login;
+	const pass = req.body.pass;
+	const sessIdCookie = req.cookies && req.cookies.sessId;
+
+	function sendUnauthorized(res) {
+		return res.status(401).send('Unauthorized');
+	}
+
 	try {
-		const login = req.body.login;
-		const pass = req.body.pass;
-		const sessId = req.cookie && req.cookie.sessId;
-		if(await usersModule.authenticate(login, pass, sessId)) {
+		if (await usersModule.authenticate(login, pass, sessIdCookie)) {
 			res.cookie('sessId', usersModule.getSessId());
 			return next();
 		}
+		return sendUnauthorized(res);
 	} catch (e) {
 		if (e.code === 'ENOUSERFOUND') {
 			return res.redirect(initUrl)
 		}
-		return res.status(401).send('Unauthorized');
+		return sendUnauthorized(res);
 	}
 });
+
+async function login(req, res) {
+	const login = req.body.login;
+	const password = req.body.password;
+	const eventuallySessId = usersModule.getSessId();
+	try {
+		if (await usersModule.authenticate(login, password, eventuallySessId)) {
+			res.cookie('sessId', usersModule.getSessId());
+			return res.status(200).send(usersModule.getCurrentUser());
+		}
+	} catch (e) {
+		return res.status(401).send();
+	}
+
+}
+
+app.post('/login/', login);
 
 app.use('/', express.static(path.join(__dirname, '../ui/')));
 app.use('/api/test-suites/', testSuiteRouting);
