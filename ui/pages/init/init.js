@@ -34,7 +34,7 @@ export default {
 			}
 			this.error = '';
 			try {
-				const response = await this.$http.post(`/api/users/init/`, {
+				const response = await this.$http.post(`/auth/init`, {
 					password: this.password,
 					email: this.email,
 					firstName: this.firstName,

@@ -25,18 +25,22 @@ export default {
 	},
 	async mounted() {
 		try {
-			const response = await this.$http.get('/api/users/currentUser/');
+			const response = await this.$http.get('/auth/user');
 			if (response.status === 200) {
 				this.currentUser = response.body;
 			}
-		} catch (e) {
+		} catch (resp) {
+			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
+				window.location.href = '/init.html';
+				return;
+			}
 			this.loginPopup.show = true;
 		}
 	},
 	methods: {
 		async login() {
 			try {
-				const response = await this.$http.post('/login/', {
+				const response = await this.$http.post('/auth/login', {
 					login: this.loginPopup.login,
 					password: this.loginPopup.password
 				});
