@@ -118,10 +118,17 @@ async function addUser(userProps) {
 
 async function authenticate(login, pass, sessId) {
 	const sessionCls = getNamespace('sessions');
+
+	function augmentUserProps(user) {
+		return Object.assign({}, user, {
+			isSuperAdmin: user.isSuperAdmin
+		});
+	}
+
 	if (sessId && sessions.has(sessId)) {
 		const session = sessions.get(sessId);
 		if (session.isValid) {
-			sessionCls.set('user', session.user);
+			sessionCls.set('user', augmentUserProps(session.user));
 			sessionCls.set('sessId', sessId);
 			return true;
 		}
@@ -141,7 +148,7 @@ async function authenticate(login, pass, sessId) {
 	if (foundUser) {
 		const newSessId = uuidV4();
 		sessions.set(newSessId, new Session(foundUser));
-		sessionCls.set('user', foundUser);
+		sessionCls.set('user', augmentUserProps(foundUser));
 		sessionCls.set('sessId', newSessId);
 		return true
 	}
