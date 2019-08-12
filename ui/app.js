@@ -1,12 +1,9 @@
 'use strict';
 
 import Vue from 'vue';
-import page from 'page'
+import page from 'page';
 
-const routes = {
-	'/index.html': 'home',
-	'/init.html': 'init'
-};
+import routes from '../app/static-routing';
 
 const app = new Vue({
 	el: '#app-wrapper',

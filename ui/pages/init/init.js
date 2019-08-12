@@ -43,7 +43,7 @@ export default {
 				if (response.status !== 200) {
 					alert(response.body);
 				}
-				this.password = this.password_2 = this.email = this.firstName = this.lastName = '';
+				window.location.href = '/';
 			} catch (e) {
 				alert('Password initialization failed');
 			}

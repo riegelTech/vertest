@@ -9,13 +9,19 @@ async function login(req, res) {
 	const login = req.body.login;
 	const password = req.body.password;
 	const eventuallySessId = usersModule.getSessId();
+
+	function sendUnauthorized(res) {
+		return res.status(401).send('Unauthorized');
+	}
+
 	try {
 		if (await usersModule.authenticate(login, password, eventuallySessId)) {
 			res.cookie('sessId', usersModule.getSessId());
 			return res.status(200).send(usersModule.getCurrentUser());
 		}
+		return sendUnauthorized(res);
 	} catch (e) {
-		return res.status(401).send();
+		return sendUnauthorized(res);
 	}
 }
 
