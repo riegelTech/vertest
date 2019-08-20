@@ -49,9 +49,9 @@ class Session {
 }
 
 class User {
-	constructor({uuid = uuidV4(), login = '', pass = '', email = '', firstName = '', lastName = '', readOnly = true, hashPass = false}) {
+	constructor({_id = uuidV4(), login = '', pass = '', email = '', firstName = '', lastName = '', readOnly = true, hashPass = false}) {
 		// TODO some params validations
-		this._id = uuid;
+		this._id = _id;
 		this.login = login;
 		this.pass = hashPass ? User.hashPass(pass) : pass;
 		this.email = email;
@@ -101,10 +101,7 @@ async function addUser(userProps) {
 	const newUser = new User(userProps);
 	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
 	const sameUserNumber = await coll.find({
-		$or:[
-			{login: newUser.login},
-			{email: newUser.email}
-		]
+		login: newUser.login
 	}).count();
 	if (sameUserNumber > 0) {
 		const errUserExists = new Error('User already exists');
@@ -114,6 +111,35 @@ async function addUser(userProps) {
 
 	await coll.insertOne(newUser);
 	return newUser;
+}
+
+async function updateUser(userProps) {
+	const currentUser = getCurrentUser();
+	const updatedUser = new User(userProps);
+	
+	if (!currentUser.isSuperAdmin && currentUser.login !== updatedUser.login) {
+		const errUserNotEditable = new Error('Only super admin or user itself can edit a user');
+		errUserNotEditable.code = 'EUSERNOTEDITABLE';
+		throw errUserNotEditable;
+	}
+
+	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const oldUserCursor = await coll.find({
+		_id: updatedUser._id
+	});
+	if ((await oldUserCursor.count()) !== 1) {
+		const errUserNotFound = new Error(`No user found with ID ${updatedUser._id}`);
+		errUserNotFound.code = 'EUSERNOTFOUND';
+		throw errUserNotFound;
+	}
+	const oldUser = new User(await oldUserCursor.next());
+
+	if (updatedUser.login !== oldUser.login) {
+		const errUserConstraints = new Error('Cannot modify user login');
+		errUserConstraints.code = 'EBADUSERDATA';
+		throw errUserConstraints;
+	}
+	return await coll.updateOne({_id: updatedUser._id}, {$set: updatedUser});
 }
 
 async function authenticate(login, pass, sessId) {
@@ -156,17 +182,20 @@ async function authenticate(login, pass, sessId) {
 	return false
 }
 
+function getCurrentUser () {
+	const sessionCls = getNamespace('sessions');
+	return sessionCls.get('user');
+}
+
 
 module.exports = {
 	authenticate,
 	getUsers,
 	getSuperAdmin,
 	addUser,
+	updateUser,
 	User,
-	getCurrentUser() {
-		const sessionCls = getNamespace('sessions');
-		return sessionCls.get('user');
-	},
+	getCurrentUser,
 	getSessId() {
 		const sessionCls = getNamespace('sessions');
 		return sessionCls.get('sessId');

@@ -83,6 +83,13 @@ export default {
 				this.error = 'Passwords differs';
 				return;
 			}
+			// update user
+			if (this.userPopin._id) {
+				return this.updateUser();
+			}
+			return this.addUser();
+		},
+		async addUser() {
 			try {
 				const response = await this.$http.post(USER_API_PATH, {
 					login: this.userPopin.login,
@@ -99,6 +106,25 @@ export default {
 				return this.initUsers();
 			} catch (e) {
 				alert('User creation failed');
+			}
+		},
+		async updateUser() {
+			try {
+				const response = await this.$http.put(`${USER_API_PATH}${this.userPopin._id}`, {
+					login: this.userPopin.login,
+					pass: this.userPopin.pass,
+					email: this.userPopin.email,
+					firstName: this.userPopin.firstName,
+					lastName: this.userPopin.lastName
+				});
+				if (response.status !== 200) {
+					alert(response.body);
+					return;
+				}
+				this.reinitUser();
+				return this.initUsers();
+			} catch (e) {
+				alert('User update failed');
 			}
 		}
 	}
