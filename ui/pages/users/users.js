@@ -129,6 +129,18 @@ export default {
 			} catch (e) {
 				alert('User update failed');
 			}
+		},
+		async deleteUser(userUuid) {
+			try {
+				const response = await this.$http.delete(`${USER_API_PATH}${userUuid}`);
+				if (response.status !== 200) {
+					alert(response.body);
+					return;
+				}
+				return this.initUsers();
+			} catch (e) {
+				alert('User deletion failed');
+			}
 		}
 	}
 }

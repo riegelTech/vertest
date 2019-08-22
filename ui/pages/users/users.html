@@ -17,7 +17,7 @@
                     <md-button  v-if="item.login === currentUser.login || currentUser.isSuperAdmin === true" class="md-icon-button md-mini md-primary" @click="showEditPopin(item)">
                         <md-icon>edit</md-icon>
                     </md-button>
-                    <md-button v-if="item.login !== 'admin' && currentUser.isSuperAdmin === true" class="md-icon-button md-mini md-accent">
+                    <md-button v-if="item.login !== 'admin' && currentUser.isSuperAdmin === true" class="md-icon-button md-mini md-accent" @click="deleteUser(item._id)">
                         <md-icon>delete</md-icon>
                     </md-button>
                 </md-table-cell>

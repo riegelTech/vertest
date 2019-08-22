@@ -45,8 +45,31 @@ async function updateUser(req, res) {
 	}
 }
 
+async function deleteUser(req, res) {
+	const userUuid = req.params.uuid;
+	try {
+		await usersModule.deleteUser(userUuid);
+		return res.status(200).send('OK');
+	} catch (e) {
+		res.status(500);
+		switch (e.code) {
+			case 'EUSERNOTEDITABLE':
+				res.status(403);
+				break;
+			case 'EUSERNOTFOUND':
+				res.status(404);
+				break;
+			default:
+				res.status(400);
+				break;
+		}
+		return res.send(e.message);
+	}
+}
+
 router.get('/', async (req, res) => res.send(await usersModule.getUsers()))
 	.post('/', createUser)
-	.put('/:uuid', updateUser);
+	.put('/:uuid', updateUser)
+	.delete('/:uuid', deleteUser);
 
 module.exports = router;

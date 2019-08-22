@@ -142,6 +142,27 @@ async function updateUser(userProps) {
 	return await coll.updateOne({_id: updatedUser._id}, {$set: updatedUser});
 }
 
+async function deleteUser(uuid) {
+	const currentUser = getCurrentUser();
+
+	if (!currentUser.isSuperAdmin) {
+		const errUserNotEditable = new Error('Only super admin can delete a user');
+		errUserNotEditable.code = 'EUSERNOTEDITABLE';
+		throw errUserNotEditable;
+	}
+
+	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const userToDeleteCursor = await coll.find({
+		_id: uuid
+	});
+	if ((await userToDeleteCursor.count()) !== 1) {
+		const errUserNotFound = new Error(`No user found with ID ${updatedUser._id}`);
+		errUserNotFound.code = 'EUSERNOTFOUND';
+		throw errUserNotFound;
+	}
+	return await coll.deleteOne({_id: uuid});
+}
+
 async function authenticate(login, pass, sessId) {
 	const sessionCls = getNamespace('sessions');
 
@@ -194,6 +215,7 @@ module.exports = {
 	getSuperAdmin,
 	addUser,
 	updateUser,
+	deleteUser,
 	User,
 	getCurrentUser,
 	getSessId() {
