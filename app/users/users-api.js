@@ -8,7 +8,7 @@ const usersModule = require('./users');
 
 async function createUser(req, res) {
 	try {
-		const newUser = await usersModule.addUser(_.pick(req.body, ['login', 'pass', 'email', 'firstName', 'lastName', 'readOnly']));
+		const newUser = await usersModule.addUser(_.pick(req.body, ['login', 'password', 'email', 'firstName', 'lastName', 'readOnly']));
 		res.send(newUser);
 	} catch (e) {
 		res.status(500);

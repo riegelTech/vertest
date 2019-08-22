@@ -32,15 +32,15 @@
             </md-field>
             <md-field>
                 <label for="login">Login</label>
-                <md-input name="login" v-model="userPopin.login" type="text" readonly />
+                <md-input name="login" v-model="userPopin.login" type="text" :readonly="userPopin.editUser" />
             </md-field>
             <md-field>
-                <label for="pass">Password</label>
-                <md-input name="pass" v-model="userPopin.pass" type="password" />
+                <label for="password">Password</label>
+                <md-input name="password" v-model="userPopin.password" type="password" />
             </md-field>
             <md-field>
-                <label for="pass2">Please confirm</label>
-                <md-input name="pass2" v-model="userPopin.pass2" type="password" />
+                <label for="password2">Please confirm</label>
+                <md-input name="password2" v-model="userPopin.password2" type="password" />
             </md-field>
             <md-field>
                 <label for="email">Email</label>

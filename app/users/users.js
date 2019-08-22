@@ -49,11 +49,11 @@ class Session {
 }
 
 class User {
-	constructor({_id = uuidV4(), login = '', pass = '', email = '', firstName = '', lastName = '', readOnly = true, hashPass = false}) {
+	constructor({_id = uuidV4(), login = '', password = '', email = '', firstName = '', lastName = '', readOnly = true, hashPass = false}) {
 		// TODO some params validations
 		this._id = _id;
 		this.login = login;
-		this.pass = hashPass ? User.hashPass(pass) : pass;
+		this.password = hashPass ? User.hashPass(password) : password;
 		this.email = email;
 		this.firstName = firstName;
 		this.lastName = lastName;
@@ -109,12 +109,12 @@ async function addUser(userProps) {
 		throw errUserExists;
 	}
 
-	await coll.insertOne(newUser);
-	return newUser;
+	return coll.insertOne(newUser);
 }
 
 async function updateUser(userProps) {
 	const currentUser = getCurrentUser();
+	userProps.hashPass = true;
 	const updatedUser = new User(userProps);
 	
 	if (!currentUser.isSuperAdmin && currentUser.login !== updatedUser.login) {
@@ -168,7 +168,7 @@ async function authenticate(login, pass, sessId) {
 
 	const hashedPass = User.hashPass(pass);
 	const foundUser = users.find(user => {
-		return user.login === login && user.pass === hashedPass;
+		return user.login === login && user.password === hashedPass;
 	});
 
 	if (foundUser) {

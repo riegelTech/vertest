@@ -43,7 +43,7 @@ async function initSuperAdmin(req, res) {
 		await usersModule.addUser({
 			login: usersModule.User.superAdminLogin,
 			email,
-			pass: password,
+			password,
 			firstName,
 			lastName,
 			readOnly: false,

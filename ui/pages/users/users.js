@@ -12,10 +12,11 @@ import MainLayout from '../../layouts/main.vue';
 
 const EMPTY_USER = {
 	show: false,
+	editUser: false,
 	_id: '',
 	login: '',
-	pass: '',
-	pass2: '',
+	password: '',
+	password2: '',
 	email: '',
 	firstName: '',
 	lastName: ''
@@ -65,21 +66,23 @@ export default {
 		},
 		showEditPopin(user) {
 			this.userPopin = Object.assign({}, this.userPopin, EMPTY_USER, user, {
-				pass: '',
-				pass2: '',
-				show: true
+				password: '',
+				password2: '',
+				show: true,
+				editUser: true
 			});
 		},
 		showCreatePopin() {
 			this.reinitUser();
 			this.userPopin.show = true;
+			this.userPopin.editUser = false;
 		},
 		async sendUser() {
-			if (this.userPopin.pass.length < 8) {
+			if (this.userPopin.password.length < 8) {
 				this.error = 'Password is too weak';
 				return;
 			}
-			if (this.userPopin.pass !== this.userPopin.pass2) {
+			if (this.userPopin.password !== this.userPopin.password2) {
 				this.error = 'Passwords differs';
 				return;
 			}
@@ -93,7 +96,7 @@ export default {
 			try {
 				const response = await this.$http.post(USER_API_PATH, {
 					login: this.userPopin.login,
-					pass: this.userPopin.pass,
+					password: this.userPopin.password,
 					email: this.userPopin.email,
 					firstName: this.userPopin.firstName,
 					lastName: this.userPopin.lastName
@@ -112,7 +115,7 @@ export default {
 			try {
 				const response = await this.$http.put(`${USER_API_PATH}${this.userPopin._id}`, {
 					login: this.userPopin.login,
-					pass: this.userPopin.pass,
+					password: this.userPopin.password,
 					email: this.userPopin.email,
 					firstName: this.userPopin.firstName,
 					lastName: this.userPopin.lastName
