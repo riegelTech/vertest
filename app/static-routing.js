@@ -4,5 +4,6 @@
 module.exports = {
 	'/': 'home',
 	'/init': 'init',
-	'/users': 'users'
+	'/users': 'users',
+	'/test-suites': 'test-suites'
 };
