@@ -160,6 +160,14 @@ async function deleteUser(uuid) {
 		errUserNotFound.code = 'EUSERNOTFOUND';
 		throw errUserNotFound;
 	}
+	const userToDelete = new User(await userToDeleteCursor.next());
+
+	if (userToDelete.isSuperAdmin) {
+		const errUserConstraints = new Error('Cannot delete super admin');
+		errUserConstraints.code = 'EUSERNOTEDITABLE';
+		throw errUserConstraints;
+	}
+
 	return await coll.deleteOne({_id: uuid});
 }
 
