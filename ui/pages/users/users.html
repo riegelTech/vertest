@@ -1,0 +1,62 @@
+<main-layout>
+    <div>
+        <md-button class="md-fab md-primary" @click="showCreatePopin">
+            <md-icon>add</md-icon>
+        </md-button>
+        <md-table v-model="users" md-sort="name" md-sort-order="asc" md-card>
+            <md-table-toolbar>
+                <h1 class="md-title">Users</h1>
+            </md-table-toolbar>
+
+            <md-table-row slot="md-table-row" slot-scope="{ item }">
+                <md-table-cell md-label="Login" md-sort-by="login">{{ item.login }}</md-table-cell>
+                <md-table-cell md-label="Email" md-sort-by="email">{{ item.email }}</md-table-cell>
+                <md-table-cell md-label="First name" md-sort-by="firstName">{{ item.firstName }}</md-table-cell>
+                <md-table-cell md-label="Last name" md-sort-by="lastName">{{ item.lastName }}</md-table-cell>
+                <md-table-cell md-label="Action">
+                    <md-button  v-if="item.login === currentUser.login || currentUser.isSuperAdmin === true" class="md-icon-button md-mini md-primary" @click="showEditPopin(item)">
+                        <md-icon>edit</md-icon>
+                    </md-button>
+                    <md-button v-if="item.login !== 'admin' && currentUser.isSuperAdmin === true" class="md-icon-button md-mini md-accent" @click="deleteUser(item._id)">
+                        <md-icon>delete</md-icon>
+                    </md-button>
+                </md-table-cell>
+            </md-table-row>
+        </md-table>
+    </div>
+    <md-dialog :md-active.sync="userPopin.show">
+        <md-dialog-title>User</md-dialog-title>
+        <form>
+            <md-field>
+                <md-input name="id" v-model="userPopin._id" type="hidden" />
+            </md-field>
+            <md-field>
+                <label for="login">Login</label>
+                <md-input name="login" v-model="userPopin.login" type="text" :readonly="userPopin.editUser" />
+            </md-field>
+            <md-field>
+                <label for="password">Password</label>
+                <md-input name="password" v-model="userPopin.password" type="password" />
+            </md-field>
+            <md-field>
+                <label for="password2">Please confirm</label>
+                <md-input name="password2" v-model="userPopin.password2" type="password" />
+            </md-field>
+            <md-field>
+                <label for="email">Email</label>
+                <md-input name="email" v-model="userPopin.email" type="text" />
+            </md-field>
+            <md-field>
+                <label for="firstName">First name</label>
+                <md-input name="firstName" v-model="userPopin.firstName" type="text" />
+            </md-field>
+            <md-field>
+                <label for="lastName">Last name</label>
+                <md-input name="lastName" v-model="userPopin.lastName" type="text" />
+            </md-field>
+            <md-dialog-actions>
+                <md-button class="md-primary" @click="sendUser">Edit</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
+</main-layout>

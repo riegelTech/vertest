@@ -1,0 +1,36 @@
+<main-layout>
+    <div>
+        <md-button class="md-fab md-primary" @click="showCreatePopin">
+           <md-icon>add</md-icon>
+        </md-button>
+        <md-table v-model="testSuites" md-sort="name" md-sort-order="asc" md-card>
+            <md-table-toolbar>
+                <h1 class="md-title">Test suites</h1>
+            </md-table-toolbar>
+            <md-table-row slot="md-table-row" slot-scope="{ item }">
+                <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
+                <md-table-cell md-label="Git branch" md-sort-by="gitBranch">{{ item.gitBranch }}</md-table-cell>
+                <md-table-cell md-label="Action">
+                    <md-button class="md-icon-button md-mini md-primary">
+                        <md-icon>edit</md-icon>
+                    </md-button>
+                    <md-button lass="md-icon-button md-mini md-accent">
+                        <md-icon>delete</md-icon>
+                    </md-button>
+                </md-table-cell>
+            </md-table-row>
+        </md-table>
+    </div>
+    <md-dialog :md-active.sync="createPopin.show">
+        <md-dialog-title>Please select a git branch</md-dialog-title>
+        <form>
+            <md-field>
+                <label for="gitBranch">Git branch</label>
+                <md-input name="gitBranch" v-model="createPopin.gitBranches" type="text" />
+            </md-field>
+            <md-dialog-actions>
+                <md-button class="md-primary">Import</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
+</main-layout>
