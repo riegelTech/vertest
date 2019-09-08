@@ -8,6 +8,7 @@ Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
+import {userMixin} from '../users/users';
 
 export default {
 	components: {
@@ -15,7 +16,6 @@ export default {
 	},
 	data() {
 		return {
-			currentUser: {},
 			loginPopup: {
 				show: false,
 				login: '',
@@ -23,20 +23,7 @@ export default {
 			}
 		};
 	},
-	async mounted() {
-		try {
-			const response = await this.$http.get('/auth/user');
-			if (response.status === 200) {
-				this.currentUser = response.body;
-			}
-		} catch (resp) {
-			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
-				window.location.href = '/init';
-				return;
-			}
-			this.loginPopup.show = true;
-		}
-	},
+	mixins: [userMixin],
 	methods: {
 		async login() {
 			try {
@@ -45,7 +32,7 @@ export default {
 					password: this.loginPopup.password
 				});
 				if (response.status === 200) {
-					this.currentUser = response.body;
+					this.$store.commit('currentUser', response.body);
 					this.hidePopup();
 				}
 			} catch (e) {

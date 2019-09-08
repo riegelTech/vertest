@@ -2,11 +2,13 @@
 
 import Vue from 'vue';
 import page from 'page';
+import store from './store';
 
 import routes from '../app/static-routing';
 
 const app = new Vue({
 	el: '#app-wrapper',
+	store,
 	data: {
 		ViewComponent: { render: h => h('div', 'loading...') }
 	},

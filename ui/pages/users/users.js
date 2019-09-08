@@ -22,6 +22,23 @@ const EMPTY_USER = {
 	lastName: ''
 };
 const USER_API_PATH = '/api/users/';
+const AUTH_API_PATH = '/auth/user';
+
+export const userMixin = {
+	async mounted() {
+		try {
+			const response = await this.$http.get(AUTH_API_PATH);
+			if (response.status === 200) {
+				this.$store.commit('currentUser', response.body);
+			}
+		} catch (resp) {
+			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
+				window.location.href = '/init';
+				return;
+			}
+		}
+	}
+};
 
 export default {
 	components: {
@@ -31,27 +48,20 @@ export default {
 		return {
 			users: [],
 			userPopin: EMPTY_USER,
-			error: '',
-			currentUser: {}
+			error: ''
 		};
 	},
+	mixins: [userMixin],
 	mounted() {
 		return this.initUsers();
 	},
+	computed: {
+		currentUser () {
+			return this.$store.state.currentUser;
+		}
+	},
 	methods: {
 		async initUsers() {
-			try {
-				const response = await this.$http.get('/auth/user');
-				if (response.status === 200) {
-					this.currentUser = response.body;
-				}
-			} catch (resp) {
-				if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
-					window.location.href = '/init';
-					return;
-				}
-			}
-
 			try {
 				const response = await this.$http.get(USER_API_PATH);
 				if (response.status === 200) {
