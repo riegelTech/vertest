@@ -5,11 +5,11 @@
         <form>
             <md-field>
                 <label for="login">Login</label>
-                <md-input name="login" v-model="loginPopup.login" type="text" />
+                <md-input name="login" v-model="userLogin" type="text" />
             </md-field>
             <md-field>
                 <label for="password">Password</label>
-                <md-input name="password" v-model="loginPopup.password" type="password" />
+                <md-input name="password" v-model="userPassword" type="password" />
             </md-field>
             <md-dialog-actions>
                 <md-button class="md-primary" @click="login">Send</md-button>

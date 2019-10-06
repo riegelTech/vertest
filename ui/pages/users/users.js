@@ -25,6 +25,12 @@ const USER_API_PATH = '/api/users/';
 const AUTH_API_PATH = '/auth/user';
 
 export const userMixin = {
+	data() {
+		return {
+			userLogin: '',
+			userPassword: ''
+		};
+	},
 	async mounted() {
 		try {
 			const response = await this.$http.get(AUTH_API_PATH);
@@ -35,6 +41,23 @@ export const userMixin = {
 			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
 				window.location.href = '/init';
 				return;
+			}
+		}
+		this.$emit('initCurrentUser');
+	},
+	methods: {
+		async login() {
+			try {
+				const response = await this.$http.post('/auth/login', {
+					login: this.userLogin,
+					password: this.userPassword
+				});
+				if (response.status === 200) {
+					this.$store.commit('currentUser', response.body);
+					this.$emit('userLogin')
+				}
+			} catch (e) {
+
 			}
 		}
 	}

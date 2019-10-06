@@ -17,30 +17,27 @@ export default {
 	data() {
 		return {
 			loginPopup: {
-				show: false,
-				login: '',
-				password: ''
+				show: false
 			}
 		};
 	},
 	mixins: [userMixin],
-	methods: {
-		async login() {
-			try {
-				const response = await this.$http.post('/auth/login', {
-					login: this.loginPopup.login,
-					password: this.loginPopup.password
-				});
-				if (response.status === 200) {
-					this.$store.commit('currentUser', response.body);
-					this.hidePopup();
-				}
-			} catch (e) {
-
+	mounted() {
+		this.$on('initCurrentUser', () => {
+			if (!this.$store.state.currentUser) {
+				this.showLoginPopup();
 			}
-		},
-		hidePopup() {
+		});
+		this.$on('userLogin', () => {
+			this.hideLoginPopup();
+		});
+	},
+	methods: {
+		hideLoginPopup() {
 			this.loginPopup.show = false;
+		},
+		showLoginPopup() {
+			this.loginPopup.show = true;
 		}
 	}
 }
