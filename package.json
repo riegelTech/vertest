@@ -28,7 +28,8 @@
     "lodash": "4.17.15",
     "mongodb": "3.2.7",
     "simple-git": "1.117.0",
-    "uuidv4": "4.0.0"
+    "uuidv4": "4.0.0",
+    "yaml": "1.7.1"
   },
   "devDependencies": {
     "css-loader": "3.0.0",

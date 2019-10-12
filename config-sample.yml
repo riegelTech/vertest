@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+repositories:
+  - name: Vertest
+    address: git@github.com:riegelTech/vertest.git
+    pubKey: /home/myUser/.ssh/id_rsa.pub
+    privKey: /home/myUser/.ssh/id_rsa
+
+  - name: My repository
+    address: https://myRepo.git
+    user: MyUser
+    pass: pass

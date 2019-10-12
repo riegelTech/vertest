@@ -6,6 +6,8 @@ const cookieParser = require('cookie-parser');
 const createNamespace = require('cls-hooked').createNamespace;
 const express = require('express');
 
+const appConfig = require('./appConfig/config');
+
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -51,4 +53,12 @@ app.use('/api/test-suites/', testSuiteRouting);
 app.use('/api/users/', usersRouting);
 app.use('/auth/', authRouting);
 
-app.listen(8080);
+
+const startApp = async () => {
+	const config = await appConfig.getAppConfigFileContent();
+	const port = config.server.port;
+	console.log(`Start server on port ${port}`);
+	app.listen(port);
+};
+
+startApp();
