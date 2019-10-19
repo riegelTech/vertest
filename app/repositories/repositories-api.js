@@ -6,19 +6,19 @@ const router = express.Router();
 
 const appConfig = require('../appConfig/config');
 
-function getRepositories(req, res) {
+async function getRepositories(req, res) {
     let repositories;
     let config;
     try {
-        config = appConfig.getAppConfig();
+        config = await appConfig.getAppConfig();
         if (!config.repositories) {
-            res.status(404).send({
-                success: dalse,
+            return res.status(404).send({
+                success: false,
                 error: 'No repositories configured'
             });
         }
     } catch (e) {
-        res.status(500).send({
+        return res.status(500).send({
             error: e.message
         })
     }
