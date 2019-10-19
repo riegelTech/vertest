@@ -1,7 +1,9 @@
 # How to configure your application ?
 
 To configure your application, create a yaml file at ` <YOUR_APP_DIR>/config.yml` . To help you
-to use correct sections and entries, you have a sample file named config-sample.yml.
+to use correct sections and entries, you have a sample file named `config-sample.yml`.
+
+Note that if no `config.yml` file is found, application will use `config-sample.yml` file instead.
 
 ## server : port
 
