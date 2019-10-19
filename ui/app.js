@@ -16,9 +16,9 @@ const app = new Vue({
 		return h(this.ViewComponent);
 	}
 });
-
-Object.keys(routes).forEach(route => {
-	const routeName = routes[route];
+const allRoutes = {...routes.pages, ...routes.utilsPages};
+Object.keys(allRoutes).forEach(route => {
+	const routeName = allRoutes[route];
 	const Component = require(`./pages/${routeName}/${routeName}.vue`);
 	page(route, () => app.ViewComponent = Component.default);
 });

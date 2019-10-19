@@ -46,7 +46,7 @@ app.all('/api/*', async function (req, res, next) {
 
 const uiPath = path.join(__dirname, '../ui/');
 const staticRoutes = require('./static-routing');
-Object.keys(staticRoutes).forEach(staticRoute => {
+Object.keys({...staticRoutes.pages, ...staticRoutes.utilsPages}).forEach(staticRoute => {
 	app.use(staticRoute, express.static(uiPath));
 });
 
