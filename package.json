@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node app/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "$(npm bin)/mocha \"./app/**/*-spec.js\"",
     "build": "webpack --config webpack.config.prod.js",
     "dev": "webpack --watch --config webpack.config.dev.js"
   },
@@ -32,9 +32,15 @@
     "yaml": "1.7.1"
   },
   "devDependencies": {
+    "chai": "4.2.0",
+    "chai-as-promised": "7.1.1",
     "css-loader": "3.0.0",
+    "mocha": "6.2.2",
     "page": "1.11.4",
+    "proxyquire": "2.1.3",
     "sass-loader": "7.1.0",
+    "sinon": "7.5.0",
+    "sinon-chai": "3.3.0",
     "vue": "2.6.10",
     "vue-loader": "15.7.1",
     "vue-material": "1.0.0-beta-11",

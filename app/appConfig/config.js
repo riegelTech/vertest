@@ -36,7 +36,7 @@ async function getAppConfigFileContent() {
 }
 
 module.exports = {
-	getAppConfig() {
-		return config ? config : getAppConfigFileContent();
+	async getAppConfig() {
+		return config ? config : await getAppConfigFileContent();
 	}
 };
