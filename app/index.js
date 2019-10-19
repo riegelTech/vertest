@@ -16,6 +16,7 @@ const testSuiteRouting = require('./testSuites/testSuite-api');
 const usersRouting = require('./users/users-api');
 const usersModule = require('./users/users');
 const authRouting = require('./auth/auth-api');
+const repositoriesRouting = require('./repositories/repositories-api');
 
 const sessionsCls = createNamespace('sessions');
 app.use((req, res, next) => {
@@ -51,11 +52,12 @@ Object.keys(staticRoutes).forEach(staticRoute => {
 
 app.use('/api/test-suites/', testSuiteRouting);
 app.use('/api/users/', usersRouting);
+app.use('/api/repositories/', repositoriesRouting);
 app.use('/auth/', authRouting);
 
 
 const startApp = async () => {
-	const config = await appConfig.getAppConfigFileContent();
+	const config = await appConfig.getAppConfig();
 	const port = config.server.port;
 	console.log(`Start server on port ${port}`);
 	app.listen(port);

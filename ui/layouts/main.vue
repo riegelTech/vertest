@@ -1,7 +1,7 @@
 <template>
     <div>
         <header>
-            <h1>Main title</h1>
+            <h1>Vertest</h1>
         </header>
         <div>
             <slot></slot>

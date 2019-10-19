@@ -9,6 +9,8 @@ const Yaml = require('yaml');
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.yml');
 const CONFIG_SAMPLE_PATH = path.join(__dirname, '..', '..', 'config-sample.yml');
 
+let config;
+
 async function getAppConfigFileContent() {
 
 	const readFile = util.promisify(fs.readFile);
@@ -26,12 +28,15 @@ async function getAppConfigFileContent() {
 	}
 
 	try {
-		return Yaml.parse(configFileContent);
+		config = Yaml.parse(configFileContent);
+		return config;
 	} catch (e) {
 		throw new Error(`Config file is not well formatted : ${e.message}`);
 	}
 }
 
 module.exports = {
-	getAppConfigFileContent
+	getAppConfig() {
+		return config ? config : getAppConfigFileContent();
+	}
 };

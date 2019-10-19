@@ -1,5 +1,9 @@
 # Home
 
+## How to configure your application ?
+
+[Find all configuration entries.](./configure.md)
+
 ## How to start your application
 
 Install all dependencies, using npm :

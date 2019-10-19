@@ -5,5 +5,6 @@ module.exports = {
 	'/': 'home',
 	'/init': 'init',
 	'/users': 'users',
-	'/test-suites': 'test-suites'
+	'/test-suites': 'test-suites',
+	'/repositories': 'repositories'
 };
