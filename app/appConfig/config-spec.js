@@ -15,16 +15,19 @@ chai.use(chaiAsPromised);
 describe('appConfig', function () {
 
    let configModule;
-   let configFileContent = `some-list:
-  some-item: some-value`;
+   let configFileContent;
    let errorConfigFileRead;
-   const fsMock = {
-      readFile(path, encoding, cb) {
-         cb(errorConfigFileRead, configFileContent);
-      }
-   };
+   let fsMock;
 
    beforeEach(function () {
+      configFileContent = `some-list:
+  some-item: some-value`;
+      errorConfigFileRead = null;
+      fsMock = {
+         readFile(path, encoding, cb) {
+            cb(errorConfigFileRead, configFileContent);
+         }
+      };
       configModule = proxyquire('./config', {
          'fs': fsMock
       });
@@ -50,8 +53,22 @@ describe('appConfig', function () {
       fsMock.readFile.should.have.been.calledWith(expectedConfPath);
    });
 
-   it('should read sample config file if main one is does not exists', function () {
-
+   it('should read sample config file if main one is does not exists', async function () {
+      // given
+      fsMock.readFile.restore();
+      sinon.stub(fsMock, 'readFile')
+         .onFirstCall().callsFake((path, encoding, cb) => {
+            cb(new Error('Some read error'), null);
+         })
+          .onSecondCall().callsFake((path, encoding, cb) => {
+         cb(null, configFileContent);
+      });
+      const expectedSampleConfPath = Path.join(__dirname, '../', '../', 'config-sample.yml');
+      // when
+      await configModule.getAppConfig();
+      fsMock.readFile.should.have.been.calledTwice;
+      fsMock.readFile.should.have.been.calledWith(expectedSampleConfPath);
+      fsMock.readFile.reset();
    });
 
    it('should persist config after first read', async function () {
@@ -71,7 +88,18 @@ describe('appConfig', function () {
       return configModule.getAppConfig().should.be.rejectedWith(`Config file does not exist or is not readable : ${errorConfigFileRead.message}`);
    });
 
-   it('should fail if yaml parsing fails', function () {
+   it('should fail if yaml parsing fails', async function () {
+      // given
+      const parsingError = 'Some parsing error';
+      configModule = proxyquire('./config', {
+         'fs': fsMock,
+         'yaml': {
+            parse() {
+               throw new Error(parsingError);
+            }
+         }
+      });
 
+      return configModule.getAppConfig().should.be.rejectedWith(`Config file is not well formatted : ${parsingError}`);
    });
 });
