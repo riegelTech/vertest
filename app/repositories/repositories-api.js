@@ -4,31 +4,42 @@ const _ = require('lodash');
 const express = require('express');
 const router = express.Router();
 
-const appConfig = require('../appConfig/config');
+const repositoriesModule = require('../repositories/repositories');
 
 async function getRepositories(req, res) {
-    let repositories;
-    let config;
-    try {
-        config = await appConfig.getAppConfig();
-        if (!config.repositories) {
-            return res.status(404).send({
-                success: false,
-                error: 'No repositories configured'
-            });
-        }
-    } catch (e) {
-        return res.status(500).send({
-            error: e.message
-        })
-    }
-
-    repositories = config.repositories;
-    const keysToExpose = ['name', 'address'];
-    repositories = repositories.map(repo => _.pick(repo, keysToExpose));
-    res.send(repositories);
+    const repositoriesForApi = repositoriesModule.getRepositories().map(repo => ({
+        name: repo.name,
+        address: repo.address,
+        authMethod: repo.authMethod,
+        decryptedPrivKey: repo.decryptedPrivKey
+    }));
+    res.send(repositoriesForApi);
 }
 
-router.get('/', getRepositories);
+async function setPrivKey(req, res) {
+    const repoUrl = decodeURIComponent(req.params['repositoryAddress']);
+    const pass = req.body.keyPass;
+    let repository;
+    try {
+        repository = repositoriesModule.getRepository(repoUrl);
+    } catch (e) {
+        return res.status(404).send(e.message);
+    }
+
+    if (repository.authMethod === 'http') {
+        res.status(403).send(`Repository with address ${repository.address} does not use SSH authentication`);
+    }
+
+    repository.privKeyPass = pass;
+    await repository.init();
+
+    if (repository.decryptedPrivKey === false) {
+        return res.status(403).send(`Fail to decrypt SSH private key for repository ${repository.address}`);
+    }
+    return res.status(200).send('OK');
+}
+
+router.get('/', getRepositories)
+    .put('/:repositoryAddress/key-pass', setPrivKey);
 
 module.exports = router;

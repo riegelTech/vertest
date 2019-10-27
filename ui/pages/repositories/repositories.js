@@ -17,7 +17,12 @@ export default {
     },
     data() {
         return {
-            repositories: []
+            repositories: [],
+            keyPopin: {
+                show: false,
+                repoAddress: null,
+                keyPass: ''
+            }
         };
     },
     mounted() {
@@ -32,6 +37,28 @@ export default {
                 }
             } catch (resp) {
                 window.location.href = '/';
+            }
+        },
+        unlockPrivKey(repoId) {
+            this.keyPopin.repoAddress = repoId;
+            this.keyPopin.show = true;
+        },
+        async sendKeyPass() {
+            const repoAddressEncoded = encodeURIComponent(this.keyPopin.repoAddress);
+            console.log(repoAddressEncoded);
+            try {
+                const response = await this.$http.put(`${REPOSITORIES_PATH}${repoAddressEncoded}/key-pass`, {
+                    keyPass: this.keyPopin.keyPass
+                });
+                if (response.status !== 200) {
+                    alert(response.body);
+                    return;
+                }
+                this.keyPopin.show = false;
+                this.keyPopin.keyPass = '';
+                this.initRepositories();
+            } catch (e) {
+                alert('Key password update failed');
             }
         }
     }

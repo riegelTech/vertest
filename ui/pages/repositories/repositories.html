@@ -6,8 +6,35 @@
             </md-table-toolbar>
             <md-table-row slot="md-table-row" slot-scope="{ item }">
                 <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
-                <md-table-cell md-label="Git branch" md-sort-by="gitBranch">{{ item.address }}</md-table-cell>
+                <md-table-cell md-label="Git url" md-sort-by="address">{{ item.address }}</md-table-cell>
+                <md-table-cell md-label="Actions">
+                    <template v-if="item.authMethod === 'ssh'">
+                        <template v-if="item.decryptedPrivKey === false">
+                            <md-button class="md-icon-button md-accent" @click="unlockPrivKey(item.address)">
+                                <md-icon>lock</md-icon>
+                            </md-button>
+                        </template>
+                        <template v-else>
+                            <md-icon class="md-primary">lock_open</md-icon>
+                        </template>
+                    </template>
+                </md-table-cell>
             </md-table-row>
         </md-table>
     </div>
+    <md-dialog :md-active.sync="keyPopin.show">
+        <md-dialog-title>Key pass</md-dialog-title>
+        <form>
+            <md-field>
+                <md-input name="repoAddress" v-model="keyPopin.repoAddress" type="hidden" />
+            </md-field>
+            <md-field>
+                <label for="keyPass">Private key password</label>
+                <md-input name="keyPass" v-model="keyPopin.keyPass" type="password" />
+            </md-field>
+            <md-dialog-actions>
+                <md-button class="md-primary" @click="sendKeyPass">Send</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
 </main-layout>

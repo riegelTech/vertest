@@ -7,6 +7,7 @@ const createNamespace = require('cls-hooked').createNamespace;
 const express = require('express');
 
 const appConfig = require('./appConfig/config');
+const repositories = require('./repositories/repositories');
 
 const app = express();
 app.use(express.json());
@@ -59,6 +60,12 @@ app.use('/auth/', authRouting);
 const startApp = async () => {
 	const config = await appConfig.getAppConfig();
 	const port = config.server.port;
+	try {
+		await repositories.initRepositories();
+	} catch (e) {
+		console.error(e);
+	}
+
 	console.log(`Start server on port ${port}`);
 	app.listen(port);
 };

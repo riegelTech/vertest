@@ -13,6 +13,7 @@ let config;
 
 async function getAppConfigFileContent() {
 
+	// TODO use utils module instead
 	const readFile = util.promisify(fs.readFile);
 
 	let configFileContent;
