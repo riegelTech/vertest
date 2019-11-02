@@ -52,6 +52,10 @@ class Repository {
         return this.pubKey ? Repository.authMethods.SSH : Repository.authMethods.HTTP;
     }
 
+    get gitBranches() {
+        return this._gitBranches;
+    }
+
     init() {
         if (this.authMethod === Repository.authMethods.SSH) {
             return this.initSshRepository();

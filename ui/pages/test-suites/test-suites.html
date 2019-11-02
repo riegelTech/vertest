@@ -22,11 +22,23 @@
         </md-table>
     </div>
     <md-dialog :md-active.sync="createPopin.show">
-        <md-dialog-title>Please select a git branch</md-dialog-title>
+        <md-dialog-title>Please select a repository and a git branch</md-dialog-title>
         <form>
             <md-field>
+                <label for="testSuiteName">Test suite name</label>
+                <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" />
+            </md-field>
+            <md-field>
+                <label for="repository">Repository</label>
+                <md-select v-model="createPopin.selectedRepository" name="repository" @md-selected="selectRepository">
+                    <md-option v-for="repository in repositories" :value="repository.name" :key="repository.name">{{ repository.name }}</md-option>
+                </md-select>
+            </md-field>
+            <md-field>
                 <label for="gitBranch">Git branch</label>
-                <md-input name="gitBranch" v-model="createPopin.gitBranches" type="text" />
+                <md-select v-model="createPopin.selectedGitBranch" name="gitBranch">
+                    <md-option v-for="gitBranch in createPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
+                </md-select>
             </md-field>
             <md-dialog-actions>
                 <md-button class="md-primary">Import</md-button>

@@ -11,7 +11,8 @@ async function getRepositories(req, res) {
         name: repo.name,
         address: repo.address,
         authMethod: repo.authMethod,
-        decryptedPrivKey: repo.decryptedPrivKey
+        decryptedPrivKey: repo.decryptedPrivKey,
+        gitBranches: repo.gitBranches
     }));
     res.send(repositoriesForApi);
 }
