@@ -6,8 +6,12 @@ repositories:
     address: git@github.com:riegelTech/vertest.git
     pubKey: /home/myUser/.ssh/id_rsa.pub
     privKey: /home/myUser/.ssh/id_rsa
+    testDirs: **/*-test.md
 
   - name: My repository
     address: https://myRepo.git
     user: MyUser
     pass: pass
+    testDirs:
+      - manual-test-plans/*.md
+      - other-test-plans/**/*.md

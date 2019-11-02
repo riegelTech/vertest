@@ -14,7 +14,7 @@ const utils = require('../utils');
 const DEFAULT_REPOTE_NAME = 'origin';
 
 class Repository {
-    constructor({name = '', address = '', pubKey = '', privKey = '', user = '', pass = ''}) {
+    constructor({name = '', address = '', pubKey = '', privKey = '', user = '', pass = '', testDirs = []}) {
         if (!name) {
             throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
         }
@@ -39,6 +39,9 @@ class Repository {
 
         this._gitRepository = null;
         this._gitBranches = [];
+
+        this._repoDir = Path.join(__dirname, '..', '..', 'cloneDir', this.name);
+        this._testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
     }
 
     static get authMethods() {
@@ -86,11 +89,10 @@ class Repository {
     }
 
     async cloneRepository() {
-        const repoDir = Path.join(__dirname, '..', '..', 'cloneDir', this.name);
-        if (await utils.exists(repoDir)) {
-            await fsExtra.remove(repoDir);
+        if (await utils.exists(this._repoDir)) {
+            await fsExtra.remove(this._repoDir);
         }
-        await utils.mkdir(repoDir);
+        await utils.mkdir(this._repoDir);
 
 
         const opts = {
@@ -119,11 +121,18 @@ class Repository {
             }
         }
 
-        this._gitRepository = await Clone(this.address, repoDir, opts);
+        this._gitRepository = await Clone(this.address, this._repoDir, opts);
         const fullRefPath = `refs/remotes/${DEFAULT_REPOTE_NAME}/`;
         this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(fullRefPath))
             .map(fullBranchName => fullBranchName.replace(fullRefPath, ''));
+
+        await this.collectTestFilesPaths();
+    }
+
+    async collectTestFilesPaths() {
+        const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir})));
+        return [].concat(...testFilesBatches);
     }
 
     set privKeyPass(privKeyPass) {
