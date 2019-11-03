@@ -47,7 +47,9 @@ export default {
 		async sendCreateTestSuite() {
 			try {
 				const response = await this.$http.post(TEST_SUITE_PATH, {
-
+					name: this.createPopin.testSuiteName,
+					repoAddress: this.createPopin.selectedRepository,
+					gitBranch: this.createPopin.selectedGitBranch
 				});
 				if (response.status === 200) {
 					return this.initTestSuites();
@@ -56,11 +58,23 @@ export default {
 				alert('Test suite creation failed');
 			}
 		},
+		async deleteTestSuite(testId) {
+			try {
+				const response = await this.$http.delete(`${TEST_SUITE_PATH}${testId}`);
+				if (response.status !== 200) {
+					alert(response.body);
+					return;
+				}
+				return this.initTestSuites();
+			} catch (e) {
+				alert('Test suite deletion failed');
+			}
+		},
 		showCreatePopin() {
 			this.createPopin.show = true;
 		},
 		selectRepository() {
-			const selectedRepository = this.repositories.find(repository => repository.name === this.createPopin.selectedRepository);
+			const selectedRepository = this.repositories.find(repository => repository.address === this.createPopin.selectedRepository);
 			this.createPopin.availableGitBranches = selectedRepository.gitBranches;
 		}
 	}

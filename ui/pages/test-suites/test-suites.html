@@ -9,12 +9,13 @@
             </md-table-toolbar>
             <md-table-row slot="md-table-row" slot-scope="{ item }">
                 <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
+                <md-table-cell md-label="Repository" md-sort-by="repositoryName">{{ item.repositoryName }}</md-table-cell>
                 <md-table-cell md-label="Git branch" md-sort-by="gitBranch">{{ item.gitBranch }}</md-table-cell>
                 <md-table-cell md-label="Action">
                     <md-button class="md-icon-button md-mini md-primary">
                         <md-icon>edit</md-icon>
                     </md-button>
-                    <md-button lass="md-icon-button md-mini md-accent">
+                    <md-button lass="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
                     </md-button>
                 </md-table-cell>
@@ -31,7 +32,7 @@
             <md-field>
                 <label for="repository">Repository</label>
                 <md-select v-model="createPopin.selectedRepository" name="repository" @md-selected="selectRepository">
-                    <md-option v-for="repository in repositories" :value="repository.name" :key="repository.name">{{ repository.name }}</md-option>
+                    <md-option v-for="repository in repositories" :value="repository.address" :key="repository.address">{{ repository.name }}</md-option>
                 </md-select>
             </md-field>
             <md-field>
@@ -41,7 +42,7 @@
                 </md-select>
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary">Import</md-button>
+                <md-button class="md-primary" @click="sendCreateTestSuite">Import</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>

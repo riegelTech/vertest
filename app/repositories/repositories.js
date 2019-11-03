@@ -132,7 +132,7 @@ class Repository {
 
     async collectTestFilesPaths() {
         const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir})));
-        return [].concat(...testFilesBatches);
+        return ([].concat(...testFilesBatches)).map(relativeTestPath => Path.resolve(this._repoDir, relativeTestPath));
     }
 
     set privKeyPass(privKeyPass) {

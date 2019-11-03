@@ -4,8 +4,9 @@ const express = require('express');
 const router = express.Router();
 
 const dbConnector = require('../db/db-connector');
-const testCasesImporter = require('./testCases-importer');
+const repoModule = require('../repositories/repositories');
 const TestSuite = require('./testSuite');
+const utils = require('../utils');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
@@ -18,7 +19,18 @@ async function getTestSuites(req, res) {
 		if (itemsCount > 0){
 			itemsList = await cursor.toArray();
 		}
-		res.send(itemsList.map(item => new TestSuite(item)));
+
+		const testSuites = itemsList.map(item => new TestSuite(item)).map(testSuite => {
+			let repositoryName = 'Unknown';
+			try {
+				repositoryName = repoModule.getRepository(testSuite.repoAddress).name;
+			} catch (e) {
+				// do nothing
+			}
+			return Object.assign({repositoryName}, testSuite);
+		});
+
+		res.send(testSuites);
 	} catch(e) {
 		res.send({
 			success: false,
@@ -30,11 +42,26 @@ async function getTestSuites(req, res) {
 async function createTestSuite(req, res) {
 	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 
-	const {name, gitRepoUrl, gitBranch, sourceDir} = req.body;
+	const {name, repoAddress, gitBranch} = req.body;
+
+	let repository;
+	try {
+		repository = repoModule.getRepository(repoAddress);
+	} catch (e) {
+		res.status(404).send(e.message);
+	}
+
 
 	try {
-		const tests = await testCasesImporter(gitRepoUrl, gitBranch, sourceDir);
-		const testSuite = new TestSuite({name, tests, gitBranch});
+		const testFilesPath = await repository.collectTestFilesPaths();
+		const tests = await Promise.all(testFilesPath.map(async testFilePath => {
+			return {
+				url: testFilePath,
+				content: await utils.readFile(testFilePath, 'utf8')
+			}
+		}));
+
+		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch});
 		await coll.insertOne(testSuite);
 		res.send({
 			success: true,
@@ -73,45 +100,9 @@ async function deleteTestSuite(req, res) {
 	}
 }
 
-async function importTestCases(req, res) {
-	const testUuid = req.params.uuid;
-	const {gitRepoUrl, gitBranch, sourceDir} = req.body;
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
-	try {
-		const tests = await testCasesImporter(gitRepoUrl, gitBranch, sourceDir);
-		const filter = {_id: testUuid};
-		const itemsCount = await coll.find(filter).count();
-		if (itemsCount === 0) {
-			throw new Error(`No test suite found with id ${testUuid}`);
-		}
-		await coll.updateOne(filter, {
-			$set: {
-				tests,
-				gitBranch
-			}
-		});
-
-		const newTestSuite = (await coll.find(filter).toArray())[0];
-		res.send({
-			success: true,
-			data: newTestSuite
-		});
-	} catch (e) {
-		res.send({
-			success: false,
-			msg: e.message
-		})
-	}
-
-
-
-
-
-}
 
 router.get('/', getTestSuites)
 	.post('/', createTestSuite)
-	.put('/import-test-cases/:uuid', importTestCases)
 	.delete('/:uuid', deleteTestSuite);
 
 
