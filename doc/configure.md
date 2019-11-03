@@ -41,7 +41,6 @@ repositories:
       - other-test-plans/**/*.md
 ```
 
-<p class="warning">
-If your SSH private key is encrypted, you will see a red lock symbol in repositories grid.
-So you can enter its passphrase clicking on this symbol.
-</p>
+> :warning:
+> If your SSH private key is encrypted, you will see a red lock symbol in repositories grid.
+> So you can enter its passphrase clicking on this symbol.
