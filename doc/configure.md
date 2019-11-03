@@ -20,15 +20,28 @@ A list of GIT repositories where your tests are. Each repository have to specify
 You can optionally specify repository credentials, like user - password couple,
 or paths to the public and private SSH keys.
 
+You can set test file search patterns for each repository. Patterns can be string or arrays of strings.
+Patterns are based on glob syntax : [glob syntax](https://facelessuser.github.io/wcmatch/glob/). But I can't
+guarantee full blog support.
+
 ```yaml
 repositories:
   - name: Vertest
     address: git@github.com:riegelTech/vertest.git
     pubKey: /home/myUser/.ssh/id_rsa.pub
     privKey: /home/myUser/.ssh/id_rsa
+    testDirs: **/*-test.md
 
   - name: My repository
     address: https://myRepo.git
     user: MyUser
     pass: pass
+    testDirs:
+      - manual-test-plans/*.md
+      - other-test-plans/**/*.md
 ```
+
+<warning>
+If your SSH private key is encrypted, you will see a red lock symbol in repositories grid.
+So you can enter its passphrase clicking on this symbol.
+</warning>
