@@ -11,7 +11,8 @@ const ssh2Utils = require('ssh2').utils;
 const appConfig = require('../appConfig/config');
 const utils = require('../utils');
 
-const DEFAULT_REPOTE_NAME = 'origin';
+const DEFAULT_REMOTE_NAME = 'origin';
+const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
 
 class Repository {
     constructor({name = '', address = '', pubKey = '', privKey = '', user = '', pass = '', testDirs = []}) {
@@ -122,12 +123,22 @@ class Repository {
         }
 
         this._gitRepository = await Clone(this.address, this._repoDir, opts);
-        const fullRefPath = `refs/remotes/${DEFAULT_REPOTE_NAME}/`;
         this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
-            .filter(branchName => branchName.startsWith(fullRefPath))
-            .map(fullBranchName => fullBranchName.replace(fullRefPath, ''));
+            .filter(branchName => branchName.startsWith(FULL_REF_PATH))
+            .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
 
         await this.collectTestFilesPaths();
+    }
+
+    fetchRepository() {
+        return this._gitRepository.fetch(DEFAULT_REMOTE_NAME);
+    }
+
+    async checkoutBranch(branchName) {
+        const ref = await this._gitRepository.getBranch(`${FULL_REF_PATH}${branchName}`);
+        return this._gitRepository.checkoutRef(ref, {
+            checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
+        });
     }
 
     async collectTestFilesPaths() {

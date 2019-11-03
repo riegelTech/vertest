@@ -45,16 +45,14 @@ app.all('/api/*', async function (req, res, next) {
 	}
 });
 
-const uiPath = path.join(__dirname, '../ui/');
-const staticRoutes = require('./static-routing');
-Object.keys({...staticRoutes.pages, ...staticRoutes.utilsPages}).forEach(staticRoute => {
-	app.use(staticRoute, express.static(uiPath));
-});
-
+// API routes
 app.use('/api/test-suites/', testSuiteRouting);
 app.use('/api/users/', usersRouting);
 app.use('/api/repositories/', repositoriesRouting);
 app.use('/auth/', authRouting);
+// Static routes
+const uiPath = path.join(__dirname, '../ui/');
+app.use('/', express.static(uiPath));
 
 
 const startApp = async () => {

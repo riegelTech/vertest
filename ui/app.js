@@ -1,26 +1,36 @@
 'use strict';
 
 import Vue from 'vue';
-import page from 'page';
 import store from './store';
+import VueRouter from 'vue-router';
 
-import routes from '../app/static-routing';
+Vue.use(VueRouter);
 
-const app = new Vue({
-	el: '#app-wrapper',
+import homeComponent from './pages/home/home.vue';
+import initComponent from './pages/init/init.vue';
+import usersComponent from './pages/users/users.vue';
+import testSuitesComponent from './pages/test-suites/test-suites.vue';
+import oneTestSuiteComponent from './pages/test-suite/test-suite.vue';
+import testCaseComponent from './pages/test-case/test-case.vue';
+import repositoriesComponent from './pages/repositories/repositories.vue';
+
+import pageNotFoundComponent from './pages/404.vue';
+
+const router = new VueRouter({
+	mode: 'hash',
+	routes: [
+		{ path: '/', component: homeComponent },
+		{ path: '/init', component: initComponent },
+		{ path: '/users', component: usersComponent},
+		{ path: '/test-suites', component: testSuitesComponent},
+		{ path: '/test-suites/:testSuiteId', component: oneTestSuiteComponent},
+		{ path: '/test-suites/:testSuiteId/test-case/:testCaseId', component: testCaseComponent},
+		{ path: '/repositories', component: repositoriesComponent},
+		{ path: '*', component: pageNotFoundComponent}
+	]
+});
+
+new Vue({
 	store,
-	data: {
-		ViewComponent: { render: h => h('div', 'loading...') }
-	},
-	render (h) {
-		return h(this.ViewComponent);
-	}
-});
-const allRoutes = {...routes.pages, ...routes.utilsPages};
-Object.keys(allRoutes).forEach(route => {
-	const routeName = allRoutes[route];
-	const Component = require(`./pages/${routeName}/${routeName}.vue`);
-	page(route, () => app.ViewComponent = Component.default);
-});
-page('*', () => app.ViewComponent = require('./pages/404.vue'));
-page();
+	router
+}).$mount('#app-wrapper');

@@ -6,7 +6,6 @@ const router = express.Router();
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const TestSuite = require('./testSuite');
-const utils = require('../utils');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
@@ -20,17 +19,39 @@ async function getTestSuites(req, res) {
 			itemsList = await cursor.toArray();
 		}
 
-		const testSuites = itemsList.map(item => new TestSuite(item)).map(testSuite => {
+		const testSuites = itemsList.map(testSuite => {
 			let repositoryName = 'Unknown';
 			try {
 				repositoryName = repoModule.getRepository(testSuite.repoAddress).name;
 			} catch (e) {
-				// do nothing
+				// do nothing : git repository does not exists but test suite remains
 			}
 			return Object.assign({repositoryName}, testSuite);
 		});
 
 		res.send(testSuites);
+	} catch(e) {
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
+async function getTestSuite(req, res) {
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+
+	const testSuiteUuid = req.params.uuid;
+	const filter = {_id: testSuiteUuid};
+	try {
+		const cursor = await coll.find(filter);
+		const itemsCount = await cursor.count();
+		if (itemsCount === 0) {
+			throw new Error(`No test suite found with id ${testSuiteUuid}`);
+		}
+		const testSuite = (await cursor.toArray())[0];
+
+		res.send(testSuite);
 	} catch(e) {
 		res.send({
 			success: false,
@@ -53,15 +74,11 @@ async function createTestSuite(req, res) {
 
 
 	try {
-		const testFilesPath = await repository.collectTestFilesPaths();
-		const tests = await Promise.all(testFilesPath.map(async testFilePath => {
-			return {
-				url: testFilePath,
-				content: await utils.readFile(testFilePath, 'utf8')
-			}
-		}));
-
-		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch});
+		await repository.fetchRepository();
+		await repository.checkoutBranch(gitBranch);
+		const testsFilesPaths = await repository.collectTestFilesPaths();
+		const testSuite = new TestSuite({name, repoAddress: repository.address, testsFilesPaths, gitBranch});
+		await testSuite.collectTests();
 		await coll.insertOne(testSuite);
 		res.send({
 			success: true,
@@ -102,6 +119,7 @@ async function deleteTestSuite(req, res) {
 
 
 router.get('/', getTestSuites)
+	.get('/:uuid', getTestSuite)
 	.post('/', createTestSuite)
 	.delete('/:uuid', deleteTestSuite);
 

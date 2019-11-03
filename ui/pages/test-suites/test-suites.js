@@ -11,6 +11,16 @@ import MainLayout from '../../layouts/main.vue';
 import repositoriesMixin from '../repositories/repositories';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
+const EMPTY_TEST_SUITE = {
+	show: false,
+	testSuiteName: '',
+	selectedRepository: null,
+	availableGitBranches: [],
+	selectedGitBranch: null
+};
+function getEmptyTestSuitePopin() {
+	return Object.assign({}, EMPTY_TEST_SUITE);
+}
 
 export default {
 	components: {
@@ -18,13 +28,7 @@ export default {
 	},
 	data() {
 		return {
-			createPopin: {
-				show: false,
-				testSuiteName: '',
-				selectedRepository: null,
-				availableGitBranches: [],
-				selectedGitBranch: null
-			},
+			createPopin: getEmptyTestSuitePopin(),
 			testSuites: []
 		};
 	},
@@ -52,7 +56,8 @@ export default {
 					gitBranch: this.createPopin.selectedGitBranch
 				});
 				if (response.status === 200) {
-					return this.initTestSuites();
+					await this.initTestSuites();
+					this.hideCreatePopin();
 				}
 			} catch (resp) {
 				alert('Test suite creation failed');
@@ -72,6 +77,13 @@ export default {
 		},
 		showCreatePopin() {
 			this.createPopin.show = true;
+		},
+		hideCreatePopin() {
+			this.resetCreatePopin();
+			this.createPopin.show = false;
+		},
+		resetCreatePopin() {
+			this.createPopin = getEmptyTestSuitePopin();
 		},
 		selectRepository() {
 			const selectedRepository = this.repositories.find(repository => repository.address === this.createPopin.selectedRepository);

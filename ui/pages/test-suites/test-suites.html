@@ -12,10 +12,11 @@
                 <md-table-cell md-label="Repository" md-sort-by="repositoryName">{{ item.repositoryName }}</md-table-cell>
                 <md-table-cell md-label="Git branch" md-sort-by="gitBranch">{{ item.gitBranch }}</md-table-cell>
                 <md-table-cell md-label="Action">
+                    <md-button class="md-icon-button md-mini md-primary"><router-link :to="`/test-suites/${item._id}`"><md-icon>open_in_new</md-icon></router-link></md-button>
                     <md-button class="md-icon-button md-mini md-primary">
                         <md-icon>edit</md-icon>
                     </md-button>
-                    <md-button lass="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
+                    <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
                     </md-button>
                 </md-table-cell>

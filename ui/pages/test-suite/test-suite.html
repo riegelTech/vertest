@@ -1,0 +1,9 @@
+<main-layout>
+    <h2>{{ testSuite.name }}</h2>
+    <p><strong>{{ testSuite.repoAddress }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
+    <ul>
+        <li v-for="testCase of testSuite.tests">
+            <router-link :to="`/test-suites/${testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase._testFilePath))}`"><md-icon>open_in_new</md-icon>{{ testCase._testFilePath }}</router-link></md-button>
+        </li>
+    </ul>
+</main-layout>

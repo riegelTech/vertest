@@ -40,4 +40,4 @@ export default {
 			this.loginPopup.show = true;
 		}
 	}
-}
+};

@@ -3,7 +3,10 @@
         <header>
             <h1>Vertest</h1>
             <div>
-                <md-button v-for="(routeName, routePath) in routes"  v-bind:key="routePath"><a :href="routePath">{{ routeName }}</a></md-button>
+                <md-button><router-link to="/">Home</router-link></md-button>
+                <md-button><router-link to="/users">Users</router-link></md-button>
+                <md-button><router-link to="/test-suites">Test-suites</router-link></md-button>
+                <md-button><router-link to="/repositories">Repositories</router-link></md-button>
             </div>
         </header>
         <div>
