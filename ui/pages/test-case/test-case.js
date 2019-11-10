@@ -2,6 +2,8 @@
 
 import MainLayout from '../../layouts/main.vue';
 
+const md = require('markdown-it')();
+
 const TEST_SUITE_PATH = '/api/test-suites/';
 
 export default {
@@ -27,6 +29,7 @@ export default {
 				const testSuite = response.body;
 				const testCase =  testSuite.tests.find(testCase => testCase._testFilePath === testCaseId);
 				if (testCase) {
+					testCase.mdContent = md.render(testCase._content);
 					this.testCase = testCase;
 				}
 
