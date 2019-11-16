@@ -24,6 +24,7 @@ export default {
 			const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			if (response.status === 200) {
 				this.testSuite = response.body;
+				this.testSuite.tests.forEach(testCase => Object.assign(testCase, {_shortenTestFilePath: testCase._testFilePath.replace(this.testSuite.baseDir, '')}));
 			}
 		} catch (resp) {
 			window.location.href = '/';

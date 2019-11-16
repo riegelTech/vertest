@@ -89,18 +89,10 @@ class Repository {
         this.cloneRepository();
     }
 
-    async cloneRepository() {
-        if (await utils.exists(this._repoDir)) {
-            await fsExtra.remove(this._repoDir);
-        }
-        await utils.mkdir(this._repoDir);
-
-
+    _getRepoConnectionOptions(forFetch = false) {
         const opts = {
-            fetchOpts: {
-                callbacks: {
-                    certificateCheck: () => 0
-                }
+            callbacks: {
+                certificateCheck: () => 0
             }
         };
         let creds = null;
@@ -117,12 +109,23 @@ class Repository {
         }
 
         if (creds) {
-            opts.fetchOpts.callbacks.credentials = function() {
+            opts.callbacks.credentials = function() {
                 return creds;
             }
         }
 
-        this._gitRepository = await Clone(this.address, this._repoDir, opts);
+        return forFetch ? opts : {
+            fetchOpts: opts
+        };
+    }
+
+    async cloneRepository() {
+        if (await utils.exists(this._repoDir)) {
+            await fsExtra.remove(this._repoDir);
+        }
+        await utils.mkdir(this._repoDir);
+
+        this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
         this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(FULL_REF_PATH))
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
@@ -131,7 +134,7 @@ class Repository {
     }
 
     fetchRepository() {
-        return this._gitRepository.fetch(DEFAULT_REMOTE_NAME);
+        return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, this._getRepoConnectionOptions(true));
     }
 
     async checkoutBranch(branchName) {

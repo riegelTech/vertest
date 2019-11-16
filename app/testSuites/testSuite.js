@@ -1,5 +1,6 @@
 'use strict';
 
+const {lowestCommonAncestor} = require('lowest-common-ancestor');
 const uuid = require('uuidv4');
 
 const utils = require('../utils');
@@ -45,6 +46,7 @@ class TestSuite {
 		this.name = name;
 		this.repoAddress = repoAddress;
 		this.gitBranch = gitBranch;
+		this.baseDir = lowestCommonAncestor(...testsFilesPaths);
 		this.tests = testsFilesPaths.map(testFilePath => new TestCase({testFilePath}));
 	}
 
