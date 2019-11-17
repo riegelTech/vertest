@@ -59,6 +59,13 @@ export const userMixin = {
 			} catch (e) {
 
 			}
+		},
+		async getUsers() {
+			const response = await this.$http.get(USER_API_PATH);
+			if (response.status === 200) {
+				return response.body;
+			}
+			throw new Error('No user found');
 		}
 	}
 };
@@ -86,10 +93,7 @@ export default {
 	methods: {
 		async initUsers() {
 			try {
-				const response = await this.$http.get(USER_API_PATH);
-				if (response.status === 200) {
-					this.users = response.body;
-				}
+				this.users =  await this.getUsers();
 			} catch (resp) {
 				window.location.href = '/';
 			}

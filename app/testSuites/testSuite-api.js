@@ -5,6 +5,7 @@ const router = express.Router();
 
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
+const testCaseApi = require('./testCase-api');
 const TestSuite = require('./testSuite');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
@@ -121,7 +122,12 @@ async function deleteTestSuite(req, res) {
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
 	.post('/', createTestSuite)
-	.delete('/:uuid', deleteTestSuite);
+	.delete('/:uuid', deleteTestSuite)
+	.use('/:uuid/test-case', function (req, res, next) {
+		req.testSuiteUuid = req.params.uuid;
+		next();
+	})
+	.use('/:uuid/test-case', testCaseApi);
 
 
 module.exports = router;
