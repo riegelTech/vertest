@@ -3,13 +3,12 @@
         <div
                 :class="{bold: isFolder}"
                 @click="toggle">
-            <span v-if="isFolder">
+            <span class="folder" v-if="isFolder">
                 {{ item.name }}
             </span>
             <router-link  v-if="!isFolder" :to="`/test-suites/${testSuiteId}/test-case/${encodeURIComponent(encodeURIComponent(item.path))}`">
                 {{ item.name }}
             </router-link>
-            <span v-if="isFolder">[{{ isOpen ? '-' : '+' }}]</span>
         </div>
         <ul v-show="isOpen" v-if="isFolder">
             <test-cases-tree
@@ -32,7 +31,7 @@
 		},
 		data: function () {
 			return {
-				isOpen: false
+				isOpen: true
 			}
 		},
 		computed: {
@@ -51,6 +50,34 @@
 	};
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+    ul {
+        list-style-type: none;
+        padding-left: 2em;
+        li {
+            position: relative;
+            &:before,
+            &:after {
+                font-family: Material Icons;
+                -webkit-font-feature-settings: "liga";
+                font-feature-settings: "liga";
+                position: absolute;
+            }
+            &:before {
 
+                content: "more_horiz";
+                top: 0.2em;
+                left: -1em;
+            }
+            &:after {
+                content: "more_vert";
+                top: -0.4em;
+                left: -1.3em;
+            }
+        }
+        .folder {
+            cursor: pointer;
+            font-weight: bold;
+        }
+    }
 </style>

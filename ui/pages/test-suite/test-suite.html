@@ -1,7 +1,7 @@
 <main-layout>
     <h2>{{ testSuite.name }}</h2>
     <p><strong>{{ testSuite.repoAddress }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-    <ul>
+    <ul id="test-tree">
         <test-cases-tree
                 class="item"
                 :item="testSuite.testsTree"
