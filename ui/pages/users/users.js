@@ -54,7 +54,7 @@ export const userMixin = {
 				});
 				if (response.status === 200) {
 					this.$store.commit('currentUser', response.body);
-					this.$emit('userLogin')
+					this.$emit('userLogin');
 				}
 			} catch (e) {
 

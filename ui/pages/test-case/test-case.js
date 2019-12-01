@@ -46,19 +46,22 @@ export default {
 		async initTestCase() {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = encodeURIComponent(this.$route.params.testCaseId);
+			if (testCaseId === 'undefined') {
+				return;
+			}
 			let testCase;
 			try {
 				const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}`);
 				if (response.status === 200) {
 					testCase =  response.body;
-					if (testCase) {
-						testCase.mdContent = md.render(testCase._content);
-						this.testCase.user = this.testCase._user;
-						this.testCase = testCase;
-					}
 				}
 			} catch (resp) {
 				window.location.href = '/';
+			}
+			if (testCase) {
+				testCase.mdContent = md.render(testCase._content);
+				this.testCase.user = this.testCase._user;
+				this.testCase = testCase;
 			}
 			try {
 				this.affectUserPopin.users = await this.getUsers();

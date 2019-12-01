@@ -6,6 +6,7 @@ const router = express.Router();
 
 const dbConnector = require('../db/db-connector');
 const usersModule = require('../users/users');
+const {getHttpCode} = require('../utils');
 
 async function fetchTestCase(testSuiteId, testCasePath) {
 	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
@@ -14,12 +15,16 @@ async function fetchTestCase(testSuiteId, testCasePath) {
 	const cursor = await coll.find(filter);
 	const itemsCount = await cursor.count();
 	if (itemsCount === 0) {
-		throw new Error(`No test suite found with id ${testSuiteId}`);
+		const errTestSuite = new Error(`No test suite found with id ${testSuiteId}`);
+		errTestSuite.code = 'ETESTSUITENOTFOUND';
+		throw errTestSuite;
 	}
 	const testSuite = (await cursor.toArray())[0];
 	const testCase = testSuite.tests.find(testCase => testCase._testFilePath === testCasePath);
 	if (!testCase) {
-		throw new Error(`No test case found with id ${testCasePath}`);
+		const errTestCase = new Error(`No test case found with id ${testCasePath}`);
+		errTestCase.code = 'ETESTCASENOTFOUND';
+		throw errTestCase;
 	}
 
 	return {testSuite, testCase};
@@ -30,6 +35,7 @@ async function getTestCase(req, res) {
 		const {testCase} = await fetchTestCase(req.testSuiteUuid, decodeURIComponent(req.params.testCasePath));
 		res.send(testCase);
 	} catch(e) {
+		res.status(getHttpCode(e.code));
 		res.send({
 			success: false,
 			msg: e.message
@@ -40,6 +46,7 @@ async function getTestCase(req, res) {
 async function affectUser(req, res) {
 	const curUser = usersModule.getCurrentUser();
 	if (curUser.readOnly) {
+		res.status(getHttpCode('LOCKED'));
 		return res.send({
 			success: false,
 			msg: `User ${curUser._id} is readonly`
@@ -59,6 +66,7 @@ async function affectUser(req, res) {
 			success: true
 		});
 	} catch(e) {
+		res.status(getHttpCode(e.code));
 		res.send({
 			success: false,
 			msg: e.message
