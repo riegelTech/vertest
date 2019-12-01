@@ -14,10 +14,14 @@ export default {
 	data() {
 		return {
 			testCase: {
-				_user: '',
+				_user: {},
 				_testFilePath: '',
 				_content: '',
-				_status: 0
+				_status: 0,
+				user: {}
+			},
+			currentUser: {
+				readOnly: true
 			},
 			affectUserPopin: {
 				show: false,
@@ -28,7 +32,15 @@ export default {
 	},
 	mixins: [userMixin],
 	async mounted() {
-		return this.initTestCase();
+		// TODO find simplest way to watch the current user loading
+		this.$store.watch(storeState => {
+			if (storeState.currentUser) {
+				this.currentUser = storeState.currentUser;
+				return this.initTestCase();
+			}
+		}, storeState => {
+			return storeState.currentUser;
+		});
 	},
 	methods: {
 		async initTestCase() {
@@ -59,6 +71,9 @@ export default {
 			}
 		},
 		showAffectUserPopin() {
+			if (this.currentUser.readOnly) {
+				alert('As read-only user, you do not have rights to do this');
+			}
 			this.affectUserPopin.show = true;
 		},
 		async sendAffectUser() {

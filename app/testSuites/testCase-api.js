@@ -38,6 +38,14 @@ async function getTestCase(req, res) {
 }
 
 async function affectUser(req, res) {
+	const curUser = usersModule.getCurrentUser();
+	if (curUser.readOnly) {
+		return res.send({
+			success: false,
+			msg: `User ${curUser._id} is readonly`
+		});
+	}
+
 	const userId = req.body.userId;
 
 	try {
