@@ -7,9 +7,7 @@ const uuidV4 = require('uuidv4');
 
 const dbConnector = require('../db/db-connector');
 
-const USERS_COLL_NAME = 'users';
 const SESSION_EXPIRATION_DELAY_HOURS = 2;
-
 const SUPER_ADMIN_LOGIN = 'admin';
 
 const sessions = new Map();
@@ -76,7 +74,7 @@ class User {
 }
 
 async function getUsers() {
-	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
 	const cursor = await coll.find();
 	const itemsCount = await cursor.count();
 	if (itemsCount > 0){
@@ -87,8 +85,20 @@ async function getUsers() {
 	throw err;
 }
 
+async function getUser(userId) {
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
+	const cursor = await coll.find({_id: userId});
+	const itemsCount = await cursor.count();
+	if (itemsCount > 0){
+		return new User((await cursor.toArray())[0]);
+	}
+	const err = new Error(`No user found with ID "${userId}" in database`);
+	err.code = 'EUSERNOTFOUND';
+	throw err;
+}
+
 async function getSuperAdmin() {
-	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
 	const cursor = await coll.find({login: User.superAdminLogin});
 	const itemsCount = await cursor.count();
 	if (itemsCount > 0){
@@ -99,7 +109,7 @@ async function getSuperAdmin() {
 
 async function addUser(userProps) {
 	const newUser = new User(userProps);
-	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
 	const sameUserNumber = await coll.find({
 		login: newUser.login
 	}).count();
@@ -123,7 +133,7 @@ async function updateUser(userProps) {
 		throw errUserNotEditable;
 	}
 
-	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
 	const oldUserCursor = await coll.find({
 		_id: updatedUser._id
 	});
@@ -151,7 +161,7 @@ async function deleteUser(uuid) {
 		throw errUserNotEditable;
 	}
 
-	const coll = await dbConnector.getCollection(USERS_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
 	const userToDeleteCursor = await coll.find({
 		_id: uuid
 	});
@@ -220,6 +230,7 @@ function getCurrentUser () {
 module.exports = {
 	authenticate,
 	getUsers,
+	getUser,
 	getSuperAdmin,
 	addUser,
 	updateUser,

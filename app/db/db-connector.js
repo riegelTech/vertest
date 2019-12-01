@@ -8,6 +8,11 @@ const mongoPort = process.env['MONGO_PORT'] || 27017;
 const mongoUrl = `mongodb://${mongoHost}:${mongoPort}`;
 const defaultDbName = 'smctest';
 
+const DB_TABLES = {
+	USERS: 'users',
+	TEST_SUITES: 'testSuites'
+};
+
 const client = new MongoClient(mongoUrl, {
 	autoReconnect: true,
 	reconnectTries: 5,
@@ -40,5 +45,6 @@ module.exports = {
 	connect,
 	getDb,
 	getCollection,
-	close
+	close,
+	DB_TABLES
 };

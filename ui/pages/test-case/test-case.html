@@ -1,7 +1,10 @@
 <main-layout>
     <h2>{{ testCase._testFilePath }}</h2>
     <div class="actions">
-        <md-icon >person</md-icon>
+        <p v-if="testCase.user">
+            <md-icon >person</md-icon>
+            <strong>{{ testCase.user.firstName }} {{ testCase.user.lastName }}</strong> {{ testCase.user.email }}
+        </p>
         <md-button class="md-icon-button md-raised" @click="showAffectUserPopin()">
             <md-icon>person_add</md-icon>
         </md-button>
@@ -23,7 +26,7 @@
                 </md-select>
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="sendAffectUser">Affect</md-button>
+                <md-button class="md-primary" @click="sendAffectUser()">Affect</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>
