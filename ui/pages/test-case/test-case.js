@@ -14,11 +14,11 @@ export default {
 	data() {
 		return {
 			testCase: {
-				_user: {},
-				_testFilePath: '',
-				_content: '',
-				_status: 0,
-				user: {}
+				user: {},
+				testFilePath: '',
+				content: '',
+				mdContent: '',
+				status: 0
 			},
 			currentUser: {
 				readOnly: true
@@ -59,13 +59,12 @@ export default {
 				window.location.href = '/';
 			}
 			if (testCase) {
-				testCase.mdContent = md.render(testCase._content);
-				this.testCase.user = this.testCase._user;
+				testCase.mdContent = md.render(testCase.content);
 				this.testCase = testCase;
 			}
 			try {
 				this.affectUserPopin.users = await this.getUsers();
-				const userId = testCase._user._id;
+				const userId = testCase.user._id;
 				const existingUser = this.affectUserPopin.users.find(user => user._id === userId);
 				if (existingUser) {
 					this.testCase.user = existingUser;

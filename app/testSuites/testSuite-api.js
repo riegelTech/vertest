@@ -6,7 +6,7 @@ const router = express.Router();
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const testCaseApi = require('./testCase-api');
-const TestSuite = require('./testSuite');
+const {TestSuite, TestCase} = require('./testSuite');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
@@ -50,7 +50,7 @@ async function getTestSuite(req, res) {
 		if (itemsCount === 0) {
 			throw new Error(`No test suite found with id ${testSuiteUuid}`);
 		}
-		const testSuite = (await cursor.toArray())[0];
+		const testSuite = new TestSuite((await cursor.toArray())[0]);
 
 		res.send(testSuite);
 	} catch(e) {
@@ -77,8 +77,8 @@ async function createTestSuite(req, res) {
 	try {
 		await repository.fetchRepository();
 		await repository.checkoutBranch(gitBranch);
-		const testsFilesPaths = await repository.collectTestFilesPaths();
-		const testSuite = new TestSuite({name, repoAddress: repository.address, testsFilesPaths, gitBranch});
+		const tests = (await repository.collectTestFilesPaths()).map(testFilePath => new TestCase({testFilePath}));
+		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch});
 		await testSuite.collectTests();
 		await coll.insertOne(testSuite);
 		res.send({
@@ -86,7 +86,6 @@ async function createTestSuite(req, res) {
 			data: testSuite
 		});
 	} catch(e) {
-		console.error(e);
 		res.send({
 			success: false,
 			msg: e.message

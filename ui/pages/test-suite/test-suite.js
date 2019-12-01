@@ -29,7 +29,7 @@ export default {
 			const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			if (response.status === 200) {
 				this.testSuite = response.body;
-				this.testSuite.tests.forEach(testCase => Object.assign(testCase, {_shortenTestFilePath: testCase._testFilePath.replace(this.testSuite.baseDir, '')}));
+				this.testSuite.tests.forEach(testCase => Object.assign(testCase, {_shortenTestFilePath: testCase.testFilePath.replace(this.testSuite.baseDir, '')}));
 				this.createTestsTree();
 			}
 		} catch (resp) {
@@ -40,7 +40,7 @@ export default {
 		createTestsTree() {
 			const testsPaths = this.testSuite.tests.map(test => ({
 				splitPath: test._shortenTestFilePath.split(Path.sep).slice(1),
-				fullPath: test._testFilePath
+				fullPath: test.testFilePath
 			}));
 
 			function buildTree(testsPaths) {
