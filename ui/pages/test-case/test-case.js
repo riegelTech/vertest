@@ -46,10 +46,11 @@ export default {
 		async initTestCase() {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = encodeURIComponent(this.$route.params.testCaseId);
+			let testCase;
 			try {
 				const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}`);
 				if (response.status === 200) {
-					const testCase =  response.body;
+					testCase =  response.body;
 					if (testCase) {
 						testCase.mdContent = md.render(testCase._content);
 						this.testCase.user = this.testCase._user;
