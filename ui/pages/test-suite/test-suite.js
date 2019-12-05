@@ -40,7 +40,8 @@ export default {
 		createTestsTree() {
 			const testsPaths = this.testSuite.tests.map(test => ({
 				splitPath: test._shortenTestFilePath.split(Path.sep).slice(1),
-				fullPath: test.testFilePath
+				fullPath: test.testFilePath,
+				testCase: test
 			}));
 
 			function buildTree(testsPaths) {
@@ -55,9 +56,11 @@ export default {
 						tree.push({
 							name: dir,
 							path: testPath.splitPath.length > 1 ? '' : testPath.fullPath,
+							testCase: testPath.testCase,
 							children: buildTree(sameDirs.map(sameDir => ({
 								splitPath: sameDir.splitPath.slice(1),
-								fullPath: sameDir.fullPath
+								fullPath: sameDir.fullPath,
+								testCase: sameDir.testCase
 							})))
 						});
 					}

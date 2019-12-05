@@ -9,6 +9,13 @@
             <router-link  v-if="!isFolder" :to="`/test-suites/${testSuiteId}/test-case/${encodeURIComponent(encodeURIComponent(item.path))}`">
                 {{ item.name }}
             </router-link>
+            <span class="status-icon" v-if="!isFolder && item.testCase">
+                <md-icon v-if="item.testCase.status === statuses.TODO">pause_circle_outline</md-icon>
+                <md-icon v-if="item.testCase.status === statuses.IN_PROGRESS">loop</md-icon>
+                <md-icon v-if="item.testCase.status === statuses.FAILED">thumb_down</md-icon>
+                <md-icon v-if="item.testCase.status === statuses.BLOCKED">block</md-icon>
+                <md-icon v-if="item.testCase.status === statuses.SUCCESS">thumb_up</md-icon>
+            </span>
         </div>
         <ul v-show="isOpen" v-if="isFolder">
             <test-cases-tree
@@ -23,6 +30,7 @@
 </template>
 
 <script>
+    import {TEST_CASE_STATUSES} from '../pages/test-case/test-case';
 	export default {
 		name: 'test-cases-tree',
 		props: {
@@ -31,7 +39,8 @@
 		},
 		data: function () {
 			return {
-				isOpen: true
+				isOpen: true,
+				statuses: TEST_CASE_STATUSES
 			}
 		},
 		computed: {

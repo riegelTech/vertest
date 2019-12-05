@@ -6,7 +6,8 @@ import {userMixin} from "../users/users";
 const md = require('markdown-it')();
 
 const TEST_SUITE_PATH = '/api/test-suites/';
-const TEST_CASE_STATUSES = {
+
+export const TEST_CASE_STATUSES = {
 	TODO: 0,
 	IN_PROGRESS: 1,
 	BLOCKED: 3,
