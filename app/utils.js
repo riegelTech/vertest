@@ -38,6 +38,7 @@ module.exports = {
     // glob
     glob: util.promisify(glob),
     // http responses codes
+    RESPONSE_HTTP_CODES,
     getHttpCode(errorCode) {
         return RESPONSE_HTTP_CODES[errorCode] || RESPONSE_HTTP_CODES.DEFAULT;
     }

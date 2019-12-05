@@ -6,6 +6,13 @@ import {userMixin} from "../users/users";
 const md = require('markdown-it')();
 
 const TEST_SUITE_PATH = '/api/test-suites/';
+const TEST_CASE_STATUSES = {
+	TODO: 0,
+	IN_PROGRESS: 1,
+	BLOCKED: 3,
+	SUCCESS: 4,
+	FAILED: 5
+};
 
 export default {
 	components: {
@@ -13,12 +20,13 @@ export default {
 	},
 	data() {
 		return {
+			testCaseStatuses: TEST_CASE_STATUSES,
 			testCase: {
 				user: {},
 				testFilePath: '',
 				content: '',
 				mdContent: '',
-				status: 0
+				status: TEST_CASE_STATUSES.TODO
 			},
 			currentUser: {
 				readOnly: true
@@ -92,6 +100,20 @@ export default {
 				}
 			} catch (resp) {
 				alert('User attachment failed');
+			}
+		},
+		async changeTestStatus(newStatus) {
+			const testSuiteId = this.$route.params.testSuiteId;
+			const testCaseId = encodeURIComponent(this.$route.params.testCaseId);
+			try {
+				const response = await this.$http.put(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}/set-status/`, {
+					newStatus
+				});
+				if (response.status === 200) {
+					await this.initTestCase();
+				}
+			} catch (resp) {
+				alert('Status update failed');
 			}
 		}
 	}
