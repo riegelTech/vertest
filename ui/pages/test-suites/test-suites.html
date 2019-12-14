@@ -13,8 +13,8 @@
                 <md-table-cell md-label="Git branch" md-sort-by="gitBranch">{{ item.gitBranch }}</md-table-cell>
                 <md-table-cell md-label="Action">
                     <md-button class="md-icon-button md-mini md-primary"><router-link :to="`/test-suites/${item._id}`"><md-icon>open_in_new</md-icon></router-link></md-button>
-                    <md-button class="md-icon-button md-mini md-primary">
-                        <md-icon>edit</md-icon>
+                    <md-button v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(item._id)">
+                        <md-icon>warning</md-icon>
                     </md-button>
                     <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
@@ -45,6 +45,12 @@
             <md-dialog-actions>
                 <md-button class="md-primary" @click="sendCreateTestSuite">Import</md-button>
             </md-dialog-actions>
+        </form>
+    </md-dialog>
+    <md-dialog :md-active.sync="diffPopin.show">
+        <md-dialog-title>Diff viewer</md-dialog-title>
+        <form>
+            
         </form>
     </md-dialog>
 </main-layout>

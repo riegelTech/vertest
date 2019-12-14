@@ -8,6 +8,7 @@ const express = require('express');
 
 const appConfig = require('./appConfig/config');
 const repositories = require('./repositories/repositories');
+const testSuiteWatcher = require('./testSuites/testSuites-watcher');
 
 const app = express();
 app.use(express.json());
@@ -60,6 +61,7 @@ const startApp = async () => {
 	const port = config.server.port;
 	try {
 		await repositories.initRepositories();
+		await testSuiteWatcher.watchTestSuitesChanges();
 	} catch (e) {
 		console.error(e);
 	}

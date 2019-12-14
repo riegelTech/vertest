@@ -10,6 +10,17 @@ const {TestSuite, TestCase} = require('./testSuite');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
+async function getTestSuiteByUuid(testSuiteId) {
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const filter = {_id: testSuiteId};
+	const cursor = await coll.find(filter);
+	const itemsCount = await cursor.count();
+	if (itemsCount === 0) {
+		throw new Error(`No test suite found with id ${testSuiteId}`);
+	}
+	return new TestSuite((await cursor.toArray())[0]);
+}
+
 async function getTestSuites(req, res) {
 	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 	try {
@@ -40,19 +51,23 @@ async function getTestSuites(req, res) {
 }
 
 async function getTestSuite(req, res) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
-
-	const testSuiteUuid = req.params.uuid;
-	const filter = {_id: testSuiteUuid};
 	try {
-		const cursor = await coll.find(filter);
-		const itemsCount = await cursor.count();
-		if (itemsCount === 0) {
-			throw new Error(`No test suite found with id ${testSuiteUuid}`);
-		}
-		const testSuite = new TestSuite((await cursor.toArray())[0]);
-
+		const testSuite = await getTestSuiteByUuid(req.params.uuid);
 		res.send(testSuite);
+	} catch(e) {
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
+async function getTestSuiteDiff(req, res) {
+	try {
+		const testSuite = await getTestSuiteByUuid(req.params.uuid);
+		const repository = repoModule.getRepository(testSuite.repoAddress);
+		const repositoryDiff = await repository.getRepositoryDiff(testSuite.gitBranch);
+		res.send(repositoryDiff);
 	} catch(e) {
 		res.send({
 			success: false,
@@ -76,9 +91,9 @@ async function createTestSuite(req, res) {
 
 	try {
 		await repository.fetchRepository();
-		await repository.checkoutBranch(gitBranch);
+		const gitCommitSha = await repository.checkoutBranch(gitBranch);
 		const tests = (await repository.collectTestFilesPaths()).map(testFilePath => new TestCase({testFilePath}));
-		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch});
+		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch, gitCommitSha});
 		await testSuite.collectTests();
 		await coll.insertOne(testSuite);
 		res.send({
@@ -120,6 +135,7 @@ async function deleteTestSuite(req, res) {
 
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
+	.get('/:uuid/diff', getTestSuiteDiff)
 	.post('/', createTestSuite)
 	.delete('/:uuid', deleteTestSuite)
 	.use('/:uuid/test-case', function (req, res, next) {

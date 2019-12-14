@@ -29,7 +29,10 @@ export default {
 	data() {
 		return {
 			createPopin: getEmptyTestSuitePopin(),
-			testSuites: []
+			testSuites: [],
+			diffPopin: {
+				show : false
+			}
 		};
 	},
 	mixins: [repositoriesMixin],
@@ -73,6 +76,14 @@ export default {
 				return this.initTestSuites();
 			} catch (e) {
 				alert('Test suite deletion failed');
+			}
+		},
+		async solveTestSuiteDiff(testId) {
+			try {
+				const diff = await this.$http.get(`${TEST_SUITE_PATH}${testId}/diff`);
+
+			} catch (e) {
+				alert('Test suite diff failed');
 			}
 		},
 		showCreatePopin() {

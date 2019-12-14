@@ -4,6 +4,7 @@ const Path = require('path');
 
 const fsExtra = require('fs-extra');
 const GitUrlParse = require("git-url-parse");
+const minimatch = require('minimatch');
 const NodeGit = require('nodegit');
 const Clone = NodeGit.Clone;
 const ssh2Utils = require('ssh2').utils;
@@ -40,6 +41,7 @@ class Repository {
 
         this._gitRepository = null;
         this._gitBranches = [];
+        this._curHeadCommit = null;
 
         this._repoDir = Path.join(__dirname, '..', '..', 'cloneDir', this.name);
         this._testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
@@ -60,7 +62,15 @@ class Repository {
         return this._gitBranches;
     }
 
-    init() {
+    async init() {
+        // if repository exists just open it
+        if (await fsExtra.pathExists(this._repoDir)) {
+            this._gitRepository = await NodeGit.Repository.open(this._repoDir);
+            this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
+                .filter(branchName => branchName.startsWith(FULL_REF_PATH))
+                .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
+            return;
+        }
         if (this.authMethod === Repository.authMethods.SSH) {
             return this.initSshRepository();
         }
@@ -129,7 +139,7 @@ class Repository {
         this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(FULL_REF_PATH))
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
-
+        this._curHeadCommit = await this._gitRepository.getHeadCommit();
         await this.collectTestFilesPaths();
     }
 
@@ -137,11 +147,87 @@ class Repository {
         return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, this._getRepoConnectionOptions(true));
     }
 
+    async lookupForChanges(branchName) {
+        // TODO check if branch exists anymore ?
+        const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
+        const currentCommit = await this._gitRepository.getReferenceCommit(branchName);
+        const newestTree = await mostRecentCommit.getTree();
+        const currentTree = await currentCommit.getTree();
+        const diff = await newestTree.diff(currentTree);
+        const patches = await diff.patches();
+        if (!patches.length) {
+            return false;
+        }
+        const testDirs = this._testDirs;
+        function fileMatchTest(patch) {
+            return testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
+        }
+        const matchedPatches = patches.filter(fileMatchTest);
+        return matchedPatches.length > 0;
+    }
+
+    async getRepositoryDiff(branchName) {
+        const currentCommit = await this._gitRepository.getReferenceCommit(branchName);
+        const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
+
+        const newestTree = await mostRecentCommit.getTree();
+        const currentTree = await currentCommit.getTree();
+        const diff = await newestTree.diff(currentTree);
+        await diff.findSimilar({
+            flags: NodeGit.Diff.FIND.RENAMES
+        });
+        const patches = await diff.patches();
+        if (!patches.length) {
+            return [];
+        }
+        const testDirs = this._testDirs;
+        function fileMatchTest(patch) {
+            return testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
+        }
+        async function getHunks(patch) {
+            const hunks = await patch.hunks();
+            if (!hunks.length) {
+                return [];
+            }
+            return Promise.all(hunks.map(async hunk => {
+                const lines = await hunk.lines();
+                return {
+                    header: hunk.header().trim(),
+                    lines: lines.map(line => String.fromCharCode(line.origin()) + line.content().trim())
+                }
+            }));
+        }
+        const matchedPatches = patches.filter(fileMatchTest);
+        const addedPatches = matchedPatches
+            .filter(patch => patch.isAdded())
+            .map(patch => patch.newFile().path());
+        const deletedPatches = matchedPatches
+            .filter(patch => patch.isDeleted())
+            .map(patch => patch.oldFile().path());
+        const modifiedPatches = await Promise.all(matchedPatches
+            .filter(patch => patch.isModified())
+            .map(async patch => ({file: patch.oldFile().path(), hunks: await getHunks(patch)})));
+        const renamedPatches = await Promise.all(matchedPatches
+            .filter(patch => patch.isRenamed())
+            .map(async patch => ({oldFile: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch)})));
+
+        return {
+            currentCommit: currentCommit.sha(),
+            targetCommit: mostRecentCommit.sha(),
+            addedPatches,
+            deletedPatches,
+            modifiedPatches,
+            renamedPatches
+        };
+    }
+
     async checkoutBranch(branchName) {
         const ref = await this._gitRepository.getBranch(`${FULL_REF_PATH}${branchName}`);
-        return this._gitRepository.checkoutRef(ref, {
+        await this._gitRepository.checkoutRef(ref, {
             checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
         });
+        this._curHeadCommit = await this._gitRepository.getHeadCommit();
+        return this._curHeadCommit.sha();
     }
 
     async collectTestFilesPaths() {
@@ -162,6 +248,7 @@ async function initRepositories() {
     if (!config.repositories) {
         return;
     }
+    // TODO if repositories have been cleaned, they have to be checkouted on the revision stored with test-suite object in DB
     config.repositories.forEach(repoProps => {
         const repository = new Repository(repoProps);
         repositories.set(repository.address, repository);

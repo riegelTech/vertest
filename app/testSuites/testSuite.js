@@ -29,20 +29,29 @@ class TestCase {
 }
 
 class TestSuite {
-	constructor({_id = uuid(), name = '', repoAddress = '', tests = [], gitBranch = ''}) {
+	constructor({_id = uuid(), name = '', repoAddress = '', tests = [], gitBranch = '', gitCommitSha = '', status = TestSuite.STATUSES.UP_TO_DATE}) {
 		this._id = _id;
 		this.name = name;
 		this.repoAddress = repoAddress;
 		this.gitBranch = gitBranch;
+		this.gitCommitSha = gitCommitSha;
+		this.status = status;
 		this.tests = tests.map(testCase =>  {
 			return testCase instanceof TestCase ? testCase : new TestCase(testCase);
 		});
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
-
 	}
 
 	collectTests() {
 		return Promise.all(this.tests.map(testCase => testCase.fetchTestContent()));
+	}
+
+	static get STATUSES() {
+		return {
+			UP_TO_DATE: 'up_to_date',
+			TO_UPDATE: 'to_update',
+			UPDATING: 'updating'
+		};
 	}
 }
 
