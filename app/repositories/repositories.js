@@ -166,9 +166,9 @@ class Repository {
         return matchedPatches.length > 0;
     }
 
-    async getRepositoryDiff(branchName) {
-        const currentCommit = await this._gitRepository.getReferenceCommit(branchName);
-        const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
+    async getRepositoryDiff(testSuite) {
+        const currentCommit = await this._gitRepository.getReferenceCommit(testSuite.gitBranch);
+        const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${testSuite.gitBranch}`);
 
         const newestTree = await mostRecentCommit.getTree();
         const currentTree = await currentCommit.getTree();
@@ -192,37 +192,44 @@ class Repository {
             return Promise.all(hunks.map(async hunk => {
                 const lines = await hunk.lines();
                 return {
-                    header: hunk.header().trim(),
-                    lines: lines.map(line => String.fromCharCode(line.origin()) + line.content().trim())
+                    oldLines: {
+                        start: hunk.oldStart(),
+                        content: lines.filter(line => String.fromCharCode(line.origin()) === '-').map(line => line.content().trim())
+                    },
+                    newLines: {
+                        start: hunk.newStart(),
+                        content: lines.filter(line => String.fromCharCode(line.origin()) === '+').map(line => line.content().trim())
+                    }
                 }
             }));
         }
-        const matchedPatches = patches.filter(fileMatchTest);
+        function enrichWithTest(diffObject) {
+            const test = testSuite.tests.find(test => test.testFilePath === diffObject.oldFile().path());
+            return Object.assign(diffObject, {test});
+        }
+        const matchedPatches = patches.filter(fileMatchTest).map(enrichWithTest);
         const addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
-            .map(patch => patch.newFile().path());
+            .map(patch => ({file: patch.newFile().path(), test: patch.test}));
         const deletedPatches = matchedPatches
             .filter(patch => patch.isDeleted())
-            .map(patch => patch.oldFile().path());
-        const modifiedPatches = await Promise.all(matchedPatches
-            .filter(patch => patch.isModified())
-            .map(async patch => ({file: patch.oldFile().path(), hunks: await getHunks(patch)})));
-        const renamedPatches = await Promise.all(matchedPatches
-            .filter(patch => patch.isRenamed())
-            .map(async patch => ({oldFile: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch)})));
+            .map(patch => ({file: patch.oldFile().path(), test: patch.test}));
+        const modifiedPatches = (await Promise.all(matchedPatches
+            .filter(patch => patch.isModified() || patch.isRenamed())
+            .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
+            .filter(patch => patch.hunks.length > 0);
 
         return {
             currentCommit: currentCommit.sha(),
             targetCommit: mostRecentCommit.sha(),
             addedPatches,
             deletedPatches,
-            modifiedPatches,
-            renamedPatches
+            modifiedPatches
         };
     }
 
     async checkoutBranch(branchName) {
-        const ref = await this._gitRepository.getBranch(`${FULL_REF_PATH}${branchName}`);
+        const ref = await this._gitRepository.getBranch(branchName);
         await this._gitRepository.checkoutRef(ref, {
             checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
         });
@@ -232,7 +239,7 @@ class Repository {
 
     async collectTestFilesPaths() {
         const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir})));
-        return ([].concat(...testFilesBatches)).map(relativeTestPath => Path.resolve(this._repoDir, relativeTestPath));
+        return ([].concat(...testFilesBatches)).map(relativeTestPath => ({basePath: this._repoDir, testFilePath: relativeTestPath}));
     }
 
     set privKeyPass(privKeyPass) {

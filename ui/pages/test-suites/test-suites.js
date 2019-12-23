@@ -9,6 +9,8 @@ Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
 import repositoriesMixin from '../repositories/repositories';
+import DiffViewer from '../../components/diffViewer.vue';
+import TestCaseState from '../../components/testCaseState.vue';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
 const EMPTY_TEST_SUITE = {
@@ -24,14 +26,17 @@ function getEmptyTestSuitePopin() {
 
 export default {
 	components: {
-		MainLayout
+		MainLayout,
+		DiffViewer,
+		TestCaseState
 	},
 	data() {
 		return {
 			createPopin: getEmptyTestSuitePopin(),
 			testSuites: [],
 			diffPopin: {
-				show : false
+				show : false,
+				diff: null
 			}
 		};
 	},
@@ -80,11 +85,14 @@ export default {
 		},
 		async solveTestSuiteDiff(testId) {
 			try {
-				const diff = await this.$http.get(`${TEST_SUITE_PATH}${testId}/diff`);
-
+				this.diffPopin.diff = (await this.$http.get(`${TEST_SUITE_PATH}${testId}/diff`)).body;
+				this.diffPopin.show = true;
 			} catch (e) {
 				alert('Test suite diff failed');
 			}
+		},
+		changeTestStatus(newTestStatus) {
+			console.log(newTestStatus);
 		},
 		showCreatePopin() {
 			this.createPopin.show = true;

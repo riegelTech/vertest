@@ -66,7 +66,7 @@ async function getTestSuiteDiff(req, res) {
 	try {
 		const testSuite = await getTestSuiteByUuid(req.params.uuid);
 		const repository = repoModule.getRepository(testSuite.repoAddress);
-		const repositoryDiff = await repository.getRepositoryDiff(testSuite.gitBranch);
+		const repositoryDiff = await repository.getRepositoryDiff(testSuite);
 		res.send(repositoryDiff);
 	} catch(e) {
 		res.send({
@@ -92,7 +92,7 @@ async function createTestSuite(req, res) {
 	try {
 		await repository.fetchRepository();
 		const gitCommitSha = await repository.checkoutBranch(gitBranch);
-		const tests = (await repository.collectTestFilesPaths()).map(testFilePath => new TestCase({testFilePath}));
+		const tests = (await repository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
 		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch, gitCommitSha});
 		await testSuite.collectTests();
 		await coll.insertOne(testSuite);

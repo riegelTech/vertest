@@ -1,12 +1,15 @@
 'use strict';
 
+const Path = require('path');
+
 const {lowestCommonAncestor} = require('lowest-common-ancestor');
 const uuid = require('uuidv4');
 
 const utils = require('../utils');
 
 class TestCase {
-	constructor({testFilePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
+	constructor({testFilePath = '', basePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
+		this.basePath = basePath;
 		this.testFilePath = testFilePath;
 		this.content = content;
 		this.status = status;
@@ -24,7 +27,7 @@ class TestCase {
 	}
 
 	async fetchTestContent() {
-		this.content = await utils.readFile(this.testFilePath, 'utf8');
+		this.content = await utils.readFile(Path.resolve(this.basePath, this.testFilePath), 'utf8');
 	}
 }
 
