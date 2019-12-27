@@ -36,7 +36,9 @@ export default {
 			testSuites: [],
 			diffPopin: {
 				show : false,
-				diff: null
+				testSuiteId: null,
+				diff: null,
+				newStatuses: {}
 			}
 		};
 	},
@@ -83,16 +85,42 @@ export default {
 				alert('Test suite deletion failed');
 			}
 		},
-		async solveTestSuiteDiff(testId) {
+		async solveTestSuiteDiff(testSuiteId) {
 			try {
-				this.diffPopin.diff = (await this.$http.get(`${TEST_SUITE_PATH}${testId}/diff`)).body;
+				this.diffPopin.newStatuses = {};
+				this.diffPopin.testSuiteId = testSuiteId;
+				this.diffPopin.diff = (await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/diff`)).body;
+				this.diffPopin.diff.modifiedPatches.forEach(patch => {
+					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
+				});
 				this.diffPopin.show = true;
 			} catch (e) {
 				alert('Test suite diff failed');
 			}
 		},
-		changeTestStatus(newTestStatus) {
-			console.log(newTestStatus);
+		changeTestStatus(testCaseId, newTestStatus) {
+			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
+		},
+		async submitNewTestsStatuses() {
+			const nullStatus = Object.values(this.diffPopin.newStatuses).find(newStatus => newStatus === null);
+			if (nullStatus !== undefined && !confirm('At least one modified test has not been validated, continue ?')) {
+				return;
+			}
+			try {
+				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, {
+					currentCommit: this.diffPopin.diff.currentCommit,
+					targetCommit: this.diffPopin.diff.targetCommit,
+					newStatuses: this.diffPopin.newStatuses
+				});
+				if (response.status !== 200) {
+					alert(response.body);
+					return;
+				}
+				await this.initTestSuites();
+				this.hideDiffPopin();
+			} catch (e) {
+				alert('Test suite solving failed');
+			}
 		},
 		showCreatePopin() {
 			this.createPopin.show = true;
@@ -100,6 +128,9 @@ export default {
 		hideCreatePopin() {
 			this.resetCreatePopin();
 			this.createPopin.show = false;
+		},
+		hideDiffPopin() {
+			this.diffPopin.show = false;
 		},
 		resetCreatePopin() {
 			this.createPopin = getEmptyTestSuitePopin();

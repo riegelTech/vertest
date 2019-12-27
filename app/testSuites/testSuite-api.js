@@ -66,9 +66,61 @@ async function getTestSuiteDiff(req, res) {
 	try {
 		const testSuite = await getTestSuiteByUuid(req.params.uuid);
 		const repository = repoModule.getRepository(testSuite.repoAddress);
-		const repositoryDiff = await repository.getRepositoryDiff(testSuite);
+		const mostRecentCommit = await repository.getRecentCommitOfBranch(testSuite.gitBranch);
+		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
 		res.send(repositoryDiff);
 	} catch(e) {
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
+async function solveTestSuiteDiff(req, res) {
+	try {
+		const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+		const testSuite = await getTestSuiteByUuid(req.params.uuid);
+		const repository = repoModule.getRepository(testSuite.repoAddress);
+		const {currentCommit, targetCommit, newStatuses} = req.body;
+
+		const effectiveCurrentCommit = await repository.getCurrentCommit(testSuite.gitBranch);
+		if (effectiveCurrentCommit.sha() !== currentCommit) {
+			throw new Error(`Validations are based on start commit ${currentCommit} but current repository commit is ${effectiveCurrentCommit.sha()}`);
+		}
+
+		const {addedPatches, deletedPatches, modifiedPatches, renamedPatches} = await repository.getRepositoryDiff(testSuite, targetCommit);
+
+		modifiedPatches.forEach(patch => {
+			const test = testSuite.getTestCaseByFilePath(patch.file);
+			const newStatus = newStatuses[test.testFilePath];
+			if (newStatus === null) {
+				return;
+			}
+			test.status = newStatus;
+		});
+
+		addedPatches.forEach(patch => {
+			testSuite.addTestCase(repository._repoDir, patch.file);
+		});
+
+		deletedPatches.forEach(patch => {
+			testSuite.removeTestCase(patch.file);
+		});
+
+		renamedPatches.forEach(patch => {
+			const test = testSuite.getTestCaseByFilePath(patch.file);
+			test.testFilePath = patch.newFile;
+		});
+		await repository.checkoutCommit(targetCommit);
+
+		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
+		await Promise.all(testSuite.tests.map(test => test.fetchTestContent()));
+		await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
+
+ 		res.send(testSuite);
+	} catch(e) {
+		console.error(e);
 		res.send({
 			success: false,
 			msg: e.message
@@ -137,6 +189,7 @@ router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
 	.get('/:uuid/diff', getTestSuiteDiff)
 	.post('/', createTestSuite)
+	.put('/:uuid/solve', solveTestSuiteDiff)
 	.delete('/:uuid', deleteTestSuite)
 	.use('/:uuid/test-case', function (req, res, next) {
 		req.testSuiteUuid = req.params.uuid;

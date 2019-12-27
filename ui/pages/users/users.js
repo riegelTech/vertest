@@ -60,9 +60,13 @@ export const userMixin = {
 
 			}
 		},
-		async getUsers() {
+		async getUsers(forceRefresh) {
+			if (!forceRefresh && this.$store.state.users.length > 0) {
+				return this.$store.state.users;
+			}
 			const response = await this.$http.get(USER_API_PATH);
 			if (response.status === 200) {
+				this.$store.commit('users', response.body);
 				return response.body;
 			}
 			throw new Error('No user found');

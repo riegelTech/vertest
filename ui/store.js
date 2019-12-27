@@ -7,11 +7,15 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
 	state: {
-		currentUser: null
+		currentUser: null,
+		users: []
 	},
 	mutations: {
 		currentUser (state, user) {
 			state.currentUser = user;
+		},
+		users (state, users) {
+			state.users = users;
 		}
 	}
 })

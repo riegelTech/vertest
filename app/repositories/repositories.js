@@ -147,10 +147,14 @@ class Repository {
         return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, this._getRepoConnectionOptions(true));
     }
 
+    async getCurrentCommit(branchName) {
+        return this._gitRepository.getReferenceCommit(branchName);
+    }
+
     async lookupForChanges(branchName) {
         // TODO check if branch exists anymore ?
         const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
-        const currentCommit = await this._gitRepository.getReferenceCommit(branchName);
+        const currentCommit = await this.getCurrentCommit(branchName);
         const newestTree = await mostRecentCommit.getTree();
         const currentTree = await currentCommit.getTree();
         const diff = await newestTree.diff(currentTree);
@@ -166,9 +170,13 @@ class Repository {
         return matchedPatches.length > 0;
     }
 
-    async getRepositoryDiff(testSuite) {
-        const currentCommit = await this._gitRepository.getReferenceCommit(testSuite.gitBranch);
-        const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${testSuite.gitBranch}`);
+    async getRecentCommitOfBranch(branchName) {
+        return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
+    }
+
+    async getRepositoryDiff(testSuite, commitSha) {
+        const currentCommit = await this.getCurrentCommit(testSuite.gitBranch);
+        const mostRecentCommit = await this._gitRepository.getCommit(commitSha);
 
         const newestTree = await mostRecentCommit.getTree();
         const currentTree = await currentCommit.getTree();
@@ -204,7 +212,7 @@ class Repository {
             }));
         }
         function enrichWithTest(diffObject) {
-            const test = testSuite.tests.find(test => test.testFilePath === diffObject.oldFile().path());
+            const test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
         const matchedPatches = patches.filter(fileMatchTest).map(enrichWithTest);
@@ -218,13 +226,17 @@ class Repository {
             .filter(patch => patch.isModified() || patch.isRenamed())
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
+        const renamedPatches = matchedPatches
+            .filter(patch => patch.isRenamed())
+            .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
         return {
             currentCommit: currentCommit.sha(),
             targetCommit: mostRecentCommit.sha(),
             addedPatches,
             deletedPatches,
-            modifiedPatches
+            modifiedPatches,
+            renamedPatches
         };
     }
 
@@ -235,6 +247,11 @@ class Repository {
         });
         this._curHeadCommit = await this._gitRepository.getHeadCommit();
         return this._curHeadCommit.sha();
+    }
+
+    async checkoutCommit(commitSha) {
+        const commit = await this._gitRepository.getCommit(commitSha);
+        await NodeGit.Reset.reset(this._gitRepository, commit, NodeGit.Reset.TYPE.HARD);
     }
 
     async collectTestFilesPaths() {

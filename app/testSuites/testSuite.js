@@ -49,6 +49,25 @@ class TestSuite {
 		return Promise.all(this.tests.map(testCase => testCase.fetchTestContent()));
 	}
 
+	getTestCaseByFilePath(testFilePath) {
+		return this.tests.find(testCase => testCase.testFilePath === testFilePath);
+	}
+
+	addTestCase(basePath, testFilePath) {
+		this.tests.push(new TestCase({
+			testFilePath,
+			basePath
+		}));
+	}
+
+	removeTestCase(testFilePath) {
+		const testIndex = this.tests.findIndex(testCase => testCase.testFilePath === testFilePath);
+		if (testIndex === undefined) {
+			throw new Error(`Unable to find test with file path ${testFilePath}`);
+		}
+		this.tests.splice(testIndex, 1);
+	}
+
 	static get STATUSES() {
 		return {
 			UP_TO_DATE: 'up_to_date',

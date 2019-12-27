@@ -50,17 +50,17 @@
     <md-dialog :md-active.sync="diffPopin.show">
         <md-dialog-title>Diff viewer</md-dialog-title>
         <md-tabs v-if="diffPopin.diff !== null" md-dynamic-height>
-            <md-tab md-label="Modified">
+            <md-tab md-label="Modified" v-if="diffPopin.diff.modifiedPatches.length > 0">
                 <md-content class="md-scrollbar">
                     <div v-for="patch in diffPopin.diff.modifiedPatches">
                         <strong v-if="patch.file === patch.newFile">{{ patch.file }}</strong>
                         <strong v-if="patch.file !== patch.newFile">{{ patch.file }} => {{ patch.newFile }}</strong>
-                        <test-case-state :testState="patch.test.status" :displayCurrentState="true" :displayStateSwitch="true" v-on:change-test-status="changeTestStatus"></test-case-state>
+                        <test-case-state :testState="patch.test.status" :displayCurrentState="true" :displayStateSwitch="true" v-on:change-test-status="changeTestStatus(patch.test.testFilePath, $event)"></test-case-state>
                         <diff-viewer :hunks="patch.hunks"></diff-viewer>
                     </div>
                 </md-content>
             </md-tab>
-            <md-tab md-label="Deleted">
+            <md-tab md-label="Deleted" v-if="diffPopin.diff.deletedPatches.length > 0">
                 <md-content class="md-scrollbar">
                     <div v-for="patch in diffPopin.diff.deletedPatches">
                         <strong>{{ patch.file }}</strong>
@@ -68,13 +68,23 @@
                     </div>
                 </md-content>
             </md-tab>
-            <md-tab md-label="Added">
+            <md-tab md-label="Added" v-if="diffPopin.diff.addedPatches.length > 0">
                 <md-content class="md-scrollbar">
                     <div v-for="patch in diffPopin.diff.addedPatches">
                         <strong>{{ patch.file }}</strong>
                     </div>
                 </md-content>
             </md-tab>
+            <md-tab md-label="Renamed" v-if="diffPopin.diff.renamedPatches.length > 0">
+                <md-content class="md-scrollbar">
+                    <ul>
+                        <li v-for="patch in diffPopin.diff.renamedPatches">
+                            <strong>{{ patch.file }} => {{ patch.newFile }}</strong>
+                        </li>
+                    </ul>
+                </md-content>
+            </md-tab>
         </md-tabs>
+        <md-button @click="submitNewTestsStatuses">Got it !</md-button>
     </md-dialog>
 </main-layout>
