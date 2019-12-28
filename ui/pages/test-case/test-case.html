@@ -8,15 +8,13 @@
         <md-button v-if="!currentUser.readOnly" class="md-icon-button md-raised" @click="showAffectUserPopin()">
             <md-icon>person_add</md-icon>
         </md-button>
-        <md-button v-if="testCase.user && testCase.user._id === currentUser._id" class="md-icon-button md-raised md-accent" @click="changeTestStatus(testCaseStatuses.FAILED)">
-            <md-icon>thumb_down</md-icon>
-        </md-button>
-        <md-button v-if="testCase.user && testCase.user._id === currentUser._id" class="md-icon-button md-raised" @click="changeTestStatus(testCaseStatuses.BLOCKED)">
-            <md-icon>block</md-icon>
-        </md-button>
-        <md-button v-if="testCase.user && testCase.user._id === currentUser._id" class="md-icon-button md-raised md-primary" @click="changeTestStatus(testCaseStatuses.SUCCESS)">
-            <md-icon>thumb_up</md-icon>
-        </md-button>
+        <test-case-state
+                v-if="testCase.user && testCase.user._id === currentUser._id"
+                :test-state="testCase.status"
+                :display-current-state="false"
+                :display-state-switch="true"
+                @change-test-status="changeTestStatus($event)"
+        ></test-case-state>
     </div>
     <div v-html="testCase.mdContent"></div>
     <md-dialog :md-active.sync="affectUserPopin.show">

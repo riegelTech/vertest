@@ -10,11 +10,11 @@
                 {{ item.name }}
             </router-link>
             <span class="status-icon" v-if="!isFolder && item.testCase">
-                <md-icon v-if="item.testCase.status === statuses.TODO">pause_circle_outline</md-icon>
-                <md-icon v-if="item.testCase.status === statuses.IN_PROGRESS">loop</md-icon>
-                <md-icon v-if="item.testCase.status === statuses.FAILED">thumb_down</md-icon>
-                <md-icon v-if="item.testCase.status === statuses.BLOCKED">block</md-icon>
-                <md-icon v-if="item.testCase.status === statuses.SUCCESS">thumb_up</md-icon>
+                <test-case-state
+                        :test-state="item.testCase.status"
+                        :display-current-state="true"
+                        :display-state-switch="false"
+                ></test-case-state>
             </span>
         </div>
         <ul v-show="isOpen" v-if="isFolder">
@@ -31,7 +31,11 @@
 
 <script>
     import {TEST_CASE_STATUSES} from '../pages/test-case/test-case';
+    import TestCaseState from './testCaseState.vue';
 	export default {
+		components: {
+			TestCaseState
+        },
 		name: 'test-cases-tree',
 		props: {
 			testSuiteId: '',

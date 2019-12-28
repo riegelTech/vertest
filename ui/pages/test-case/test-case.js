@@ -1,7 +1,8 @@
 'use strict';
 
 import MainLayout from '../../layouts/main.vue';
-import {userMixin} from "../users/users";
+import {userMixin} from '../users/users';
+import TestCaseState from '../../components/testCaseState.vue';
 
 const md = require('markdown-it')();
 
@@ -17,7 +18,8 @@ export const TEST_CASE_STATUSES = {
 
 export default {
 	components: {
-		MainLayout
+		MainLayout,
+		TestCaseState
 	},
 	data() {
 		return {

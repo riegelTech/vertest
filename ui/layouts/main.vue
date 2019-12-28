@@ -1,13 +1,39 @@
 <template>
-    <div>
+    <div class="page-container md-layout-column">
         <header>
-            <h1>Vertest</h1>
-            <div>
-                <md-button><router-link to="/">Home</router-link></md-button>
-                <md-button><router-link to="/users">Users</router-link></md-button>
-                <md-button><router-link to="/test-suites">Test-suites</router-link></md-button>
-                <md-button><router-link to="/repositories">Repositories</router-link></md-button>
-            </div>
+            <md-toolbar class="md-primary">
+                <md-button class="md-icon-button" @click="showNavigation = true">
+                    <md-icon>menu</md-icon>
+                </md-button>
+                <h1 class="md-title">Vertest</h1>
+            </md-toolbar>
+            <md-drawer :md-active.sync="showNavigation" md-swipeable>
+                <md-toolbar class="md-transparent" md-elevation="0">
+                    <span class="md-title">My App name</span>
+                </md-toolbar>
+
+                <md-list>
+                    <md-list-item>
+                        <md-icon>home</md-icon>
+                        <span class="md-list-item-text"><router-link to="/">Home</router-link></span>
+                    </md-list-item>
+
+                    <md-list-item>
+                        <md-icon>group</md-icon>
+                        <span class="md-list-item-text"><router-link to="/users">Users</router-link></span>
+                    </md-list-item>
+
+                    <md-list-item>
+                        <md-icon>assignment</md-icon>
+                        <span class="md-list-item-text"><router-link to="/test-suites">Test-suites</router-link></span>
+                    </md-list-item>
+
+                    <md-list-item>
+                        <md-icon>all_inbox</md-icon>
+                        <span class="md-list-item-text"><router-link to="/repositories">Repositories</router-link></span>
+                    </md-list-item>
+                </md-list>
+            </md-drawer>
         </header>
         <div>
             <slot></slot>

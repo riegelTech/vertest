@@ -117,6 +117,9 @@ async function updateTestStatus(req, res) {
 		case TestCase.STATUSES.BLOCKED:
 			testStatus = TestCase.STATUSES.BLOCKED;
 			break;
+		case TestCase.STATUSES.TODO:
+			testStatus = TestCase.STATUSES.TODO;
+			break;
 		default:
 			testStatus = TestCase.STATUSES.IN_PROGRESS;
 	}
@@ -130,6 +133,9 @@ async function updateTestStatus(req, res) {
 		}
 
 		testCase.status = testStatus;
+		if (testCase.status === TestCase.STATUSES.TODO) {
+			testCase.user = null;
+		}
 
 		const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 		await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
