@@ -62,9 +62,9 @@ class Repository {
         return this._gitBranches;
     }
 
-    async init() {
+    async init(forceInit) {
         // if repository exists just open it
-        if (await fsExtra.pathExists(this._repoDir)) {
+        if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
             this._gitRepository = await NodeGit.Repository.open(this._repoDir);
             this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
                 .filter(branchName => branchName.startsWith(FULL_REF_PATH))
@@ -107,6 +107,9 @@ class Repository {
         };
         let creds = null;
         if (this.authMethod === Repository.authMethods.SSH) {
+            if (!this.decryptedPrivKey) {
+                throw new Error('Private key is encrypted, please decrypt it')
+            }
             const url = GitUrlParse(this.address);
             creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.pubKey, this.privKey, this._privKeyPass);
         }

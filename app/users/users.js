@@ -55,7 +55,7 @@ class User {
 		this.email = email;
 		this.firstName = firstName;
 		this.lastName = lastName;
-		this.readOnly = readOnly;
+		this.readOnly = this.login === User.superAdminLogin ? false : readOnly;
 	}
 
 	static hashPass(clearPass) {

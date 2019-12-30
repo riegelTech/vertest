@@ -32,7 +32,7 @@ async function setPrivKey(req, res) {
     }
 
     repository.privKeyPass = pass;
-    await repository.init();
+    await repository.init(true);
 
     if (repository.decryptedPrivKey === false) {
         return res.status(403).send(`Fail to decrypt SSH private key for repository ${repository.address}`);

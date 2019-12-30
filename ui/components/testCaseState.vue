@@ -8,21 +8,13 @@
             <md-icon v-if="testState === statuses.SUCCESS">thumb_up</md-icon>
         </span>
         <span v-if="displayStateSwitch">
-            <md-button v-if="testState !== statuses.TODO" class="md-icon-button md-raised md-accent" @click="changeTestStatus(statuses.TODO)">
-                <md-icon>pause_circle_outline</md-icon>
-            </md-button>
-            <md-button v-if="testState !== statuses.IN_PROGRESS" class="md-icon-button md-raised md-accent" @click="changeTestStatus(statuses.IN_PROGRESS)">
-                <md-icon>loop</md-icon>
-            </md-button>
-            <md-button v-if="testState !== statuses.FAILED" class="md-icon-button md-raised md-accent" @click="changeTestStatus(statuses.FAILED)">
-                <md-icon>thumb_down</md-icon>
-            </md-button>
-            <md-button v-if="testState !== statuses.BLOCKED" class="md-icon-button md-raised" @click="changeTestStatus(statuses.BLOCKED)">
-                <md-icon>block</md-icon>
-            </md-button>
-            <md-button v-if="testState !== statuses.SUCCESS" class="md-icon-button md-raised md-primary" @click="changeTestStatus(statuses.SUCCESS)">
-                <md-icon>thumb_up</md-icon>
-            </md-button>
+            <md-select v-model="testState" name="testStateSel" id="testStateSel" class="test-state-selector" @md-selected="changeTestStatus">
+                <md-option :value="statuses.TODO"><md-icon>pause_circle_outline</md-icon>To do</md-option>
+                <md-option :value="statuses.IN_PROGRESS"><md-icon>loop</md-icon>In progress</md-option>
+                <md-option :value="statuses.FAILED"><md-icon>thumb_down</md-icon>Failed</md-option>
+                <md-option :value="statuses.BLOCKED"><md-icon>block</md-icon>Blocked</md-option>
+                <md-option :value="statuses.SUCCESS"><md-icon>thumb_up</md-icon>Success</md-option>
+            </md-select>
         </span>
     </span>
 </template>
@@ -47,3 +39,10 @@
         }
     }
 </script>
+<style scoped lang="scss">
+.test-state-selector {
+    .md-list-item-text {
+        display: block;
+    }
+}
+</style>
