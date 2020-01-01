@@ -108,7 +108,9 @@ class Repository {
         let creds = null;
         if (this.authMethod === Repository.authMethods.SSH) {
             if (!this.decryptedPrivKey) {
-                throw new Error('Private key is encrypted, please decrypt it')
+                const err = new Error(`Private key is encrypted for repository "${this.name}", please decrypt it`);
+                err.code = 'EPRIVKEYENCRYPTED';
+                throw err;
             }
             const url = GitUrlParse(this.address);
             creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.pubKey, this.privKey, this._privKeyPass);
@@ -147,7 +149,7 @@ class Repository {
     }
 
     fetchRepository() {
-        return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, this._getRepoConnectionOptions(true));
+        return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, Object.assign({prune: 1}, this._getRepoConnectionOptions(true)));
     }
 
     async getCurrentCommit(branchName) {
@@ -155,8 +157,14 @@ class Repository {
     }
 
     async lookupForChanges(branchName) {
-        // TODO check if branch exists anymore ?
-        const mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
+        let mostRecentCommit;
+        try {
+            mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
+        } catch (e) {
+            const err = new Error(`Branch "${branchName}" seems to be remotely deleted on repository "${this.name}"`);
+            err.code = 'EDELETEDBRANCH';
+            throw err;
+        }
         const currentCommit = await this.getCurrentCommit(branchName);
         const newestTree = await mostRecentCommit.getTree();
         const currentTree = await currentCommit.getTree();

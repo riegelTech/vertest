@@ -29,11 +29,18 @@ async function watchTestSuitesChanges() {
 	setInterval(() => {
 		testSuitesToWatch.forEach(async testSuite => {
 			const repository = repoModule.getRepository(testSuite.repoAddress);
-			await repository.fetchRepository();
-			const newHeadSha = await repository.lookupForChanges(testSuite.gitBranch);
-			if (newHeadSha && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
-				testSuite.status = TestSuite.STATUSES.TO_UPDATE;
-				await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
+			try {
+				await repository.fetchRepository();
+				const newHeadSha = await repository.lookupForChanges(testSuite.gitBranch);
+				if (newHeadSha && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
+					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
+					await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
+				}
+			} catch (e) {
+				if (e.code === 'EPRIVKEYENCRYPTED' || e.code === 'EDELETEDBRANCH') {
+					return console.log(e.message);
+				}
+				throw e;
 			}
 		})
 	}, watchInterval);
