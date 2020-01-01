@@ -66,7 +66,7 @@ async function getTestSuiteDiff(req, res) {
 	try {
 		const testSuite = await getTestSuiteByUuid(req.params.uuid);
 		const repository = repoModule.getRepository(testSuite.repoAddress);
-		const mostRecentCommit = await repository.getRecentCommitOfBranch(testSuite.gitBranch);
+		const mostRecentCommit = await repository.getRecentCommitOfBranch(req.body.branchName || testSuite.gitBranch);
 		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
 		res.send(repositoryDiff);
 	} catch(e) {
@@ -187,7 +187,7 @@ async function deleteTestSuite(req, res) {
 
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
-	.get('/:uuid/diff', getTestSuiteDiff)
+	.post('/:uuid/diff', getTestSuiteDiff)
 	.post('/', createTestSuite)
 	.put('/:uuid/solve', solveTestSuiteDiff)
 	.delete('/:uuid', deleteTestSuite)

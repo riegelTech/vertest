@@ -16,6 +16,9 @@
                     <md-button v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(item._id)">
                         <md-icon>warning</md-icon>
                     </md-button>
+                    <md-button v-if="item.status === 'to_toggle_branch'" class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(item._id)">
+                        <md-icon>warning</md-icon>
+                    </md-button>
                     <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
                     </md-button>
@@ -47,9 +50,23 @@
             </md-dialog-actions>
         </form>
     </md-dialog>
+    <md-dialog :md-active.sync="toggleBranchPopin.show">
+        <md-dialog-title>Please select a new git branch</md-dialog-title>
+        <form>
+            <md-field>
+                <label for="newGitBranch">New git branch</label>
+                <md-select v-model="toggleBranchPopin.selectedGitBranch" name="gitBranch">
+                    <md-option v-for="gitBranch in toggleBranchPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
+                </md-select>
+            </md-field>
+            <md-dialog-actions>
+                <md-button class="md-primary" @click="solveTestSuiteDiff(toggleBranchPopin.testSuiteId, toggleBranchPopin.selectedGitBranch)">Valid</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
     <md-dialog :md-active.sync="diffPopin.show">
         <md-dialog-title>Diff viewer</md-dialog-title>
-        <md-tabs v-if="diffPopin.diff !== null" md-dynamic-height>
+        <md-tabs v-if="diffPopin.diff" md-dynamic-height>
             <md-tab md-label="Modified" v-if="diffPopin.diff.modifiedPatches.length > 0">
                 <md-content class="md-scrollbar">
                     <div v-for="patch in diffPopin.diff.modifiedPatches">
@@ -85,6 +102,9 @@
                 </md-content>
             </md-tab>
         </md-tabs>
+        <md-content v-if="!diffPopin.diff">
+            There is no differences between current local and target repository state.
+        </md-content>
         <md-button @click="submitNewTestsStatuses">Got it !</md-button>
     </md-dialog>
 </main-layout>

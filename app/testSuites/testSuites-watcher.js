@@ -37,8 +37,14 @@ async function watchTestSuitesChanges() {
 					await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
 				}
 			} catch (e) {
-				if (e.code === 'EPRIVKEYENCRYPTED' || e.code === 'EDELETEDBRANCH') {
+				if (e.code === 'EPRIVKEYENCRYPTED') {
 					return console.log(e.message);
+				}
+				if (e.code === 'EDELETEDBRANCH') {
+					testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
+					await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
+					await repository.refreshAvailableGitBranches();
+					return;
 				}
 				throw e;
 			}

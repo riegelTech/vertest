@@ -72,6 +72,7 @@ class TestSuite {
 		return {
 			UP_TO_DATE: 'up_to_date',
 			TO_UPDATE: 'to_update',
+			TO_TOGGLE_BRANCH: 'to_toggle_branch',
 			UPDATING: 'updating'
 		};
 	}

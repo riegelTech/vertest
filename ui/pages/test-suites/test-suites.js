@@ -39,6 +39,12 @@ export default {
 				testSuiteId: null,
 				diff: null,
 				newStatuses: {}
+			},
+			toggleBranchPopin: {
+				show: false,
+				testSuiteId: null,
+				availableGitBranches: [],
+				selectedGitBranch: null
 			}
 		};
 	},
@@ -85,18 +91,30 @@ export default {
 				alert('Test suite deletion failed');
 			}
 		},
-		async solveTestSuiteDiff(testSuiteId) {
+		async solveTestSuiteDiff(testSuiteId, newGitBranch) {
 			try {
 				this.diffPopin.newStatuses = {};
 				this.diffPopin.testSuiteId = testSuiteId;
-				this.diffPopin.diff = (await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/diff`)).body;
-				this.diffPopin.diff.modifiedPatches.forEach(patch => {
-					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
-				});
+				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
+					branchName: newGitBranch
+				})).body;
+				if (this.diffPopin.diff) {
+					this.diffPopin.diff.modifiedPatches.forEach(patch => {
+						this.diffPopin.newStatuses[patch.test.testFilePath] = null;
+					});
+				}
 				this.diffPopin.show = true;
 			} catch (e) {
 				alert('Test suite diff failed');
 			}
+		},
+		async toggleTestSuiteGitBranch(testSuiteId) {
+			await this.initRepositories();
+			const testSuite = this.testSuites.find(testSuite => testSuite._id === testSuiteId);
+			this.toggleBranchPopin.testSuiteId = testSuiteId;
+			const testSuiteRepository = this.repositories.find(repository => repository.address === testSuite.repoAddress);
+			this.toggleBranchPopin.availableGitBranches = testSuiteRepository.gitBranches;
+			this.toggleBranchPopin.show = true;
 		},
 		changeTestStatus(testCaseId, newTestStatus) {
 			this.diffPopin.newStatuses[testCaseId] = newTestStatus;

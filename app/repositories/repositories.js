@@ -66,15 +66,19 @@ class Repository {
         // if repository exists just open it
         if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
             this._gitRepository = await NodeGit.Repository.open(this._repoDir);
-            this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
-                .filter(branchName => branchName.startsWith(FULL_REF_PATH))
-                .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
+            await this.refreshAvailableGitBranches();
             return;
         }
         if (this.authMethod === Repository.authMethods.SSH) {
             return this.initSshRepository();
         }
         return this.initHttpRepository();
+    }
+
+    async refreshAvailableGitBranches() {
+        this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
+            .filter(branchName => branchName.startsWith(FULL_REF_PATH))
+            .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
     }
 
     async initSshRepository() {
@@ -181,6 +185,7 @@ class Repository {
         return matchedPatches.length > 0;
     }
 
+    // TODO finish to factorize
     async getRecentCommitOfBranch(branchName) {
         return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
     }
@@ -197,7 +202,7 @@ class Repository {
         });
         const patches = await diff.patches();
         if (!patches.length) {
-            return [];
+            return null;
         }
         const testDirs = this._testDirs;
         function fileMatchTest(patch) {
