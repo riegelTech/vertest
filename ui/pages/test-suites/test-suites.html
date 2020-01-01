@@ -66,7 +66,7 @@
     </md-dialog>
     <md-dialog :md-active.sync="diffPopin.show">
         <md-dialog-title>Diff viewer</md-dialog-title>
-        <md-tabs v-if="diffPopin.diff" md-dynamic-height>
+        <md-tabs v-if="!diffPopin.diff.isEmpty" md-dynamic-height>
             <md-tab md-label="Modified" v-if="diffPopin.diff.modifiedPatches.length > 0">
                 <md-content class="md-scrollbar">
                     <div v-for="patch in diffPopin.diff.modifiedPatches">
@@ -102,7 +102,7 @@
                 </md-content>
             </md-tab>
         </md-tabs>
-        <md-content v-if="!diffPopin.diff">
+        <md-content v-if="diffPopin.diff.isEmpty">
             There is no differences between current local and target repository state.
         </md-content>
         <md-button @click="submitNewTestsStatuses">Got it !</md-button>

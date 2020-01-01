@@ -38,11 +38,14 @@ export default {
 	},
 	methods: {
 		createTestsTree() {
-			const testsPaths = this.testSuite.tests.map(test => ({
-				splitPath: test._shortenTestFilePath.split(Path.sep).slice(1),
+			const testsPaths = this.testSuite.tests.map(test => {
+				const filePathSplit = test._shortenTestFilePath.split(Path.sep);
+				return {
+				splitPath: filePathSplit.length === 1 ? filePathSplit : filePathSplit.slice(1),
 				fullPath: test.testFilePath,
 				testCase: test
-			}));
+				};
+			});
 
 			function buildTree(testsPaths) {
 				const tree = [];

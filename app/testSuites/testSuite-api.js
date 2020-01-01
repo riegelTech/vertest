@@ -82,7 +82,7 @@ async function solveTestSuiteDiff(req, res) {
 		const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 		const testSuite = await getTestSuiteByUuid(req.params.uuid);
 		const repository = repoModule.getRepository(testSuite.repoAddress);
-		const {currentCommit, targetCommit, newStatuses} = req.body;
+		const {currentCommit, targetCommit, targetBranch, newStatuses} = req.body;
 
 		const effectiveCurrentCommit = await repository.getCurrentCommit(testSuite.gitBranch);
 		if (effectiveCurrentCommit.sha() !== currentCommit) {
@@ -112,9 +112,15 @@ async function solveTestSuiteDiff(req, res) {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			test.testFilePath = patch.newFile;
 		});
+
+		if (targetBranch) {
+			await repository.checkoutBranch(targetBranch, targetCommit);
+			testSuite.gitBranch = targetBranch;
+		}
 		await repository.checkoutCommit(targetCommit);
 
 		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
+		testSuite.gitCommitSha = targetCommit;
 		await Promise.all(testSuite.tests.map(test => test.fetchTestContent()));
 		await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
 

@@ -37,7 +37,9 @@ export default {
 			diffPopin: {
 				show : false,
 				testSuiteId: null,
-				diff: null,
+				diff: {
+					isEmpty: true
+				},
 				newStatuses: {}
 			},
 			toggleBranchPopin: {
@@ -98,11 +100,12 @@ export default {
 				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
 					branchName: newGitBranch
 				})).body;
-				if (this.diffPopin.diff) {
-					this.diffPopin.diff.modifiedPatches.forEach(patch => {
-						this.diffPopin.newStatuses[patch.test.testFilePath] = null;
-					});
-				}
+				this.diffPopin.diff.modifiedPatches.forEach(patch => {
+					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
+				});
+				this.diffPopin.newStatuses = {};
+				this.diffPopin.diff.targetBranch = newGitBranch;
+				this.toggleBranchPopin.show = false;
 				this.diffPopin.show = true;
 			} catch (e) {
 				alert('Test suite diff failed');
@@ -128,7 +131,8 @@ export default {
 				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, {
 					currentCommit: this.diffPopin.diff.currentCommit,
 					targetCommit: this.diffPopin.diff.targetCommit,
-					newStatuses: this.diffPopin.newStatuses
+					newStatuses: this.diffPopin.newStatuses,
+					targetBranch: this.diffPopin.diff.targetBranch
 				});
 				if (response.status !== 200) {
 					alert(response.body);

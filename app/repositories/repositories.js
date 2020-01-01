@@ -45,6 +45,8 @@ class Repository {
 
         this._repoDir = Path.join(__dirname, '..', '..', 'cloneDir', this.name);
         this._testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
+        // Avoid first slash or dot - slash to start pattern
+        this._testDirs = this._testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
     }
 
     static get authMethods() {
@@ -145,11 +147,15 @@ class Repository {
         await utils.mkdir(this._repoDir);
 
         this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
+        await this.refreshBranches();
+        this._curHeadCommit = await this._gitRepository.getHeadCommit();
+        await this.collectTestFilesPaths();
+    }
+
+    async refreshBranches() {
         this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(FULL_REF_PATH))
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
-        this._curHeadCommit = await this._gitRepository.getHeadCommit();
-        await this.collectTestFilesPaths();
     }
 
     fetchRepository() {
@@ -200,9 +206,21 @@ class Repository {
         await diff.findSimilar({
             flags: NodeGit.Diff.FIND.RENAMES
         });
+
+        const result = {
+            currentCommit: currentCommit.sha(),
+            targetCommit: mostRecentCommit.sha(),
+            isEmpty: true
+        };
+
         const patches = await diff.patches();
         if (!patches.length) {
-            return null;
+            return Object.assign(result, {
+                addedPatches: [],
+                deletedPatches: [],
+                modifiedPatches: [],
+                renamedPatches: []
+            });
         }
         const testDirs = this._testDirs;
         function fileMatchTest(patch) {
@@ -246,18 +264,24 @@ class Repository {
             .filter(patch => patch.isRenamed())
             .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
-        return {
-            currentCommit: currentCommit.sha(),
-            targetCommit: mostRecentCommit.sha(),
+        return Object.assign(result, {
             addedPatches,
             deletedPatches,
             modifiedPatches,
-            renamedPatches
-        };
+            renamedPatches,
+            isEmpty: false
+        });
     }
 
-    async checkoutBranch(branchName) {
-        const ref = await this._gitRepository.getBranch(branchName);
+    async checkoutBranch(branchName, targetCommit = 'HEAD') {
+        let ref;
+        try {
+            ref = await this._gitRepository.getBranch(branchName);
+        } catch (e) {
+            const headCommit = await this.getRecentCommitOfBranch(branchName);
+            // if branch does not exist, try to create it, pointing to the HEAD commit
+            ref = await this._gitRepository.createBranch(branchName, headCommit, true);
+        }
         await this._gitRepository.checkoutRef(ref, {
             checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
         });
