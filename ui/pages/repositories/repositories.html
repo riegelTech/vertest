@@ -12,6 +12,7 @@
                         <template v-if="item.decryptedPrivKey === false">
                             <md-button class="md-icon-button md-accent" @click="unlockPrivKey(item.address)">
                                 <md-icon>lock</md-icon>
+                                <md-tooltip md-direction="top">Enter password to decrypt private key for this repository</md-tooltip>
                             </md-button>
                         </template>
                         <template v-else>
@@ -24,7 +25,7 @@
     </div>
     <md-dialog :md-active.sync="keyPopin.show">
         <md-dialog-title>Key pass</md-dialog-title>
-        <form>
+        <form @submit="sendKeyPass">
             <md-field>
                 <md-input name="repoAddress" v-model="keyPopin.repoAddress" type="hidden" />
             </md-field>
