@@ -11,16 +11,24 @@
             <md-table-row slot="md-table-row" slot-scope="{ item }">
                 <md-table-cell md-label="Name" md-sort-by="name"><strong><router-link :to="`/test-suites/${item._id}`">{{ item.name }}</router-link></strong></md-table-cell>
                 <md-table-cell md-label="Repository" md-sort-by="repositoryName">{{ item.repositoryName }}</md-table-cell>
-                <md-table-cell md-label="Git branch" md-sort-by="gitBranch">{{ item.gitBranch }}</md-table-cell>
+                <md-table-cell md-label="Git branch" md-sort-by="gitBranch">
+                    <a class="change-git-branch-button" @click="toggleTestSuiteGitBranch(item._id)">
+                        {{ item.gitBranch }}
+                        <md-tooltip md-direction="top">Change test suite GIT branch</md-tooltip>
+                    </a>
+                </md-table-cell>
                 <md-table-cell md-label="Action">
                     <md-button v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(item._id)">
                         <md-icon>warning</md-icon>
+                        <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
                     </md-button>
                     <md-button v-if="item.status === 'to_toggle_branch'" class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(item._id)">
                         <md-icon>warning</md-icon>
+                        <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
                     </md-button>
                     <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
+                        <md-tooltip md-direction="top">Delete test suite</md-tooltip>
                     </md-button>
                 </md-table-cell>
             </md-table-row>
