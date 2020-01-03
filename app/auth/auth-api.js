@@ -25,6 +25,17 @@ async function login(req, res) {
 	}
 }
 
+async function logout(req, res) {
+	try {
+		const eventuallySessId = usersModule.getSessId();
+		usersModule.deauthenticate(eventuallySessId);
+		res.cookie('sessId', '');
+		return res.status(200).send('OK');
+	} catch (e) {
+		return sendUnauthorized(res);
+	}
+}
+
 async function initSuperAdmin(req, res) {
 	const password = req.body.password;
 	const email = req.body.email;
@@ -83,6 +94,7 @@ async function getCurrentUser(req, res) {
 }
 
 router.post('/login', login)
+	.get('/logout', logout)
 	.post('/init', initSuperAdmin)
 	.get('/user', getCurrentUser);
 

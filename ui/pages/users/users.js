@@ -28,7 +28,8 @@ export const userMixin = {
 	data() {
 		return {
 			userLogin: '',
-			userPassword: ''
+			userPassword: '',
+			currentUser: null
 		};
 	},
 	async mounted() {
@@ -36,6 +37,7 @@ export const userMixin = {
 			const response = await this.$http.get(AUTH_API_PATH);
 			if (response.status === 200) {
 				this.$store.commit('currentUser', response.body);
+				this.currentUser = response.body;
 			}
 		} catch (resp) {
 			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
@@ -54,7 +56,20 @@ export const userMixin = {
 				});
 				if (response.status === 200) {
 					this.$store.commit('currentUser', response.body);
+					this.currentUser = response.body;
 					this.$emit('userLogin');
+				}
+			} catch (e) {
+
+			}
+		},
+		async logout() {
+			try {
+				const response = await this.$http.get('/auth/logout');
+				if (response.status === 200) {
+					this.$store.commit('currentUser', null);
+					this.currentUser = null;
+					this.$emit('userLogout');
 				}
 			} catch (e) {
 

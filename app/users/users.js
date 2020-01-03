@@ -221,6 +221,16 @@ async function authenticate(login, pass, sessId) {
 	return false
 }
 
+function deauthenticate(sessId) {
+	if (sessId && sessions.has(sessId)) {
+		const session = sessions.get(sessId);
+		if (session.isValid) {
+			session.delete(sessId);
+		}
+	}
+	return true;
+}
+
 function getCurrentUser () {
 	const sessionCls = getNamespace('sessions');
 	return sessionCls.get('user');
@@ -229,6 +239,7 @@ function getCurrentUser () {
 
 module.exports = {
 	authenticate,
+	deauthenticate,
 	getUsers,
 	getUser,
 	getSuperAdmin,
