@@ -14,13 +14,7 @@ export default {
 	},
 	data() {
 		return {
-			testSuite: {
-				name: '',
-				repoAddress: '',
-				gitBranch: '',
-				tests: [],
-				testsTree: {}
-			}
+			testSuite: null
 		}
 	},
 	async mounted() {

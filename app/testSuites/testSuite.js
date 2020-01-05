@@ -29,6 +29,11 @@ class TestCase {
 	async fetchTestContent() {
 		this.content = await utils.readFile(Path.resolve(this.basePath, this.testFilePath), 'utf8');
 	}
+
+	get isFinished() {
+		return this.status === TestCase.STATUSES.SUCCESS
+			|| this.status === TestCase.STATUSES.FAILED;
+	}
 }
 
 class TestSuite {
@@ -43,6 +48,20 @@ class TestSuite {
 			return testCase instanceof TestCase ? testCase : new TestCase(testCase);
 		});
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
+
+		const finished = this.tests.reduce((total, testCase) => {
+			if (testCase.isFinished) {
+				total ++;
+			}
+			return total;
+		}, 0);
+		const total = this.tests.length;
+		const percent = total === 0 ? 0 : Math.round((finished / total) * 100 * 100) / 100;
+		this.advancement = {
+			finished,
+			total,
+			percent
+		};
 	}
 
 	collectTests() {

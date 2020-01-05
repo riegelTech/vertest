@@ -38,7 +38,7 @@ async function getTestSuites(req, res) {
 			} catch (e) {
 				// do nothing : git repository does not exists but test suite remains
 			}
-			return Object.assign({repositoryName}, testSuite);
+			return Object.assign({repositoryName}, new TestSuite(testSuite));
 		});
 
 		res.send(testSuites);

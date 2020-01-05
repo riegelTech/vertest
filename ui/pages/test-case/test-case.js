@@ -25,13 +25,7 @@ export default {
 	data() {
 		return {
 			testCaseStatuses: TEST_CASE_STATUSES,
-			testCase: {
-				user: {},
-				testFilePath: '',
-				content: '',
-				mdContent: '',
-				status: TEST_CASE_STATUSES.TODO
-			},
+			testCase: null,
 			currentUser: {
 				readOnly: true
 			},
