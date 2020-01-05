@@ -70,7 +70,7 @@ export const userMixin = {
 				const response = await this.$http.get('/auth/logout');
 				if (response.status === 200) {
 					this.currentUser = null;
-					this.$store.commit('currentUser', {});
+					this.$store.commit('currentUser', this.currentUser);
 					userEventBus.$emit('userLogout');
 					window.location.href = '/';
 				}
@@ -106,11 +106,6 @@ export default {
 	mixins: [userMixin],
 	mounted() {
 		return this.initUsers();
-	},
-	computed: {
-		currentUser () {
-			return this.$store.state.currentUser;
-		}
 	},
 	methods: {
 		async initUsers() {
