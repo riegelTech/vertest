@@ -93,7 +93,14 @@ async function getCurrentUser(req, res) {
 	}
 }
 
-router.post('/login', login)
+function avoid304(req, res, next) {
+	res.setHeader('Last-Modified', (new Date()).toUTCString());
+  next();
+}
+
+router.get('/*', avoid304)
+	.post('/*', avoid304)
+	.post('/login', login)
 	.get('/logout', logout)
 	.post('/init', initSuperAdmin)
 	.get('/user', getCurrentUser);

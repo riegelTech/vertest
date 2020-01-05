@@ -24,6 +24,8 @@ const EMPTY_USER = {
 const USER_API_PATH = '/api/users/';
 const AUTH_API_PATH = '/auth/user';
 
+export const userEventBus = new Vue();
+
 export const userMixin = {
 	data() {
 		return {
@@ -36,8 +38,8 @@ export const userMixin = {
 		try {
 			const response = await this.$http.get(AUTH_API_PATH);
 			if (response.status === 200) {
-				this.$store.commit('currentUser', response.body);
 				this.currentUser = response.body;
+				this.$store.commit('currentUser', response.body);
 			}
 		} catch (resp) {
 			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
@@ -45,7 +47,7 @@ export const userMixin = {
 				return;
 			}
 		}
-		this.$emit('initCurrentUser');
+		userEventBus.$emit('initCurrentUser');
 	},
 	methods: {
 		async login() {
@@ -55,9 +57,9 @@ export const userMixin = {
 					password: this.userPassword
 				});
 				if (response.status === 200) {
-					this.$store.commit('currentUser', response.body);
 					this.currentUser = response.body;
-					this.$emit('userLogin');
+					this.$store.commit('currentUser', response.body);
+					userEventBus.$emit('userLogin');
 				}
 			} catch (e) {
 
@@ -67,9 +69,10 @@ export const userMixin = {
 			try {
 				const response = await this.$http.get('/auth/logout');
 				if (response.status === 200) {
-					this.$store.commit('currentUser', null);
 					this.currentUser = null;
-					this.$emit('userLogout');
+					this.$store.commit('currentUser', {});
+					userEventBus.$emit('userLogout');
+					window.location.href = '/';
 				}
 			} catch (e) {
 

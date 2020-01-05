@@ -9,6 +9,9 @@ Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
 import {userMixin} from '../users/users';
+import {userEventBus} from '../users/users';
+
+const defaultCurrentUser = null;
 
 export default {
 	components: {
@@ -18,17 +21,20 @@ export default {
 		return {
 			loginPopup: {
 				show: false
-			}
-		};
+			},
+			currentUser: defaultCurrentUser
+		}
 	},
 	mixins: [userMixin],
 	mounted() {
-		this.$on('initCurrentUser', () => {
+		userEventBus.$on('initCurrentUser', () => {
+			this.currentUser = this.$store.state.currentUser;
 			if (!this.$store.state.currentUser) {
 				this.showLoginPopup();
 			}
 		});
-		this.$on('userLogin', () => {
+		userEventBus.$on('userLogin', () => {
+			this.currentUser = this.$store.state.currentUser;
 			this.hideLoginPopup();
 		});
 	},

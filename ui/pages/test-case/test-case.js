@@ -2,6 +2,7 @@
 
 import MainLayout from '../../layouts/main.vue';
 import {userMixin} from '../users/users';
+import {userEventBus} from '../users/users';
 import TestCaseState from '../../components/testCaseState.vue';
 
 const md = require('markdown-it')();
@@ -43,14 +44,13 @@ export default {
 	},
 	mixins: [userMixin],
 	async mounted() {
-		// TODO find simplest way to watch the current user loading
-		this.$store.watch(storeState => {
-			if (storeState.currentUser) {
-				this.currentUser = storeState.currentUser;
-				return this.initTestCase();
-			}
-		}, storeState => {
-			return storeState.currentUser;
+		userEventBus.$on('initCurrentUser', () => {
+			this.currentUser = this.$store.state.currentUser;
+			return this.initTestCase();
+		});
+		userEventBus.$on('userLogin', () => {
+			this.currentUser = this.$store.state.currentUser;
+			return this.initTestCase();
 		});
 	},
 	methods: {
