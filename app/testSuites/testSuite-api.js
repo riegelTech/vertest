@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 
+const appConfig = require('../appConfig/config');
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const testCaseApi = require('./testCase-api');
@@ -139,17 +140,13 @@ async function createTestSuite(req, res) {
 
 	const {name, repoAddress, gitBranch} = req.body;
 
-	let trackingRepository;
 	try {
-		trackingRepository = repoModule.getRepository(repoAddress);
-	} catch (e) {
-		res.status(404).send(e.message);
-	}
-
-	try {
-		await trackingRepository.fetchRepository();
-    const testSuite = new TestSuite({name, repoAddress: trackingRepository.address, gitBranch});
-    const repository = repoModule.copyRepository(trackingRepository, testSuite._id);
+		const repositoryConfig = await repoModule.getRepositoryConfigByAddress(repoAddress); // TODO handle error cases in catch block
+		const testSuite = new TestSuite({name, repoAddress: trackingRepository.address, gitBranch});
+		const repository = new repoModule.Repository({
+			name: testSuite._id,
+			...repositoryConfig
+		});
     const gitCommitSha = await repository.checkoutBranch(gitBranch);
     const tests = (await repository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
     testSuite.setTests(tests);

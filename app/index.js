@@ -60,7 +60,6 @@ const startApp = async () => {
 	const config = await appConfig.getAppConfig();
 	const port = config.server.port;
 	try {
-		await repositories.initRepositories();
 		await testSuiteWatcher.watchTestSuitesChanges();
 	} catch (e) {
 		console.error(e);

@@ -306,18 +306,15 @@ class Repository {
 
 let trackingRepositories = new Map();
 
-async function initRepositories() {
-    let config;
-    config = await appConfig.getAppConfig();
-    if (!config.repositories) {
-        return;
+async function getRepositoryConfigByAddress(repoAdress) {
+    const repositories = await appConfig.getConfigRepositories();
+    const expectedRepository = repositories.find(repo => repo.address === repoAddress);
+    if (!expectedRepository) {
+        const err = new Error(`No repository found with address ${repoAdress}`);
+        err.code = 'EREPONOTFOUND';
+        throw err;
     }
-    // TODO if repositories have been cleaned, they have to be checkouted on the revision stored with test-suite object in DB
-    config.repositories.forEach(repoProps => {
-        const repository = new Repository(repoProps);
-        trackingRepositories.set(repository.address, repository);
-    });
-    return Promise.all(Array.from(trackingRepositories.values()).map(repository => repository.init()));
+    return expectedRepository;
 }
 
 function getRepositories() {
@@ -335,23 +332,9 @@ function getRepository(repoAddress) {
     return trackingRepositories.get(repoAddress);
 }
 
-async function copyRepository(originalRepository, repoName) {
-    const clonedRepository = new Repository({
-        name: repoName,
-        address: originalRepository.address,
-        pubKey: originalRepository.pubKey,
-        privKey: originalRepository.privKey,
-        user: originalRepository.user,
-        pass: originalRepository.pass,
-        testDirs: originalRepository.testDirs
-    });
-    await clonedRepository.init();
-    return clonedRepository;
-}
-
 module.exports = {
-    initRepositories,
+    Repository,
+    getRepositoryConfigByAddress,
     getRepositories,
-    getRepository,
-    copyRepository
+    getRepository
 };

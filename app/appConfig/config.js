@@ -36,8 +36,19 @@ async function getAppConfigFileContent() {
 	}
 }
 
+async function getAppConfig() {
+	return config ? config : await getAppConfigFileContent();
+}
+
 module.exports = {
-	async getAppConfig() {
-		return config ? config : await getAppConfigFileContent();
+	getAppConfig,
+	async getConfigRepositories() {
+		const config = await getAppConfig();
+		if (!config.repositories) {
+			const err = new Error('Your configuration does not contains any repository');
+			err.code = 'EEMPTYCONFIGURATION';
+			throw err;
+		}
+		return config.repositories;
 	}
 };
