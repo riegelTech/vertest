@@ -44,9 +44,7 @@ class TestSuite {
 		this.gitBranch = gitBranch;
 		this.gitCommitSha = gitCommitSha;
 		this.status = status;
-		this.tests = tests.map(testCase =>  {
-			return testCase instanceof TestCase ? testCase : new TestCase(testCase);
-		});
+		this.setTests(tests);
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
 
 		const finished = this.tests.reduce((total, testCase) => {
@@ -70,6 +68,12 @@ class TestSuite {
 
 	getTestCaseByFilePath(testFilePath) {
 		return this.tests.find(testCase => testCase.testFilePath === testFilePath);
+	}
+
+	setTests(tests) {
+		this.tests = tests.map(testCase =>  {
+			return testCase instanceof TestCase ? testCase : new TestCase(testCase);
+		});
 	}
 
 	addTestCase(basePath, testFilePath) {
