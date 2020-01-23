@@ -304,7 +304,7 @@ class Repository {
     }
 }
 
-let repositories = new Map();
+let trackingRepositories = new Map();
 
 async function initRepositories() {
     let config;
@@ -315,24 +315,43 @@ async function initRepositories() {
     // TODO if repositories have been cleaned, they have to be checkouted on the revision stored with test-suite object in DB
     config.repositories.forEach(repoProps => {
         const repository = new Repository(repoProps);
-        repositories.set(repository.address, repository);
+        trackingRepositories.set(repository.address, repository);
     });
-    return Promise.all(Array.from(repositories.values()).map(repository => repository.init()));
+    return Promise.all(Array.from(trackingRepositories.values()).map(repository => repository.init()));
 }
 
 function getRepositories() {
-    return Array.from(repositories.values());
+    return Array.from(trackingRepositories.values());
+}
+
+function assertRepositoryExists(repoAddress) {
+    if (!trackingRepositories.has(repoAddress)) {
+        throw new Error(`No repository found for address "${repoAddress}"`);
+    }
 }
 
 function getRepository(repoAddress) {
-    if (!repositories.has(repoAddress)) {
-        throw new Error(`No repository found for address "${repoAddress}"`);
-    }
-    return repositories.get(repoAddress);
+    assertRepositoryExists((repoAddress));
+    return trackingRepositories.get(repoAddress);
+}
+
+async function copyRepository(originalRepository, repoName) {
+    const clonedRepository = new Repository({
+        name: repoName,
+        address: originalRepository.address,
+        pubKey: originalRepository.pubKey,
+        privKey: originalRepository.privKey,
+        user: originalRepository.user,
+        pass: originalRepository.pass,
+        testDirs: originalRepository.testDirs
+    });
+    await clonedRepository.init();
+    return clonedRepository;
 }
 
 module.exports = {
     initRepositories,
     getRepositories,
-    getRepository
+    getRepository,
+    copyRepository
 };

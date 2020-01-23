@@ -139,19 +139,19 @@ async function createTestSuite(req, res) {
 
 	const {name, repoAddress, gitBranch} = req.body;
 
-	let repository;
+	let trackingRepository;
 	try {
-		repository = repoModule.getRepository(repoAddress);
+		trackingRepository = repoModule.getRepository(repoAddress);
 	} catch (e) {
 		res.status(404).send(e.message);
 	}
 
-
 	try {
-		await repository.fetchRepository();
-		const gitCommitSha = await repository.checkoutBranch(gitBranch);
-		const tests = (await repository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
-		const testSuite = new TestSuite({name, repoAddress: repository.address, tests, gitBranch, gitCommitSha});
+
+		await trackingRepository.fetchRepository();
+		const gitCommitSha = await trackingRepository.checkoutBranch(gitBranch);
+		const tests = (await trackingRepository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
+		const testSuite = new TestSuite({name, repoAddress: trackingRepository.address, tests, gitBranch, gitCommitSha});
 		await testSuite.collectTests();
 		await coll.insertOne(testSuite);
 		res.send({
