@@ -16,7 +16,7 @@ const DEFAULT_REMOTE_NAME = 'origin';
 const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
 
 class Repository {
-    constructor({name = '', address = '', pubKey = '', privKey = '', user = '', pass = '', testDirs = []}) {
+    constructor({name = '', address = '', pubKey = '', privKey = '', privKeyPass = '',  user = '', pass = '', testDirs = []}) {
         if (!name) {
             throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
         }
@@ -34,7 +34,7 @@ class Repository {
         this.pubKey = pubKey;
         this.privKey = privKey;
         this.decryptedPrivKey = false;
-        this._privKeyPass = '';
+        this.privKeyPass = privKeyPass;
 
         this.user = user;
         this.pass = pass;
@@ -64,30 +64,23 @@ class Repository {
         return this._gitBranches;
     }
 
-    async init(forceInit) {
+    async init({forceInit = false, waitForClone = false}) {
         // if repository exists just open it
         if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
             this._gitRepository = await NodeGit.Repository.open(this._repoDir);
-            await this.refreshAvailableGitBranches();
-            return;
+            return this.refreshAvailableGitBranches();
         }
         if (this.authMethod === Repository.authMethods.SSH) {
-            return this.initSshRepository();
+            return this.initSshRepository(waitForClone);
         }
-        return this.initHttpRepository();
+        return this.initHttpRepository(waitForClone);
     }
 
-    async refreshAvailableGitBranches() {
-        this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
-            .filter(branchName => branchName.startsWith(FULL_REF_PATH))
-            .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
-    }
-
-    async initSshRepository() {
+    async initSshRepository(waitForClone = false) {
         const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
         const keyData = await utils.readFile(keyPath, 'utf8');
 
-        const result = ssh2Utils.parseKey(keyData, this._privKeyPass);
+        const result = ssh2Utils.parseKey(keyData, this.privKeyPass);
         if (result instanceof  Error) {
             if (result.message.includes('Bad passphrase')) {
                 this.decryptedPrivKey = false;
@@ -98,11 +91,13 @@ class Repository {
         this.decryptedPrivKey = true;
 
         // do not wait the clone sequence to complete to return result
-        this.cloneRepository();
+        const clonePromise = this.cloneRepository();
+        return waitForClone ? clonePromise : undefined;
     }
 
-    async initHttpRepository() {
-        this.cloneRepository();
+    async initHttpRepository(waitForClone = false) {
+        const clonePromise = this.cloneRepository();
+        return waitForClone ? clonePromise : undefined;
     }
 
     _getRepoConnectionOptions(forFetch = false) {
@@ -119,7 +114,7 @@ class Repository {
                 throw err;
             }
             const url = GitUrlParse(this.address);
-            creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.pubKey, this.privKey, this._privKeyPass);
+            creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.pubKey, this.privKey, this.privKeyPass);
         }
         if (this.authMethod === Repository.authMethods.HTTP) {
             if (this.user && this.pass) {
@@ -147,15 +142,15 @@ class Repository {
         await utils.mkdir(this._repoDir);
 
         this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
-        await this.refreshBranches();
+        await this.refreshAvailableGitBranches();
         this._curHeadCommit = await this._gitRepository.getHeadCommit();
         await this.collectTestFilesPaths();
     }
 
-    async refreshBranches() {
+    async refreshAvailableGitBranches() {
         this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(FULL_REF_PATH))
-            .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''));
+            .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
     }
 
     fetchRepository() {
@@ -273,7 +268,7 @@ class Repository {
         });
     }
 
-    async checkoutBranch(branchName, targetCommit = 'HEAD') {
+    async checkoutBranch(branchName) {
         let ref;
         try {
             ref = await this._gitRepository.getBranch(branchName);
@@ -298,43 +293,47 @@ class Repository {
         const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir})));
         return ([].concat(...testFilesBatches)).map(relativeTestPath => ({basePath: this._repoDir, testFilePath: relativeTestPath}));
     }
-
-    set privKeyPass(privKeyPass) {
-        this._privKeyPass = privKeyPass;
-    }
 }
 
 let trackingRepositories = new Map();
+let testSuiteRepositories = new Map();
 
-async function getRepositoryConfigByAddress(repoAdress) {
-    const repositories = await appConfig.getConfigRepositories();
-    const expectedRepository = repositories.find(repo => repo.address === repoAddress);
-    if (!expectedRepository) {
-        const err = new Error(`No repository found with address ${repoAdress}`);
-        err.code = 'EREPONOTFOUND';
-        throw err;
+async function initTrackingRepositories() {
+    let config;
+    config = await appConfig.getAppConfig();
+    if (!config.repositories) {
+        return;
     }
-    return expectedRepository;
+    config.repositories.forEach(repoProps => {
+        const repository = new Repository(repoProps);
+        trackingRepositories.set(repository.address, repository);
+    });
+    return Promise.all(Array.from(trackingRepositories.values()).map(repository => repository.init({})));
 }
 
-function getRepositories() {
-    return Array.from(trackingRepositories.values());
-}
-
-function assertRepositoryExists(repoAddress) {
+function assertTrackingRepositoryExists(repoAddress) {
     if (!trackingRepositories.has(repoAddress)) {
         throw new Error(`No repository found for address "${repoAddress}"`);
     }
 }
 
-function getRepository(repoAddress) {
-    assertRepositoryExists((repoAddress));
+function getTrackingRepositories() {
+    return Array.from(trackingRepositories.values());
+}
+
+function getTrackingRepository(repoAddress) {
+    assertTrackingRepositoryExists((repoAddress));
     return trackingRepositories.get(repoAddress);
+}
+
+function addTestSuiteRepository(repository) {
+    testSuiteRepositories.set(repository.name, repository);
 }
 
 module.exports = {
     Repository,
-    getRepositoryConfigByAddress,
-    getRepositories,
-    getRepository
+    initTrackingRepositories,
+    getTrackingRepositories,
+    getTrackingRepository,
+    addTestSuiteRepository
 };

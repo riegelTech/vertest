@@ -3,11 +3,10 @@
 const express = require('express');
 const router = express.Router();
 
-const appConfig = require('../appConfig/config');
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const testCaseApi = require('./testCase-api');
-const {TestSuite, TestCase} = require('./testSuite');
+const {TestSuite} = require('./testSuite');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
@@ -35,7 +34,7 @@ async function getTestSuites(req, res) {
 		const testSuites = itemsList.map(testSuite => {
 			let repositoryName = 'Unknown';
 			try {
-				repositoryName = repoModule.getRepository(testSuite.repoAddress).name;
+				repositoryName = repoModule.getTrackingRepository(testSuite.repoAddress).name;
 			} catch (e) {
 				// do nothing : git repository does not exists but test suite remains
 			}
@@ -66,7 +65,7 @@ async function getTestSuite(req, res) {
 async function getTestSuiteDiff(req, res) {
 	try {
 		const testSuite = await getTestSuiteByUuid(req.params.uuid);
-		const repository = repoModule.getRepository(testSuite.repoAddress);
+		const repository = repoModule.getTrackingRepository(testSuite.repoAddress);
 		const mostRecentCommit = await repository.getRecentCommitOfBranch(req.body.branchName || testSuite.gitBranch);
 		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
 		res.send(repositoryDiff);
@@ -82,7 +81,7 @@ async function solveTestSuiteDiff(req, res) {
 	try {
 		const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 		const testSuite = await getTestSuiteByUuid(req.params.uuid);
-		const repository = repoModule.getRepository(testSuite.repoAddress);
+		const repository = repoModule.getTrackingRepository(testSuite.repoAddress);
 		const {currentCommit, targetCommit, targetBranch, newStatuses} = req.body;
 
 		const effectiveCurrentCommit = await repository.getCurrentCommit(testSuite.gitBranch);
@@ -141,17 +140,10 @@ async function createTestSuite(req, res) {
 	const {name, repoAddress, gitBranch} = req.body;
 
 	try {
-		const repositoryConfig = await repoModule.getRepositoryConfigByAddress(repoAddress); // TODO handle error cases in catch block
-		const testSuite = new TestSuite({name, repoAddress: trackingRepository.address, gitBranch});
-		const repository = new repoModule.Repository({
-			name: testSuite._id,
-			...repositoryConfig
-		});
-    const gitCommitSha = await repository.checkoutBranch(gitBranch);
-    const tests = (await repository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
-    testSuite.setTests(tests);
-    testSuite.gitCommitSha = gitCommitSha;
-    await testSuite.collectTests();
+		const trackingRepository = await repoModule.getTrackingRepository(repoAddress); // TODO handle error cases in catch block
+		const testSuite = new TestSuite({name, repoProps: trackingRepository, gitBranch});
+		await testSuite.init();
+		repoModule.addTestSuiteRepository(testSuite.repository);
 		await coll.insertOne(testSuite);
 		res.send({
 			success: true,

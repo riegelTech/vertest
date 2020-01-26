@@ -5,9 +5,10 @@ const express = require('express');
 const router = express.Router();
 
 const repositoriesModule = require('../repositories/repositories');
+const testSuitesModule = require('../testSuites/testSuite');
 
 async function getRepositories(req, res) {
-    const repositoriesForApi = repositoriesModule.getRepositories().map(repo => ({
+    const repositoriesForApi = repositoriesModule.getTrackingRepositories().map(repo => ({
         name: repo.name,
         address: repo.address,
         authMethod: repo.authMethod,
@@ -22,7 +23,7 @@ async function setPrivKey(req, res) {
     const pass = req.body.keyPass;
     let repository;
     try {
-        repository = repositoriesModule.getRepository(repoUrl);
+        repository = repositoriesModule.getTrackingRepository(repoUrl);
     } catch (e) {
         return res.status(404).send(e.message);
     }
@@ -32,11 +33,19 @@ async function setPrivKey(req, res) {
     }
 
     repository.privKeyPass = pass;
-    await repository.init(true);
-
+    await repository.init({forceInit: true, waitForClone: false});
     if (repository.decryptedPrivKey === false) {
         return res.status(403).send(`Fail to decrypt SSH private key for repository ${repository.address}`);
     }
+
+    const testSuites = await testSuitesModule.getTestSuites();
+    await Promise.all(testSuites
+        .filter(testSuite => testSuite.repository.address === repoUrl)
+        .map(async testSuite => {
+            testSuite.repository.privKeyPass = pass;
+            return testSuite.repository.init({forceInit: true, waitForClone: false});
+        }));
+
     return res.status(200).send('OK');
 }
 

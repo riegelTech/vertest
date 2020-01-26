@@ -5,7 +5,11 @@ const Path = require('path');
 const {lowestCommonAncestor} = require('lowest-common-ancestor');
 const uuid = require('uuidv4');
 
+const dbConnector = require('../db/db-connector');
+const repoModule = require('../repositories/repositories');
 const utils = require('../utils');
+
+const TEST_SUITE_COLL_NAME = 'testSuites';
 
 class TestCase {
 	constructor({testFilePath = '', basePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
@@ -37,14 +41,14 @@ class TestCase {
 }
 
 class TestSuite {
-	constructor({_id = uuid(), name = '', repoAddress = '', tests = [], gitBranch = '', gitCommitSha = '', status = TestSuite.STATUSES.UP_TO_DATE}) {
+	constructor({_id = uuid(), name = '', repoProps = {}, tests = [], gitBranch = '', gitCommitSha = '', status = TestSuite.STATUSES.UP_TO_DATE}) {
 		this._id = _id;
 		this.name = name;
-		this.repoAddress = repoAddress;
+		this.repoAddress = repoProps.address;
 		this.gitBranch = gitBranch;
 		this.gitCommitSha = gitCommitSha;
 		this.status = status;
-		this.setTests(tests);
+		this.tests = tests;
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
 
 		const finished = this.tests.reduce((total, testCase) => {
@@ -60,6 +64,24 @@ class TestSuite {
 			total,
 			percent
 		};
+
+		this.repository = new repoModule.Repository({
+			...repoProps,
+			name: this._id,
+			testDirs: []
+		})
+	}
+
+	async init() {
+		await this.repository.init({forceInit: true, waitForClone: true});
+		const headCommit = await this.repository.checkoutBranch(this.gitBranch);
+		if (this.gitCommitSha) {
+			await this.repository.checkoutCommit(this.gitCommitSha);
+		} else {
+			this.gitCommitSha = headCommit;
+		}
+		this. tests = (await this.repository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
+		await this.collectTests();
 	}
 
 	collectTests() {
@@ -68,12 +90,6 @@ class TestSuite {
 
 	getTestCaseByFilePath(testFilePath) {
 		return this.tests.find(testCase => testCase.testFilePath === testFilePath);
-	}
-
-	setTests(tests) {
-		this.tests = tests.map(testCase =>  {
-			return testCase instanceof TestCase ? testCase : new TestCase(testCase);
-		});
 	}
 
 	addTestCase(basePath, testFilePath) {
@@ -101,7 +117,50 @@ class TestSuite {
 	}
 }
 
+let initialized = false;
+const testSuites = new Set();
+
+async function fetchTestSuites() {
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const cursor = await coll.find();
+	const itemsCount = await cursor.count();
+	let itemsList = [];
+	if (itemsCount > 0){
+		itemsList = await cursor.toArray();
+	}
+	itemsList.forEach(testSuite => {
+		testSuites.add(new TestSuite(Object.assign(testSuite, {repoProps: testSuite.repository})));
+	});
+}
+
+async function getTestSuites() {
+	if (!initialized) {
+		await fetchTestSuites();
+	}
+	return Array.from(testSuites.values());
+}
+
+async function initTestSuiteRepositories() {
+	const testSuites = await getTestSuites();
+	await Promise.all(testSuites.map(async testSuite => testSuite.repository.init({waitForClone: true})));
+	initialized = true;
+}
+
+async function updateTestSuite(testSuite) {
+	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const filter = {_id: testSuite._id};
+	const cursor = await coll.find(filter);
+	const itemsCount = await cursor.count();
+	if (itemsCount === 0) {
+		throw new Error(`No test suite found with id ${testUuid}`);
+	}
+	return coll.updateOne(filter, {$set: testSuite});
+}
+
 module.exports = {
 	TestSuite,
-	TestCase
+	TestCase,
+	getTestSuites,
+	updateTestSuite,
+	initTestSuiteRepositories
 };
