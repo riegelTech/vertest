@@ -3,6 +3,7 @@
 import Vue from 'vue';
 import VueMaterial from 'vue-material';
 import VueResource from 'vue-resource';
+import {FormWizard, TabContent} from 'vue-form-wizard';
 
 Vue.use(VueMaterial);
 Vue.use(VueResource);
@@ -13,9 +14,24 @@ import DiffViewer from '../../components/diffViewer.vue';
 import TestCaseState from '../../components/testCaseState.vue';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
+const REPOSITORIES_PATH = '/api/repositories/';
+const AUTHENTICATION_TYPES = {
+	NONE: 'none',
+	PASS: 'pass',
+	KEY: 'key'
+};
 const EMPTY_TEST_SUITE = {
-	show: false,
+	show: true,
+	activeStep: 'first',
+	firstStepError: null,
 	testSuiteName: '',
+	repositoryAddress: '',
+	repositoryAuthType: AUTHENTICATION_TYPES.NONE,
+	repositoryLogin: '',
+	repositoryPass: '',
+	repositoryKey: null,
+	repositoryKeyPass: '',
+	repositoryBranch: '',
 	selectedRepository: null,
 	availableGitBranches: [],
 	selectedGitBranch: null
@@ -28,11 +44,14 @@ export default {
 	components: {
 		MainLayout,
 		DiffViewer,
-		TestCaseState
+		TestCaseState,
+		FormWizard,
+		TabContent
 	},
 	data() {
 		return {
 			createPopin: getEmptyTestSuitePopin(),
+			authTypes: AUTHENTICATION_TYPES,
 			testSuites: [],
 			diffPopin: {
 				show : false,
@@ -160,6 +179,56 @@ export default {
 		selectRepository() {
 			const selectedRepository = this.repositories.find(repository => repository.address === this.createPopin.selectedRepository);
 			this.createPopin.availableGitBranches = selectedRepository.gitBranches;
+		},
+		async getRepoBranches() {
+			let error = false;
+			if (!this.createPopin.testSuiteName) {
+				error = true;
+			}
+			if (!this.createPopin.repositoryAddress) {
+				error = true;
+			}
+
+			if (this.createPopin.repositoryAuthType === AUTHENTICATION_TYPES.PASS) {
+				if (!this.createPopin.repositoryLogin || !this.createPopin.repositoryPass) {
+					error = true;
+				}
+			}
+			if (this.createPopin.repositoryAuthType === AUTHENTICATION_TYPES.KEY) {
+				if (!this.createPopin.repositoryKey) {
+					error = true;
+				}
+			}
+
+			if (error === true) {
+				this.createPopin.firstStepError = 'Invalid form';
+				return;
+			} else {
+				this.createPopin.firstStepError = null;
+			}
+			try {
+				const response = await this.$http.post(`${REPOSITORIES_PATH}temp`, {
+					repositoryAddress: this.createPopin.repositoryAddress,
+					repositoryAuthType: this.createPopin.repositoryAuthType,
+					repositoryLogin: this.createPopin.repositoryLogin,
+					repositoryPass: this.createPopin.repositoryPass,
+					repositoryKey: this.createPopin.repositoryKey,
+					repositoryKeyPass: this.createPopin.repositoryKeyPass
+				});
+				if (response.status === 200) {
+					this.createPopin.availableGitBranches = response.body;
+					return true;
+				}
+			} catch (resp) {
+				console.error(resp);
+			}
+			return false;
+			return new Promise(resolve => {
+				setTimeout(() => {
+					this.createPopin.activeStep = 'second';
+					resolve(true);
+				}, 2000);
+			});
 		}
 	}
 }

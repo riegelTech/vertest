@@ -41,26 +41,83 @@
     <md-dialog :md-active.sync="createPopin.show">
         <md-dialog-title>Please select a repository and a git branch</md-dialog-title>
         <form>
-            <md-field>
-                <label for="testSuiteName">Test suite name</label>
-                <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" />
-            </md-field>
-            <md-field>
-                <label for="repository">Repository</label>
-                <md-select v-model="createPopin.selectedRepository" name="repository" @md-selected="selectRepository">
-                    <md-option v-for="repository in repositories" :value="repository.address" :key="repository.address">{{ repository.name }}</md-option>
-                </md-select>
-            </md-field>
-            <md-field>
-                <label for="gitBranch">Git branch</label>
-                <md-select v-model="createPopin.selectedGitBranch" name="gitBranch">
-                    <md-option v-for="gitBranch in createPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
-                </md-select>
-            </md-field>
-            <md-dialog-actions>
-                <md-button class="md-primary" @click="sendCreateTestSuite">Import</md-button>
-            </md-dialog-actions>
+            <md-steppers md-linear :md-active-step.sync="createPopin.activeStep">
+                <md-step id="first" md-label="Main informations" :md-error="createPopin.firstStepError">
+                    <md-field>
+                        <label for="testSuiteName">Test suite name</label>
+                        <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" required />
+                    </md-field>
+                    <md-field>
+                        <label for="repositoryAddress">Repository address</label>
+                        <md-input name="repositoryAddress" v-model="createPopin.repositoryAddress" type="text" required />
+                    </md-field>
+                    <md-field class="auth-type">
+                        <div>
+                            <label for="repositoryAuthType">Repository authentication type</label>
+                        </div>
+                        <div>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.NONE">None</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.PASS">Login - password</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.KEY">SSH key</md-radio>
+                        </div>
+                    </md-field>
+                    <div :hidden="createPopin.repositoryAuthType !== authTypes.PASS">
+                        <md-field>
+                            <label for="repositoryLogin">Login</label>
+                            <md-input name="repositoryLogin" v-model="createPopin.repositoryLogin" type="text" />
+                        </md-field>
+                        <md-field>
+                            <label for="repositoryPass">Password</label>
+                            <md-input name="repositoryPass" v-model="createPopin.repositoryPass" type="password" />
+                        </md-field>
+                    </div>
+                    <div :hidden="createPopin.repositoryAuthType !== authTypes.KEY">
+                        <md-field>
+                            <label for="repositoryKey">SSH key file</label>
+                            <md-select v-model="createPopin.repositoryKey" name="repositoryKey">
+                                <md-option v-for="repositoryKey in createPopin.availableSSHKeys" :value="repositoryKey" :key="repositoryKey">{{ repositoryKey }}</md-option>
+                            </md-select>
+                        </md-field>
+                        <md-field>
+                            <label for="repositoryKeyPass">Key password (leave blank if decrypted key)</label>
+                            <md-input name="repositoryKeyPass" v-model="createPopin.repositoryKeyPass" type="password" />
+                        </md-field>
+                    </div>
+                    <md-button class="md-raised md-primary" @click="getRepoBranches()">Next</md-button>
+                </md-step>
+                <md-step id="second" md-label="Repository branch">
+                    Ipsum
+                </md-step>
+            </md-steppers>
         </form>
+        <!--<form-wizard title="" subtitle="">
+            <tab-content title="Main informations" :before-change="getRepoBranches">
+                <md-field>
+                    <label for="testSuiteName">Test suite name</label>
+                    <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" />
+                </md-field>
+                <md-field>
+                    <label for="repositoryAddress">Repository address</label>
+                    <md-input name="repositoryAddress" v-model="createPopin.repositoryAddress" type="text" />
+                </md-field>
+                <md-field>
+                    <label for="repositoryAuthType">Repository authenticaton type</label>
+                    <div>
+                        <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.NONE">None</md-radio>
+                        <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.PASS">Login - password</md-radio>
+                        <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.KEY">SSH key</md-radio>
+                    </div>
+                </md-field>
+            </tab-content>
+            <tab-content title="Repository branch">
+                <md-field>
+                <label for="gitBranch">Git branch</label>
+                    <md-select v-model="createPopin.selectedGitBranch" name="gitBranch">
+                        <md-option v-for="gitBranch in createPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
+                    </md-select>
+                </md-field>
+            </tab-content>
+        </form-wizard>-->
     </md-dialog>
     <md-dialog :md-active.sync="toggleBranchPopin.show">
         <md-dialog-title>Please select a new git branch</md-dialog-title>
