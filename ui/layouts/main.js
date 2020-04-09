@@ -10,7 +10,8 @@ export default {
 	data: () => ({
 		showNavigation: false,
 		showSidepanel: false,
-		currentUser: defaultCurrentUser
+		currentUser: defaultCurrentUser,
+		sshKeys: []
 	}),
 	mounted() {
 		userEventBus.$on('initCurrentUser', () => {

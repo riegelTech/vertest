@@ -10,31 +10,29 @@ const Clone = NodeGit.Clone;
 const ssh2Utils = require('ssh2').utils;
 
 const appConfig = require('../appConfig/config');
+const sshKeyModule = require('../sshKeys/ssh-keys');
 const utils = require('../utils');
 
 const DEFAULT_REMOTE_NAME = 'origin';
 const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
 
 class Repository {
-    constructor({name = '', address = '', pubKey = '', privKey = '', privKeyPass = '',  user = '', pass = '', testDirs = []}) {
+    constructor({name = '', address = '', sshKey = '',  user = '', pass = '', repoPath = '', testDirs = []}) {
         if (!name) {
             throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
         }
         this.name = name;
         this.address = address;
 
-        if ((pubKey && !privKey) || (privKey && !pubKey)) {
-            throw new Error('Only one of public key - private key entity configured, for ssh authentication, both are required, please check your configuration.');
+        if (sshKey && !sshKey instanceof sshKeyModule.SshKey) {
+            throw new Error('Ssh key parameter is not SshKey instance');
         }
 
-        if (pubKey && pass) {
+        if (sshKey && pass) {
             throw new Error('Cannot use both ssh and http authentication, please check your configuration.')
         }
 
-        this.pubKey = pubKey;
-        this.privKey = privKey;
-        this.decryptedPrivKey = false;
-        this.privKeyPass = privKeyPass;
+        this.sshKey = sshKey;
 
         this.user = user;
         this.pass = pass;
@@ -43,7 +41,11 @@ class Repository {
         this._gitBranches = [];
         this._curHeadCommit = null;
 
-        this._repoDir = Path.join(__dirname, '..', '..', 'cloneDir', this.name);
+        if (!repoPath) {
+            this._repoDir = Path.join(appConfig.workspace.repositoriesDir, this.name);
+        } else {
+            this._repoDir = repoPath;
+        }
         this._testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
         // Avoid first slash or dot - slash to start pattern
         this._testDirs = this._testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
@@ -57,7 +59,11 @@ class Repository {
     }
 
     get authMethod() {
-        return this.pubKey ? Repository.authMethods.SSH : Repository.authMethods.HTTP;
+        return this.sshKey ? Repository.authMethods.SSH : Repository.authMethods.HTTP;
+    }
+
+    get decryptedPrivKey() {
+        return this.sshKey ? this.sshKey.isDecrypted : false;
     }
 
     get gitBranches() {
@@ -77,20 +83,6 @@ class Repository {
     }
 
     async initSshRepository(waitForClone = false) {
-        const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
-        const keyData = await utils.readFile(keyPath, 'utf8');
-
-        const result = ssh2Utils.parseKey(keyData, this.privKeyPass);
-        if (result instanceof  Error) {
-            if (result.message.includes('Bad passphrase')) {
-                this.decryptedPrivKey = false;
-                return;
-            }
-            throw result;
-        }
-        this.decryptedPrivKey = true;
-
-        // do not wait the clone sequence to complete to return result
         const clonePromise = this.cloneRepository();
         return waitForClone ? clonePromise : undefined;
     }
@@ -108,13 +100,13 @@ class Repository {
         };
         let creds = null;
         if (this.authMethod === Repository.authMethods.SSH) {
-            if (!this.decryptedPrivKey) {
+            if (!this.sshKey.isDecrypted) {
                 const err = new Error(`Private key is encrypted for repository "${this.name}", please decrypt it`);
                 err.code = 'EPRIVKEYENCRYPTED';
                 throw err;
             }
             const url = GitUrlParse(this.address);
-            creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.pubKey, this.privKey, this.privKeyPass);
+            creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.privKeyPass);
         }
         if (this.authMethod === Repository.authMethods.HTTP) {
             if (this.user && this.pass) {

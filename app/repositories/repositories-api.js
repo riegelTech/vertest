@@ -1,10 +1,15 @@
 'use strict';
 
+const path = require('path');
+
 const _ = require('lodash');
 const express = require('express');
+const uuid = require('uuidv4');
 const router = express.Router();
 
+const appConfig = require('../appConfig/config');
 const repositoriesModule = require('../repositories/repositories');
+const sshKeyModule = require('../sshKeys/ssh-keys');
 const testSuitesModule = require('../testSuites/testSuite');
 
 async function getRepositories(req, res) {
@@ -49,7 +54,38 @@ async function setPrivKey(req, res) {
     return res.status(200).send('OK');
 }
 
+async function createTemporaryRepository(req, res) {
+    const config = await appConfig.getAppConfig();
+
+    const repoUuid= uuid();
+
+    const sshKey = req.body.repositorySshKey ? sshKeyModule.getSshKeyByName(req.body.repositorySshKey) : null;
+
+    if (sshKey instanceof sshKeyModule.SshKey && req.body.repositorySshKeyPass) {
+        const success = await sshKey.setPrivKeyPass(req.body.repositorySshKeyPass);
+        if (!success) {
+            return res.status(403).send(`Fail to decrypt SSH private key ${req.body.repositorySshKey}`);
+        }
+    }
+
+    const repository = new repositoriesModule.Repository({
+        name: repoUuid,
+        repoPath: path.join(config.workspace.temporaryRepositoriesDir, repoUuid),
+        address: req.body.repositoryAddress,
+        sshKey,
+        sshKeyUser: req.body.repositorySshKeyUser,
+        user: req.body.repositoryLogin,
+        pass: req.body.repositoryPass
+    });
+
+    await repository.init({waitForClone: true});
+    const gitBranches = repository.gitBranches;
+
+    res.status(200).send(gitBranches);
+}
+
 router.get('/', getRepositories)
+    .post('/temp', createTemporaryRepository)
     .put('/:repositoryAddress/key-pass', setPrivKey);
 
 module.exports = router;

@@ -73,14 +73,18 @@
                     </div>
                     <div :hidden="createPopin.repositoryAuthType !== authTypes.KEY">
                         <md-field>
-                            <label for="repositoryKey">SSH key file</label>
-                            <md-select v-model="createPopin.repositoryKey" name="repositoryKey">
-                                <md-option v-for="repositoryKey in createPopin.availableSSHKeys" :value="repositoryKey" :key="repositoryKey">{{ repositoryKey }}</md-option>
+                            <label for="repositorySshKey">SSH key file</label>
+                            <md-select v-model="createPopin.repositorySshKey" name="repositorySshKey">
+                                <md-option v-for="repositorySshKey in createPopin.availableSshKeys" :value="repositorySshKey.name" :key="repositorySshKey.name">{{ repositorySshKey.name }}</md-option>
                             </md-select>
                         </md-field>
                         <md-field>
-                            <label for="repositoryKeyPass">Key password (leave blank if decrypted key)</label>
-                            <md-input name="repositoryKeyPass" v-model="createPopin.repositoryKeyPass" type="password" />
+                            <label for="repositorySshKeyUser">Ssh key user</label>
+                            <md-input name="repositorySshKeyUser" v-model="createPopin.repositorySshKeyUser" type="text" />
+                        </md-field>
+                        <md-field>
+                            <label for="repositorySshKeyPass">Key passphrase (leave blank if key has no passphrase)</label>
+                            <md-input name="repositorySshKeyPass" v-model="createPopin.repositorySshKeyPass" type="password" />
                         </md-field>
                     </div>
                     <md-button class="md-raised md-primary" @click="getRepoBranches()">Next</md-button>

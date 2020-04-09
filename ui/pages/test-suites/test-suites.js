@@ -9,6 +9,7 @@ Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
+import sshKeysMixin from '../ssh-keys/ssh-keys';
 import repositoriesMixin from '../repositories/repositories';
 import DiffViewer from '../../components/diffViewer.vue';
 import TestCaseState from '../../components/testCaseState.vue';
@@ -29,8 +30,10 @@ const EMPTY_TEST_SUITE = {
 	repositoryAuthType: AUTHENTICATION_TYPES.NONE,
 	repositoryLogin: '',
 	repositoryPass: '',
-	repositoryKey: null,
-	repositoryKeyPass: '',
+	availableSshKeys: [],
+	repositorySshKey: null,
+	repositorySshKeyUser: '',
+	repositorySshKeyPass: '',
 	repositoryBranch: '',
 	selectedRepository: null,
 	availableGitBranches: [],
@@ -53,6 +56,7 @@ export default {
 			createPopin: getEmptyTestSuitePopin(),
 			authTypes: AUTHENTICATION_TYPES,
 			testSuites: [],
+			sshKeys: [],
 			diffPopin: {
 				show : false,
 				testSuiteId: null,
@@ -69,10 +73,11 @@ export default {
 			}
 		};
 	},
-	mixins: [repositoriesMixin],
+	mixins: [repositoriesMixin, sshKeysMixin],
 	async mounted() {
 		await this.initTestSuites();
 		await this.initRepositories();
+		this.createPopin.availableSshKeys = await this.getSshKeys();
 	},
 	methods: {
 		async initTestSuites() {
@@ -195,7 +200,7 @@ export default {
 				}
 			}
 			if (this.createPopin.repositoryAuthType === AUTHENTICATION_TYPES.KEY) {
-				if (!this.createPopin.repositoryKey) {
+				if (!this.createPopin.repositorySshKey) {
 					error = true;
 				}
 			}
@@ -212,23 +217,19 @@ export default {
 					repositoryAuthType: this.createPopin.repositoryAuthType,
 					repositoryLogin: this.createPopin.repositoryLogin,
 					repositoryPass: this.createPopin.repositoryPass,
-					repositoryKey: this.createPopin.repositoryKey,
-					repositoryKeyPass: this.createPopin.repositoryKeyPass
+					repositorySshKey: this.createPopin.repositorySshKey,
+					repositorySshKeyUser: this.createPopin.repositorySshKeyUser,
+					repositorySshKeyPass: this.createPopin.repositorySshKeyPass
 				});
 				if (response.status === 200) {
 					this.createPopin.availableGitBranches = response.body;
+					this.createPopin.activeStep = 'second';
 					return true;
 				}
 			} catch (resp) {
 				console.error(resp);
 			}
 			return false;
-			return new Promise(resolve => {
-				setTimeout(() => {
-					this.createPopin.activeStep = 'second';
-					resolve(true);
-				}, 2000);
-			});
 		}
 	}
 }

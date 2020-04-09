@@ -18,20 +18,24 @@ const RESPONSE_HTTP_CODES = {
     DEFAULT: HTTP_CODES.INTERNAL,
     LOCKED: HTTP_CODES.LOCKED,
     // not found
+    'ENOTFOUND': HTTP_CODES.NOTFOUND,
     'ENOUSERFOUND': HTTP_CODES.NOTFOUND,
     'EUSERNOTFOUND': HTTP_CODES.NOTFOUND,
     'ETESTCASENOTFOUND': HTTP_CODES.NOTFOUND,
     'ETESTSUITENOTFOUND': HTTP_CODES.NOTFOUND,
     // bad request
+    'EINVALIDPARAM': HTTP_CODES.REFUSED,
     'EBADUSERDATA': HTTP_CODES.REFUSED,
     // resource locked
     'EUSERNOTEDITABLE': HTTP_CODES.LOCKED,
     // conflicts
-    'EUSEREXISTS': HTTP_CODES.CONFLICT
+    'EUSEREXISTS': HTTP_CODES.CONFLICT,
+    'EDUPLICATEENTRY': HTTP_CODES.REFUSED
 };
 
 module.exports = {
     // fs
+    access: util.promisify(fs.access),
     readFile: util.promisify(fs.readFile),
     mkdir: util.promisify(fs.mkdir),
     exists: util.promisify(fs.exists),

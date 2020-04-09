@@ -1,6 +1,19 @@
 server:
   port: 8080
 
+sshKeys:
+  - name: "some ssh key"
+    pubKey: /home/myUser/.ssh/id_rsa.pub
+    privKey: /home/myUser/.ssh/id_rsa
+
+  - name: "some other ssh key"
+    pubKey: /home/myOtherUser/.ssh/id_rsa.pub
+    privKey: /home/myOtherUser/.ssh/id_rsa
+
+workspace:
+  repositoriesDir: ./cloneDir # can be also absolute
+  temproraryRepositoriesDir: ./tempDir # can be also absolute
+
 repositories:
   - name: Vertest
     address: git@github.com:riegelTech/vertest.git

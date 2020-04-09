@@ -8,7 +8,8 @@ Vue.use(Vuex);
 export default new Vuex.Store({
 	state: {
 		currentUser: null,
-		users: []
+		users: [],
+		sshKeys: []
 	},
 	mutations: {
 		currentUser (state, user) {
@@ -16,6 +17,9 @@ export default new Vuex.Store({
 		},
 		users (state, users) {
 			state.users = users;
+		},
+		sshKeys (state, sshKeys) {
+			state.sshKeys = sshKeys;
 		}
 	}
 });
