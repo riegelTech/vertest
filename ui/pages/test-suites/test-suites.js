@@ -5,10 +5,14 @@ import VueMaterial from 'vue-material';
 import VueResource from 'vue-resource';
 import {FormWizard, TabContent} from 'vue-form-wizard';
 
+import minimatch from 'minimatch';
+
 Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
+import {fileTreeUtils} from '../../components/fileTree.js';
+import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';
 import repositoriesMixin from '../repositories/repositories';
 import DiffViewer from '../../components/diffViewer.vue';
@@ -34,10 +38,15 @@ const EMPTY_TEST_SUITE = {
 	repositorySshKey: null,
 	repositorySshKeyUser: '',
 	repositorySshKeyPass: '',
+	repositoryUuid: '',
 	repositoryBranch: '',
-	selectedRepository: null,
 	availableGitBranches: [],
-	selectedGitBranch: null
+	secondStepError: null,
+	availableFilesTree: {},
+	selectedFilesTree: {},
+	fieldFilePattern: '',
+	filePatterns: [],
+	thirdStepError: null
 };
 function getEmptyTestSuitePopin() {
 	return Object.assign({}, EMPTY_TEST_SUITE);
@@ -49,7 +58,8 @@ export default {
 		DiffViewer,
 		TestCaseState,
 		FormWizard,
-		TabContent
+		TabContent,
+		FileTree
 	},
 	data() {
 		return {
@@ -222,7 +232,8 @@ export default {
 					repositorySshKeyPass: this.createPopin.repositorySshKeyPass
 				});
 				if (response.status === 200) {
-					this.createPopin.availableGitBranches = response.body;
+					this.createPopin.availableGitBranches = response.body.branches;
+					this.createPopin.repositoryUuid = response.body.repoUuid;
 					this.createPopin.activeStep = 'second';
 					return true;
 				}
@@ -230,6 +241,59 @@ export default {
 				console.error(resp);
 			}
 			return false;
+		},
+		async getRepoFiles() {
+			if (!this.createPopin.repositoryBranch) {
+				this.createPopin.secondStepError = 'Please choose GIT branch';
+				return;
+			}
+			try {
+				const response = await this.$http.post(`${REPOSITORIES_PATH}temp/${this.createPopin.repositoryUuid}/files`, {
+					gitBranch: this.createPopin.repositoryBranch
+				});
+				if (response.status === 200) {
+					this.createPopin.availableFilesTree = fileTreeUtils.buildTree(response.body.filePaths, response.body.basePath);
+					this.createPopin.activeStep = 'third';
+					this.updateMatchedFiles();
+					return true;
+				}
+			} catch (resp) {
+				console.error(resp);
+			}
+		},
+		addFilePattern() {
+			this.createPopin.filePatterns.push(this.createPopin.fieldFilePattern);
+			this.createPopin.fieldFilePattern = '';
+
+			this.updateMatchedFiles();
+		},
+		deleteFilePattern(filePatternIndex) {
+			console.log(filePatternIndex);
+			let firstChunk = [];
+			if (filePatternIndex > 0) {
+				firstChunk = this.createPopin.filePatterns.slice(0, filePatternIndex);
+			}
+			let lastChunk = [];
+			if (filePatternIndex < this.createPopin.filePatterns.length) {
+				lastChunk = this.createPopin.filePatterns.slice(filePatternIndex + 1);
+			}
+			this.createPopin.filePatterns = firstChunk.concat(lastChunk);
+			this.updateMatchedFiles();
+		},
+		updateMatchedFiles() {
+			if (this.createPopin.filePatterns.length === 0) {
+				this.createPopin.selectedFilesTree = Object.assign({}, this.createPopin.availableFilesTree);
+				return;
+			}
+			const flatFiles = fileTreeUtils.flattenLeafs(this.createPopin.availableFilesTree)
+				.map(leaf => leaf.fullPath);
+			const selectedFiles = flatFiles.filter(filePath => {
+				return this.createPopin.filePatterns.some(filePattern => minimatch(filePath, filePattern));
+			});
+			this.createPopin.selectedFilesTree = fileTreeUtils.buildTree(selectedFiles, this.createPopin.availableFilesTree.path);
+		},
+		async createTestSuite() {
+
 		}
 	}
 }

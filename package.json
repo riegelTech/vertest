@@ -30,7 +30,7 @@
     "lowest-common-ancestor": "2.0.1",
     "minimatch": "3.0.4",
     "mongodb": "3.2.7",
-    "nodegit": "0.26.2",
+    "nodegit": "0.26.5",
     "ssh2": "0.8.5",
     "uuidv4": "4.0.0",
     "yaml": "1.7.1"

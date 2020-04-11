@@ -5,9 +5,10 @@ const Path = require('path');
 const fsExtra = require('fs-extra');
 const GitUrlParse = require("git-url-parse");
 const minimatch = require('minimatch');
-const NodeGit = require('nodegit');
-const Clone = NodeGit.Clone;
-const ssh2Utils = require('ssh2').utils;
+const NodeGit= require('nodegit');
+const {Cred, Clone, Reference, Diff, Checkout, Reset} = NodeGit;
+const NodeGitRepository = NodeGit.Repository;
+const uuid = require('uuidv4');
 
 const appConfig = require('../appConfig/config');
 const sshKeyModule = require('../sshKeys/ssh-keys');
@@ -73,7 +74,7 @@ class Repository {
     async init({forceInit = false, waitForClone = false}) {
         // if repository exists just open it
         if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
-            this._gitRepository = await NodeGit.Repository.open(this._repoDir);
+            this._gitRepository = await NodeGitRepository.open(this._repoDir);
             return this.refreshAvailableGitBranches();
         }
         if (this.authMethod === Repository.authMethods.SSH) {
@@ -106,13 +107,13 @@ class Repository {
                 throw err;
             }
             const url = GitUrlParse(this.address);
-            creds = NodeGit.Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.privKeyPass);
+            creds = Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.privKeyPass);
         }
         if (this.authMethod === Repository.authMethods.HTTP) {
             if (this.user && this.pass) {
-                creds = NodeGit.Cred.userpassPlaintextNew(this.user, this.pass);
+                creds = Cred.userpassPlaintextNew(this.user, this.pass);
             } else if (this.user) {
-                creds = NodeGit.Cred.usernameNew(this.user);
+                creds = Cred.usernameNew(this.user);
             }
         }
 
@@ -136,11 +137,11 @@ class Repository {
         this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
         await this.refreshAvailableGitBranches();
         this._curHeadCommit = await this._gitRepository.getHeadCommit();
-        await this.collectTestFilesPaths();
+        return this.collectTestFilesPaths();
     }
 
     async refreshAvailableGitBranches() {
-        this._gitBranches = (await this._gitRepository.getReferenceNames(NodeGit.Reference.TYPE.ALL))
+        this._gitBranches = (await this._gitRepository.getReferenceNames(Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(FULL_REF_PATH))
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
     }
@@ -191,7 +192,7 @@ class Repository {
         const currentTree = await currentCommit.getTree();
         const diff = await newestTree.diff(currentTree);
         await diff.findSimilar({
-            flags: NodeGit.Diff.FIND.RENAMES
+            flags: Diff.FIND.RENAMES
         });
 
         const result = {
@@ -270,7 +271,7 @@ class Repository {
             ref = await this._gitRepository.createBranch(branchName, headCommit, true);
         }
         await this._gitRepository.checkoutRef(ref, {
-            checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
+            checkoutStrategy: Checkout.STRATEGY.FORCE
         });
         this._curHeadCommit = await this._gitRepository.getHeadCommit();
         return this._curHeadCommit.sha();
@@ -278,17 +279,22 @@ class Repository {
 
     async checkoutCommit(commitSha) {
         const commit = await this._gitRepository.getCommit(commitSha);
-        await NodeGit.Reset.reset(this._gitRepository, commit, NodeGit.Reset.TYPE.HARD);
+        await Reset.reset(this._gitRepository, commit, Reset.TYPE.HARD);
     }
 
     async collectTestFilesPaths() {
         const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir})));
-        return ([].concat(...testFilesBatches)).map(relativeTestPath => ({basePath: this._repoDir, testFilePath: relativeTestPath}));
+        return {
+            basePath: this._repoDir,
+            filePaths: ([].concat(...testFilesBatches))
+        };
     }
 }
 
 let trackingRepositories = new Map();
 let testSuiteRepositories = new Map();
+
+const tempRepositories = new Map();
 
 async function initTrackingRepositories() {
     let config;
@@ -322,10 +328,46 @@ function addTestSuiteRepository(repository) {
     testSuiteRepositories.set(repository.name, repository);
 }
 
+async function createTempRepository({sshKey = null, address = '', sshKeyUser = '', user = '', pass = ''}) {
+    const config = await appConfig.getAppConfig();
+    const repoUuid= uuid();
+
+    let repository;
+    repository = new Repository({
+        name: repoUuid,
+        repoPath: Path.join(config.workspace.temporaryRepositoriesDir, repoUuid),
+        address,
+        sshKey,
+        sshKeyUser,
+        user,
+        pass,
+        testDirs: '**/**' // catch all for further test file search
+    });
+
+    await repository.init({waitForClone: true});
+
+    tempRepositories.set(repoUuid, repository);
+
+    return {
+        repoUuid,
+        branches: repository.gitBranches
+    };
+}
+
+function getTempRepository(repoName) {
+    if (!tempRepositories.has(repoName)) {
+        throw new Error(`No repository found with name ${repoName}`);
+    }
+
+    return tempRepositories.get(repoName);
+}
+
 module.exports = {
     Repository,
     initTrackingRepositories,
     getTrackingRepositories,
     getTrackingRepository,
-    addTestSuiteRepository
+    addTestSuiteRepository,
+    createTempRepository,
+    getTempRepository
 };

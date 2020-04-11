@@ -80,7 +80,11 @@ class TestSuite {
 		} else {
 			this.gitCommitSha = headCommit;
 		}
-		this. tests = (await this.repository.collectTestFilesPaths()).map(testFileObject => new TestCase(testFileObject));
+		const testPaths = await this.repository.collectTestFilesPaths();
+		this.tests = testPaths.filePaths.map(filePath => new TestCase({
+			basePath: testPaths.basePath,
+			testFilePath: filePath
+		}));
 		await this.collectTests();
 	}
 
