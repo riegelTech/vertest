@@ -41,7 +41,7 @@
     <md-dialog :md-active.sync="createPopin.show">
         <md-dialog-title>Please select a repository and a git branch</md-dialog-title>
         <form>
-            <md-steppers a-md-linear :md-active-step.sync="createPopin.activeStep">
+            <md-steppers md-linear :md-active-step.sync="createPopin.activeStep">
                 <md-step id="first" md-label="Main informations" :md-error="createPopin.firstStepError">
                     <md-field>
                         <label for="testSuiteName">Test suite name</label>
