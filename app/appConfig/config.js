@@ -14,13 +14,11 @@ let config;
 
 async function getAppConfigFileContent() {
 	let configFileContent;
-	let configFilePath = CONFIG_PATH;
 	try {
 		configFileContent = await utils.readFile(CONFIG_PATH, 'utf8');
 	} catch (errorConfig) {
 		try {
 			configFileContent = await utils.readFile(CONFIG_SAMPLE_PATH, 'utf8');
-			configFilePath = CONFIG_SAMPLE_PATH;
 			// TODO should emit a warning log
 		} catch (errorSample) {
 			throw new Error(`Config file does not exist or is not readable : ${errorSample.message}`);

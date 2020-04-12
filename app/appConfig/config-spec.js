@@ -24,12 +24,15 @@ describe('appConfig', function () {
   some-item: some-value`;
       errorConfigFileRead = null;
       fsMock = {
-         readFile(path, encoding, cb) {
-            cb(errorConfigFileRead, configFileContent);
+         readFile(path, encoding) {
+            if (errorConfigFileRead) {
+               return Promise.reject(errorConfigFileRead);
+            }
+            return Promise.resolve(configFileContent);
          }
       };
       configModule = proxyquire('./config', {
-         'fs': fsMock
+         '../utils': fsMock
       });
 
       sinon.spy(fsMock, 'readFile');
@@ -57,12 +60,12 @@ describe('appConfig', function () {
       // given
       fsMock.readFile.restore();
       sinon.stub(fsMock, 'readFile')
-         .onFirstCall().callsFake((path, encoding, cb) => {
-            cb(new Error('Some read error'), null);
+         .onFirstCall().callsFake((path, encoding) => {
+            return Promise.reject(new Error('Some read error'));
          })
-          .onSecondCall().callsFake((path, encoding, cb) => {
-         cb(null, configFileContent);
-      });
+          .onSecondCall().callsFake((path, encoding) => {
+            return Promise.resolve(configFileContent);
+         });
       const expectedSampleConfPath = Path.join(__dirname, '../', '../', 'config-sample.yml');
       // when
       await configModule.getAppConfig();
