@@ -16,6 +16,7 @@ const utils = require('../utils');
 
 const DEFAULT_REMOTE_NAME = 'origin';
 const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
+const LOCAL_REF_PATH = 'refs/heads/';
 
 class Repository {
     constructor({name = '', address = '', sshKey = '',  user = '', pass = '', repoPath = '', testDirs = []}) {
@@ -40,16 +41,15 @@ class Repository {
 
         this._gitRepository = null;
         this._gitBranches = [];
-        this._curHeadCommit = null;
+        this._curCommit = null;
+        this._curBranch = null;
 
         if (!repoPath) {
             this._repoDir = Path.join(appConfig.workspace.repositoriesDir, this.name);
         } else {
             this._repoDir = repoPath;
         }
-        this._testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
-        // Avoid first slash or dot - slash to start pattern
-        this._testDirs = this._testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
+        this.testDirs = testDirs;
     }
 
     static get authMethods() {
@@ -71,11 +71,39 @@ class Repository {
         return this._gitBranches;
     }
 
+    get commit() {
+        return this._curCommit ? this._curCommit.sha() : null;
+    }
+
+    get gitBranch() {
+        return this._curBranch;
+    }
+
+    set testDirs(testDirs) {
+        this._testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
+        // Avoid first slash or dot - slash to start pattern
+        this._testDirs = this._testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
+    }
+
+    async moveRepository(dest) {
+        if (!await fsExtra.pathExists(dest)) {
+            throw new Error(`Directory ${dest} does not exist`);
+        }
+        const destDir = Path.join(dest, this.name);
+        const oldDir = this._repoDir;
+        await utils.mkdir(destDir);
+        await fsExtra.copy(this._repoDir, destDir);
+        this._repoDir = destDir;
+
+        await fsExtra.remove(oldDir);
+    }
+
     async init({forceInit = false, waitForClone = false}) {
         // if repository exists just open it
         if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
             this._gitRepository = await NodeGitRepository.open(this._repoDir);
-            return this.refreshAvailableGitBranches();
+            await this.refreshAvailableGitBranches();
+            return;
         }
         if (this.authMethod === Repository.authMethods.SSH) {
             return this.initSshRepository(waitForClone);
@@ -136,11 +164,12 @@ class Repository {
 
         this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
         await this.refreshAvailableGitBranches();
-        this._curHeadCommit = await this._gitRepository.getHeadCommit();
         return this.collectTestFilesPaths();
     }
 
     async refreshAvailableGitBranches() {
+        this._curCommit = await this._gitRepository.getHeadCommit();
+        this._curBranch = (await this._gitRepository.getCurrentBranch()).name().replace(LOCAL_REF_PATH, '');
         this._gitBranches = (await this._gitRepository.getReferenceNames(Reference.TYPE.ALL))
             .filter(branchName => branchName.startsWith(FULL_REF_PATH))
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
@@ -185,7 +214,7 @@ class Repository {
     }
 
     async getRepositoryDiff(testSuite, commitSha) {
-        const currentCommit = await this.getCurrentCommit(testSuite.gitBranch);
+        const currentCommit = await this.getCurrentCommit(this.gitBranch);
         const mostRecentCommit = await this._gitRepository.getCommit(commitSha);
 
         const newestTree = await mostRecentCommit.getTree();
@@ -273,8 +302,8 @@ class Repository {
         await this._gitRepository.checkoutRef(ref, {
             checkoutStrategy: Checkout.STRATEGY.FORCE
         });
-        this._curHeadCommit = await this._gitRepository.getHeadCommit();
-        return this._curHeadCommit.sha();
+        await this.refreshAvailableGitBranches();
+        return this._curCommit.sha();
     }
 
     async checkoutCommit(commitSha) {
@@ -291,42 +320,7 @@ class Repository {
     }
 }
 
-let trackingRepositories = new Map();
-let testSuiteRepositories = new Map();
-
 const tempRepositories = new Map();
-
-async function initTrackingRepositories() {
-    let config;
-    config = await appConfig.getAppConfig();
-    if (!config.repositories) {
-        return;
-    }
-    config.repositories.forEach(repoProps => {
-        const repository = new Repository(repoProps);
-        trackingRepositories.set(repository.address, repository);
-    });
-    return Promise.all(Array.from(trackingRepositories.values()).map(repository => repository.init({})));
-}
-
-function assertTrackingRepositoryExists(repoAddress) {
-    if (!trackingRepositories.has(repoAddress)) {
-        throw new Error(`No repository found for address "${repoAddress}"`);
-    }
-}
-
-function getTrackingRepositories() {
-    return Array.from(trackingRepositories.values());
-}
-
-function getTrackingRepository(repoAddress) {
-    assertTrackingRepositoryExists((repoAddress));
-    return trackingRepositories.get(repoAddress);
-}
-
-function addTestSuiteRepository(repository) {
-    testSuiteRepositories.set(repository.name, repository);
-}
 
 async function createTempRepository({sshKey = null, address = '', sshKeyUser = '', user = '', pass = ''}) {
     const config = await appConfig.getAppConfig();
@@ -364,10 +358,6 @@ function getTempRepository(repoName) {
 
 module.exports = {
     Repository,
-    initTrackingRepositories,
-    getTrackingRepositories,
-    getTrackingRepository,
-    addTestSuiteRepository,
     createTempRepository,
     getTempRepository
 };

@@ -3,43 +3,19 @@
 const express = require('express');
 const router = express.Router();
 
-const dbConnector = require('../db/db-connector');
+const appConfigModule = require('../appConfig/config');
 const repoModule = require('../repositories/repositories');
 const testCaseApi = require('./testCase-api');
-const {TestSuite} = require('./testSuite');
+const testSuiteModule = require('./testSuite');
+const TestSuite = testSuiteModule.TestSuite;
 
-const TEST_SUITE_COLL_NAME = 'testSuites';
-
-async function getTestSuiteByUuid(testSuiteId) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
-	const filter = {_id: testSuiteId};
-	const cursor = await coll.find(filter);
-	const itemsCount = await cursor.count();
-	if (itemsCount === 0) {
-		throw new Error(`No test suite found with id ${testSuiteId}`);
-	}
-	return new TestSuite((await cursor.toArray())[0]);
-}
 
 async function getTestSuites(req, res) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 	try {
-		const cursor = await coll.find();
-		const itemsCount = await cursor.count();
-		let itemsList = [];
-		if (itemsCount > 0){
-			itemsList = await cursor.toArray();
-		}
-
-		const testSuites = itemsList.map(testSuite => {
-			let repositoryName = 'Unknown';
-			try {
-				repositoryName = repoModule.getTrackingRepository(testSuite.repoAddress).name;
-			} catch (e) {
-				// do nothing : git repository does not exists but test suite remains
-			}
-			return Object.assign({repositoryName}, new TestSuite(testSuite));
-		});
+		const testSuites = (await testSuiteModule.getTestSuites()).map(testSuite => Object.assign(testSuite, {
+			repositoryAddress: testSuite.repository.address,
+			gitBranch: testSuite.repository.gitBranch
+		}));
 
 		res.send(testSuites);
 	} catch(e) {
@@ -52,7 +28,7 @@ async function getTestSuites(req, res) {
 
 async function getTestSuite(req, res) {
 	try {
-		const testSuite = await getTestSuiteByUuid(req.params.uuid);
+		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		res.send(testSuite);
 	} catch(e) {
 		res.send({
@@ -64,9 +40,9 @@ async function getTestSuite(req, res) {
 
 async function getTestSuiteDiff(req, res) {
 	try {
-		const testSuite = await getTestSuiteByUuid(req.params.uuid);
-		const repository = repoModule.getTrackingRepository(testSuite.repoAddress);
-		const mostRecentCommit = await repository.getRecentCommitOfBranch(req.body.branchName || testSuite.gitBranch);
+		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
+		const repository = testSuite.repository;
+		const mostRecentCommit = await repository.getRecentCommitOfBranch(req.body.branchName || repository.gitBranch);
 		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
 		res.send(repositoryDiff);
 	} catch(e) {
@@ -79,9 +55,8 @@ async function getTestSuiteDiff(req, res) {
 
 async function solveTestSuiteDiff(req, res) {
 	try {
-		const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
-		const testSuite = await getTestSuiteByUuid(req.params.uuid);
-		const repository = repoModule.getTrackingRepository(testSuite.repoAddress);
+		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
+		const repository = testSuite.repository;
 		const {currentCommit, targetCommit, targetBranch, newStatuses} = req.body;
 
 		const effectiveCurrentCommit = await repository.getCurrentCommit(testSuite.gitBranch);
@@ -122,7 +97,8 @@ async function solveTestSuiteDiff(req, res) {
 		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
 		testSuite.gitCommitSha = targetCommit;
 		await Promise.all(testSuite.tests.map(test => test.fetchTestContent()));
-		await coll.updateOne({_id: testSuite._id}, {$set: testSuite});
+
+		await testSuiteModule.updateTestSuite(testSuite);
 
  		res.send(testSuite);
 	} catch(e) {
@@ -135,16 +111,14 @@ async function solveTestSuiteDiff(req, res) {
 }
 
 async function createTestSuite(req, res) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
-
-	const {name, repoAddress, gitBranch} = req.body;
-
+	const appConfig = await appConfigModule.getAppConfig();
 	try {
-		const trackingRepository = await repoModule.getTrackingRepository(repoAddress); // TODO handle error cases in catch block
-		const testSuite = new TestSuite({name, repoProps: trackingRepository, gitBranch});
+		const repository = repoModule.getTempRepository(req.body.repositoryUuid);
+		repository.testDirs = req.body.filePatterns;
+		await repository.moveRepository(appConfig.workspace.repositoriesDir);
+		const testSuite = new TestSuite({name: req.body.testSuiteName, repository});
 		await testSuite.init();
-		repoModule.addTestSuiteRepository(testSuite.repository);
-		await coll.insertOne(testSuite);
+		await testSuiteModule.addTestSuite(testSuite);
 		res.send({
 			success: true,
 			data: testSuite
@@ -158,20 +132,14 @@ async function createTestSuite(req, res) {
 }
 
 async function deleteTestSuite(req, res) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
 	const testUuid = req.params.uuid;
 	try {
-		const filter = {_id: testUuid};
-		const cursor = await coll.find(filter);
-		const itemsCount = await cursor.count();
-		if (itemsCount === 0) {
-			throw new Error(`No test suite found with id ${testUuid}`);
-		}
-		const oldTestSuite = (await cursor.toArray())[0];
-		await coll.deleteOne(filter);
+		const testSuiteToDelete = testSuiteModule.getTestSuiteByUuid(testUuid);
+		await testSuiteModule.removeTestSuite(testSuiteToDelete);
+
 		res.send({
 			success: true,
-			data: new TestSuite(oldTestSuite)
+			data: testSuiteToDelete
 		});
 	} catch (e) {
 		res.send({

@@ -26,7 +26,7 @@ const AUTHENTICATION_TYPES = {
 	KEY: 'key'
 };
 const EMPTY_TEST_SUITE = {
-	show: true,
+	show: false,
 	activeStep: 'first',
 	firstStepError: null,
 	testSuiteName: '',
@@ -293,7 +293,19 @@ export default {
 			this.createPopin.selectedFilesTree = fileTreeUtils.buildTree(selectedFiles, this.createPopin.availableFilesTree.path);
 		},
 		async createTestSuite() {
-
+			try {
+				const response = await this.$http.post(TEST_SUITE_PATH, {
+					testSuiteName: this.createPopin.testSuiteName,
+					repositoryUuid: this.createPopin.repositoryUuid,
+					filePatterns: this.createPopin.filePatterns
+				});
+				if (response.status === 200) {
+					await this.initTestSuites();
+					this.hideCreatePopin();
+				}
+			} catch (resp) {
+				alert('Test suite creation failed');
+			}
 		}
 	}
 }

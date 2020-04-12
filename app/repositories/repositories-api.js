@@ -10,14 +10,7 @@ const testSuitesModule = require('../testSuites/testSuite');
 const utils = require('../utils');
 
 async function getRepositories(req, res) {
-    const repositoriesForApi = repositoriesModule.getTrackingRepositories().map(repo => ({
-        name: repo.name,
-        address: repo.address,
-        authMethod: repo.authMethod,
-        decryptedPrivKey: repo.decryptedPrivKey,
-        gitBranches: repo.gitBranches
-    }));
-    res.send(repositoriesForApi);
+    res.send([]);
 }
 
 async function setPrivKey(req, res) {

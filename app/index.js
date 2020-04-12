@@ -13,6 +13,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+const testSuiteModule = require('./testSuites/testSuite');
 const testSuiteRouting = require('./testSuites/testSuite-api');
 const usersRouting = require('./users/users-api');
 const usersModule = require('./users/users');
@@ -62,6 +63,7 @@ const startApp = async () => {
 	const port = config.server.port;
 	try {
 		await sshKeysModule.initSshKeys();
+		await testSuiteModule.initTestSuiteRepositories();
 	} catch (e) {
 		console.error(e);
 	}
