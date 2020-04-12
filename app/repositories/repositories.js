@@ -183,16 +183,16 @@ class Repository {
         return this._gitRepository.getReferenceCommit(branchName);
     }
 
-    async lookupForChanges(branchName) {
+    async lookupForChanges() {
         let mostRecentCommit;
         try {
-            mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`);
+            mostRecentCommit = await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${this._curBranch}`);
         } catch (e) {
-            const err = new Error(`Branch "${branchName}" seems to be remotely deleted on repository "${this.name}"`);
+            const err = new Error(`Branch "${this._curBranch}" seems to be remotely deleted on repository "${this.name}"`);
             err.code = 'EDELETEDBRANCH';
             throw err;
         }
-        const currentCommit = await this.getCurrentCommit(branchName);
+        const currentCommit = await this.getCurrentCommit(this._curBranch);
         const newestTree = await mostRecentCommit.getTree();
         const currentTree = await currentCommit.getTree();
         const diff = await newestTree.diff(currentTree);

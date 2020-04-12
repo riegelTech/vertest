@@ -126,7 +126,9 @@ async function fetchTestSuites() {
 		itemsList = await cursor.toArray();
 	}
 	itemsList.forEach(testSuite => {
-		testSuites.set(testSuite._id, new TestSuite(Object.assign(testSuite, {repository: testSuite.repository})));
+		const testSuiteInstance = new TestSuite(Object.assign(testSuite, {repository: testSuite.repository}));
+		testSuites.set(testSuiteInstance._id, testSuiteInstance);
+		testSuiteInstance.repository.testDirs = testSuite.repository._testDirs;
 	});
 	sshKeyCollectionEventEmitter.on('sshKeyDecrypted', setDecryptedKeyToRepository);
 }
@@ -190,6 +192,32 @@ function setDecryptedKeyToRepository(sshKey) {
 	});
 }
 
+function watchTestSuitesChanges() {
+	setInterval(async () => {
+		const testSuites = await getTestSuites();
+		await Promise.all(testSuites.map(async testSuite => {
+			if (!testSuite.repository.sshKey.isDecrypted) {
+				return;
+			}
+			try {
+				await testSuite.repository.fetchRepository();
+				const newHeadSha = await testSuite.repository.lookupForChanges();
+				if (newHeadSha && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
+					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
+					await updateTestSuite(testSuite);
+				}
+			} catch (e) {
+				if (e.code === 'EDELETEDBRANCH') {
+					testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
+					await updateTestSuite(testSuite);
+					await testSuite.repository.refreshAvailableGitBranches();
+					return;
+				}
+			}
+		}));
+	}, 5000);
+}
+
 module.exports = {
 	TestSuite,
 	TestCase,
@@ -200,5 +228,6 @@ module.exports = {
 	updateTestSuite,
 	removeTestSuite,
 	// end CRUD
-	initTestSuiteRepositories
+	initTestSuiteRepositories,
+	watchTestSuitesChanges
 };
