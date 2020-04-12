@@ -17,7 +17,7 @@
                 ></test-case-state>
             </span>
         </div>
-        <ul v-show="isOpen" v-if="isFolder">
+        <ul v-show="isOpen" v-if="isFolder && item.children">
             <file-tree
                     class="item"
                     v-for="(child, index) in item.children"

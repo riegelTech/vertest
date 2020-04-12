@@ -3,7 +3,7 @@
 import MainLayout from '../../layouts/main.vue';
 import FileTree from '../../components/fileTree.vue';
 
-import fileTreeMixin from '../../components/fileTree';
+import {fileTreeUtils} from '../../components/fileTree.js';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
 
@@ -12,7 +12,6 @@ export default {
 		MainLayout,
 		FileTree
 	},
-	mixins: [fileTreeMixin],
 	data() {
 		return {
 			testSuite: null
@@ -30,9 +29,8 @@ export default {
 				this.testSuite.tests.forEach(testCase => {
 					testFileMapping[testCase.testFilePath] = testCase;
 				});
-
-				this.testSuite.testsTree = fileTreeMixin.buildTree(filePaths, this.testSuite.baseDir);
-				this.testSuite.testsTree = fileTreeMixin.leafTransformer(this.testSuite.testsTree, leaf => {
+				this.testSuite.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
+				this.testSuite.testsTree = fileTreeUtils.leafTransformer(this.testSuite.testsTree, leaf => {
 					if (testFileMapping[leaf.fullPath]) {
 						return Object.assign({}, leaf, {
 							testCase: testFileMapping[leaf.fullPath]

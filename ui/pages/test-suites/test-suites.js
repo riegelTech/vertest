@@ -260,7 +260,6 @@ export default {
 			this.updateMatchedFiles();
 		},
 		deleteFilePattern(filePatternIndex) {
-			console.log(filePatternIndex);
 			let firstChunk = [];
 			if (filePatternIndex > 0) {
 				firstChunk = this.createPopin.filePatterns.slice(0, filePatternIndex);
