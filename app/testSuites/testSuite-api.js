@@ -124,6 +124,7 @@ async function createTestSuite(req, res) {
 			data: testSuite
 		});
 	} catch(e) {
+		console.error(e);
 		res.send({
 			success: false,
 			msg: e.message

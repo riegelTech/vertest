@@ -14,7 +14,6 @@ import MainLayout from '../../layouts/main.vue';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';
-import repositoriesMixin from '../repositories/repositories';
 import DiffViewer from '../../components/diffViewer.vue';
 import TestCaseState from '../../components/testCaseState.vue';
 
@@ -83,10 +82,9 @@ export default {
 			}
 		};
 	},
-	mixins: [repositoriesMixin, sshKeysMixin],
+	mixins: [sshKeysMixin],
 	async mounted() {
 		await this.initTestSuites();
-		await this.initRepositories();
 		this.createPopin.availableSshKeys = await this.getSshKeys();
 	},
 	methods: {
@@ -146,11 +144,9 @@ export default {
 			}
 		},
 		async toggleTestSuiteGitBranch(testSuiteId) {
-			await this.initRepositories();
 			const testSuite = this.testSuites.find(testSuite => testSuite._id === testSuiteId);
 			this.toggleBranchPopin.testSuiteId = testSuiteId;
-			const testSuiteRepository = this.repositories.find(repository => repository.address === testSuite.repoAddress);
-			this.toggleBranchPopin.availableGitBranches = testSuiteRepository.gitBranches;
+			this.toggleBranchPopin.availableGitBranches = testSuite.repository.gitBranches;
 			this.toggleBranchPopin.show = true;
 		},
 		changeTestStatus(testCaseId, newTestStatus) {
@@ -190,10 +186,6 @@ export default {
 		},
 		resetCreatePopin() {
 			this.createPopin = getEmptyTestSuitePopin();
-		},
-		selectRepository() {
-			const selectedRepository = this.repositories.find(repository => repository.address === this.createPopin.selectedRepository);
-			this.createPopin.availableGitBranches = selectedRepository.gitBranches;
 		},
 		async getRepoBranches() {
 			let error = false;

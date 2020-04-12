@@ -34,7 +34,9 @@ async function getAppConfigFileContent() {
 	}
 
 	_.forEach(config.workspace, (dirPath, key) => {
-		config.workspace[key] = path.resolve(path.dirname(CONFIG_SAMPLE_PATH), dirPath);
+		if (!path.isAbsolute(dirPath)) {
+			config.workspace[key] = path.resolve(path.dirname(CONFIG_SAMPLE_PATH), dirPath);
+		}
 	});
 
 	return config;

@@ -10,9 +10,9 @@ function getSSHKeys(req, res) {
 	return res.status(200).send(sshKeysModule.getSshKeys());
 }
 
-async function setPrivKey(req, res) {
-	const passPhrase = req.body.password;
-	const sshKeyName = req.body.sshKeyName;
+async function setPrivKeyPass(req, res) {
+	const passPhrase = req.body.keyPass;
+	const sshKeyName = req.params.keyname;
 
 	let success;
 	try {
@@ -29,6 +29,6 @@ async function setPrivKey(req, res) {
 
 
 router.get('/', getSSHKeys)
-	.put('/key-pass', setPrivKey);
+	.post('/:keyname/key-pass', setPrivKeyPass);
 
 module.exports = router;

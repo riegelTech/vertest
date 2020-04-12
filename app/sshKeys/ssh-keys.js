@@ -1,8 +1,6 @@
 'use strict';
 
-const fs = require('fs');
 const Path = require('path');
-const util = require('util');
 
 const ssh2Utils = require('ssh2').utils;
 
@@ -15,8 +13,10 @@ const ERR_CODES = {
 	not_found: 'ENOTFOUND'
 };
 
-class SshPubKey {
-	constructor({name = '', pubKey = '', privKey = ''}) {
+const privKeyPassSymbol = Symbol('privKeyPass');
+
+class SshKey {
+	constructor({name = '', pubKey = '', privKey = '', privKeyPass = ''}) {
 		const err = new Error();
 
 		if (!name) {
@@ -33,6 +33,9 @@ class SshPubKey {
 		}
 		this.pubKey = pubKey;
 		this.privKey = privKey;
+
+		this[privKeyPassSymbol] = privKeyPass;
+		this.decryptedPrivKey = false;
 	}
 
 	async testFilesAccess() {
@@ -51,15 +54,6 @@ class SshPubKey {
 		}
 		return true;
 	}
-}
-
-class SshKey extends SshPubKey {
-	constructor({name = '', pubKey = '', privKey = '', privKeyPass = ''}) {
-		super({name, pubKey, privKey});
-
-		this.privKeyPass = privKeyPass;
-		this.decryptedPrivKey = false;
-	}
 
 	async setPrivKeyPass(passPhrase) {
 		const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
@@ -74,13 +68,17 @@ class SshKey extends SshPubKey {
 			throw result;
 		}
 
-		this.privKeyPass = passPhrase;
+		this[privKeyPassSymbol] = passPhrase;
 		this.decryptedPrivKey = true;
 		return true;
 	}
 
 	get isDecrypted() {
 		return this.decryptedPrivKey;
+	}
+
+	getPrivKeyPass() {
+		return this[privKeyPassSymbol];
 	}
 }
 
@@ -117,7 +115,7 @@ async function setPrivKeyPass(sshKeyName, passPhrase) {
 
 
 function getSshKeys() {
-	return Array.from(sshKeys.values()).map(sshPrivKey => new SshPubKey(sshPrivKey));
+	return Array.from(sshKeys.values());
 }
 
 function getSshKeyByName(sshKeyName) {
@@ -131,7 +129,6 @@ function getSshKeyByName(sshKeyName) {
 
 module.exports = {
 	SshKey,
-	SshPubKey,
 	initSshKeys,
 	getSshKeys,
 	getSshKeyByName,

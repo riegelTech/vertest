@@ -19,22 +19,18 @@ const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
 const LOCAL_REF_PATH = 'refs/heads/';
 
 class Repository {
-    constructor({name = '', address = '', sshKey = '',  user = '', pass = '', repoPath = '', testDirs = []}) {
+    constructor({name = '', address = '', sshKey = null,  user = '', pass = '', repoPath = '', testDirs = []}) {
         if (!name) {
             throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
         }
         this.name = name;
         this.address = address;
 
-        if (sshKey && !sshKey instanceof sshKeyModule.SshKey) {
-            throw new Error('Ssh key parameter is not SshKey instance');
-        }
-
         if (sshKey && pass) {
             throw new Error('Cannot use both ssh and http authentication, please check your configuration.')
         }
 
-        this.sshKey = sshKey;
+        this.setSshKey(sshKey);
 
         this.user = user;
         this.pass = pass;
@@ -63,10 +59,6 @@ class Repository {
         return this.sshKey ? Repository.authMethods.SSH : Repository.authMethods.HTTP;
     }
 
-    get decryptedPrivKey() {
-        return this.sshKey ? this.sshKey.isDecrypted : false;
-    }
-
     get gitBranches() {
         return this._gitBranches;
     }
@@ -85,6 +77,14 @@ class Repository {
         this._testDirs = this._testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
     }
 
+    setSshKey(newSshKey) {
+        if (newSshKey && !(newSshKey instanceof sshKeyModule.SshKey)) {
+            this.sshKey = new sshKeyModule.SshKey(newSshKey);
+        } else {
+            this.sshKey = newSshKey;
+        }
+    }
+
     async moveRepository(dest) {
         if (!await fsExtra.pathExists(dest)) {
             throw new Error(`Directory ${dest} does not exist`);
@@ -95,7 +95,7 @@ class Repository {
         await fsExtra.copy(this._repoDir, destDir);
         this._repoDir = destDir;
 
-        await fsExtra.remove(oldDir);
+        return fsExtra.remove(oldDir);
     }
 
     async init({forceInit = false, waitForClone = false}) {
@@ -135,7 +135,7 @@ class Repository {
                 throw err;
             }
             const url = GitUrlParse(this.address);
-            creds = Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.privKeyPass);
+            creds = Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.getPrivKeyPass());
         }
         if (this.authMethod === Repository.authMethods.HTTP) {
             if (this.user && this.pass) {
@@ -312,7 +312,7 @@ class Repository {
     }
 
     async collectTestFilesPaths() {
-        const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir})));
+        const testFilesBatches = await Promise.all(this._testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir, nodir: true})));
         return {
             basePath: this._repoDir,
             filePaths: ([].concat(...testFilesBatches))
