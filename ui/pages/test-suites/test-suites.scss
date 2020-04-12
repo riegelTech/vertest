@@ -1,7 +1,19 @@
- .md-content {
-   max-height: 600px;
-   overflow: auto;
- }
- .change-git-branch-button {
-   cursor: pointer;
- }
+.md-content {
+ max-height: 600px;
+ overflow: auto;
+}
+.change-git-branch-button {
+ cursor: pointer;
+}
+.md-field.auth-type {
+  display: block;
+  .md-radio /deep/ label {
+    top: 0px;
+  }
+  > div {
+    width: 100%;
+    > label {
+      position: initial;
+    }
+  }
+}

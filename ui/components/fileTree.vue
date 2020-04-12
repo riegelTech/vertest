@@ -17,51 +17,19 @@
                 ></test-case-state>
             </span>
         </div>
-        <ul v-show="isOpen" v-if="isFolder">
-            <test-cases-tree
+        <ul v-show="isOpen" v-if="isFolder && item.children">
+            <file-tree
                     class="item"
                     v-for="(child, index) in item.children"
                     :key="index"
                     :item="child"
                     :testSuiteId="testSuiteId"
-            ></test-cases-tree>
+            ></file-tree>
         </ul>
     </li>
 </template>
 
-<script>
-    import {TEST_CASE_STATUSES} from '../pages/test-case/test-case';
-    import TestCaseState from './testCaseState.vue';
-	export default {
-		components: {
-			TestCaseState
-        },
-		name: 'test-cases-tree',
-		props: {
-			testSuiteId: '',
-			item: Object
-		},
-		data: function () {
-			return {
-				isOpen: true,
-				statuses: TEST_CASE_STATUSES
-			}
-		},
-		computed: {
-			isFolder() {
-				return this.item.children &&
-					this.item.children.length
-			}
-		},
-		methods: {
-			toggle() {
-				if (this.isFolder) {
-					this.isOpen = !this.isOpen
-				}
-			}
-		}
-	};
-</script>
+<script src="./fileTree.js"></script>
 
 <style scoped lang="scss">
     ul {

@@ -5,6 +5,8 @@ mongoData/*
 !mongoData/.gitkeep
 cloneDir/*
 !cloneDir/.gitkeep
+tempDir/*
+!tempDir/.gitkeep
 ui/dist/*
 !ui/dist/.gitkeep
 config.yml

@@ -12,7 +12,7 @@ import usersComponent from './pages/users/users.vue';
 import testSuitesComponent from './pages/test-suites/test-suites.vue';
 import oneTestSuiteComponent from './pages/test-suite/test-suite.vue';
 import testCaseComponent from './pages/test-case/test-case.vue';
-import repositoriesComponent from './pages/repositories/repositories.vue';
+import sshKeysComponent from './pages/ssh-keys/ssh-keys.vue';
 
 import pageNotFoundComponent from './pages/404.vue';
 
@@ -25,7 +25,7 @@ const router = new VueRouter({
 		{ path: '/test-suites', component: testSuitesComponent},
 		{ path: '/test-suites/:testSuiteId', component: oneTestSuiteComponent},
 		{ path: '/test-suites/:testSuiteId/test-case/:testCaseId', component: testCaseComponent},
-		{ path: '/repositories', component: repositoriesComponent},
+		{ path: '/ssh-keys', component: sshKeysComponent},
 		{ path: '*', component: pageNotFoundComponent}
 	]
 });

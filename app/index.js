@@ -7,18 +7,19 @@ const createNamespace = require('cls-hooked').createNamespace;
 const express = require('express');
 
 const appConfig = require('./appConfig/config');
-const repositories = require('./repositories/repositories');
-const testSuiteWatcher = require('./testSuites/testSuites-watcher');
+const sshKeysModule = require('./sshKeys/ssh-keys');
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+const testSuiteModule = require('./testSuites/testSuite');
 const testSuiteRouting = require('./testSuites/testSuite-api');
 const usersRouting = require('./users/users-api');
 const usersModule = require('./users/users');
 const authRouting = require('./auth/auth-api');
 const repositoriesRouting = require('./repositories/repositories-api');
+const sshKeyRouting = require('./sshKeys/ssh-keys-api');
 
 const sessionsCls = createNamespace('sessions');
 app.use((req, res, next) => {
@@ -50,6 +51,7 @@ app.all('/api/*', async function (req, res, next) {
 app.use('/api/test-suites/', testSuiteRouting);
 app.use('/api/users/', usersRouting);
 app.use('/api/repositories/', repositoriesRouting);
+app.use('/api/ssh-keys/', sshKeyRouting);
 app.use('/auth/', authRouting);
 // Static routes
 const uiPath = path.join(__dirname, '../ui/');
@@ -60,8 +62,9 @@ const startApp = async () => {
 	const config = await appConfig.getAppConfig();
 	const port = config.server.port;
 	try {
-		await repositories.initRepositories();
-		await testSuiteWatcher.watchTestSuitesChanges();
+		await testSuiteModule.initTestSuiteRepositories();
+		await sshKeysModule.initSshKeys();
+		testSuiteModule.watchTestSuitesChanges();
 	} catch (e) {
 		console.error(e);
 	}

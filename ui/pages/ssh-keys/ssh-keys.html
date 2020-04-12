@@ -1,23 +1,20 @@
 <main-layout>
     <div>
-        <md-table v-model="repositories" md-sort="name" md-sort-order="asc" md-card>
+        <md-table v-model="sshKeys" md-sort="name" md-sort-order="asc" md-card>
             <md-table-toolbar>
-                <h1 class="md-title">Repositories</h1>
+                <h1 class="md-title">SSH keys</h1>
             </md-table-toolbar>
             <md-table-row slot="md-table-row" slot-scope="{ item }">
                 <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
-                <md-table-cell md-label="Git url" md-sort-by="address">{{ item.address }}</md-table-cell>
                 <md-table-cell md-label="Actions">
-                    <template v-if="item.authMethod === 'ssh'">
-                        <template v-if="item.decryptedPrivKey === false">
-                            <md-button class="md-icon-button md-accent" @click="unlockPrivKey(item.address)">
-                                <md-icon>lock</md-icon>
-                                <md-tooltip md-direction="top">Enter password to decrypt private key for this repository</md-tooltip>
-                            </md-button>
-                        </template>
-                        <template v-else>
-                            <md-icon class="md-primary">lock_open</md-icon>
-                        </template>
+                    <template v-if="item.decryptedPrivKey === false">
+                        <md-button class="md-icon-button md-accent" @click="unlockPrivKey(item.name)">
+                            <md-icon>lock</md-icon>
+                            <md-tooltip md-direction="top">Enter passphrase to decrypt private key</md-tooltip>
+                        </md-button>
+                    </template>
+                    <template v-else>
+                        <md-icon class="md-primary">lock_open</md-icon>
                     </template>
                 </md-table-cell>
             </md-table-row>
@@ -27,7 +24,7 @@
         <md-dialog-title>Key pass</md-dialog-title>
         <form @submit="sendKeyPass">
             <md-field>
-                <md-input name="repoAddress" v-model="keyPopin.repoAddress" type="hidden" />
+                <md-input name="repoAddress" v-model="keyPopin.keyName" type="hidden" />
             </md-field>
             <md-field>
                 <label for="keyPass">Private key password</label>

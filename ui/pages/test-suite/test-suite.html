@@ -4,10 +4,10 @@
     <md-progress-bar md-mode="determinate" :md-value="testSuite.advancement.percent"></md-progress-bar>
     {{ testSuite.advancement.percent }}%
     <ul id="test-tree">
-        <test-cases-tree
+        <file-tree
                 class="item"
                 :item="testSuite.testsTree"
                 :testSuiteId="testSuite._id"
-        ></test-cases-tree>
+        ></file-tree>
     </ul>
 </main-layout>

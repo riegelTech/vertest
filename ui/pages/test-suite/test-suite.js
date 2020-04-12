@@ -1,16 +1,16 @@
 'use strict';
 
-import Path from 'path';
-
 import MainLayout from '../../layouts/main.vue';
-import TestCasesTree from '../../components/testCasesTree.vue';
+import FileTree from '../../components/fileTree.vue';
+
+import {fileTreeUtils} from '../../components/fileTree.js';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
 
 export default {
 	components: {
 		MainLayout,
-		TestCasesTree
+		FileTree
 	},
 	data() {
 		return {
@@ -23,49 +23,26 @@ export default {
 			const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			if (response.status === 200) {
 				this.testSuite = response.body;
-				this.testSuite.tests.forEach(testCase => Object.assign(testCase, {_shortenTestFilePath: testCase.testFilePath.replace(this.testSuite.baseDir, '')}));
-				this.createTestsTree();
+				const filePaths = this.testSuite.tests.map(testCase => testCase.testFilePath);
+
+				const testFileMapping = {};
+				this.testSuite.tests.forEach(testCase => {
+					testFileMapping[testCase.testFilePath] = testCase;
+				});
+				this.testSuite.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
+				this.testSuite.testsTree = fileTreeUtils.leafTransformer(this.testSuite.testsTree, leaf => {
+					if (testFileMapping[leaf.fullPath]) {
+						return Object.assign({}, leaf, {
+							testCase: testFileMapping[leaf.fullPath]
+						})
+					}
+				});
 			}
 		} catch (resp) {
 			window.location.href = '/';
 		}
 	},
 	methods: {
-		createTestsTree() {
-			const testsPaths = this.testSuite.tests.map(test => {
-				const filePathSplit = test._shortenTestFilePath.split(Path.sep);
-				return {
-				splitPath: filePathSplit.length === 1 ? filePathSplit : filePathSplit.slice(1),
-				fullPath: test.testFilePath,
-				testCase: test
-				};
-			});
 
-			function buildTree(testsPaths) {
-				const tree = [];
-				for (let testPath of testsPaths) {
-					if (!testPath.splitPath[0]) {
-						continue;
-					}
-					const dir = testPath.splitPath[0];
-					if (!tree.find(existingDir => existingDir.name === dir)) {
-						const sameDirs = testsPaths.filter(testPath => testPath.splitPath[0] === dir);
-						tree.push({
-							name: dir,
-							path: testPath.splitPath.length > 1 ? '' : testPath.fullPath,
-							testCase: testPath.testCase,
-							children: buildTree(sameDirs.map(sameDir => ({
-								splitPath: sameDir.splitPath.slice(1),
-								fullPath: sameDir.fullPath,
-								testCase: sameDir.testCase
-							})))
-						});
-					}
-				}
-				return tree;
-			}
-
-			this.testSuite.testsTree = {name: 'root', children: buildTree(testsPaths)};
-		}
 	}
 };

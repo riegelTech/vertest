@@ -29,8 +29,8 @@
                         <span class="md-list-item-text"><router-link to="/test-suites">Test-suites</router-link></span>
                     </md-list-item>
                     <md-list-item>
-                        <md-icon>all_inbox</md-icon>
-                        <span class="md-list-item-text"><router-link to="/repositories">Repositories</router-link></span>
+                        <md-icon>vpn_key</md-icon>
+                        <span class="md-list-item-text"><router-link to="/ssh-keys">SSH keys</router-link></span>
                     </md-list-item>
                 </md-list>
             </md-drawer>

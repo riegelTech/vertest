@@ -10,7 +10,7 @@
             </md-table-toolbar>
             <md-table-row slot="md-table-row" slot-scope="{ item }">
                 <md-table-cell md-label="Name" md-sort-by="name"><strong><router-link :to="`/test-suites/${item._id}`">{{ item.name }}</router-link></strong></md-table-cell>
-                <md-table-cell md-label="Repository" md-sort-by="repositoryName">{{ item.repositoryName }}</md-table-cell>
+                <md-table-cell md-label="Repository" md-sort-by="repositoryName">{{ item.repositoryAddress }}</md-table-cell>
                 <md-table-cell md-label="Advancement" md-numeric md-sort-by="advancement.percent">
                     <md-progress-bar md-mode="determinate" :md-value="item.advancement.percent"></md-progress-bar>
                     {{ item.advancement.percent }}%
@@ -41,25 +41,100 @@
     <md-dialog :md-active.sync="createPopin.show">
         <md-dialog-title>Please select a repository and a git branch</md-dialog-title>
         <form>
-            <md-field>
-                <label for="testSuiteName">Test suite name</label>
-                <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" />
-            </md-field>
-            <md-field>
-                <label for="repository">Repository</label>
-                <md-select v-model="createPopin.selectedRepository" name="repository" @md-selected="selectRepository">
-                    <md-option v-for="repository in repositories" :value="repository.address" :key="repository.address">{{ repository.name }}</md-option>
-                </md-select>
-            </md-field>
-            <md-field>
-                <label for="gitBranch">Git branch</label>
-                <md-select v-model="createPopin.selectedGitBranch" name="gitBranch">
-                    <md-option v-for="gitBranch in createPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
-                </md-select>
-            </md-field>
-            <md-dialog-actions>
-                <md-button class="md-primary" @click="sendCreateTestSuite">Import</md-button>
-            </md-dialog-actions>
+            <md-steppers md-linear :md-active-step.sync="createPopin.activeStep">
+                <md-step id="first" md-label="Main informations" :md-error="createPopin.firstStepError">
+                    <md-field>
+                        <label for="testSuiteName">Test suite name</label>
+                        <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" required />
+                    </md-field>
+                    <md-field>
+                        <label for="repositoryAddress">Repository address</label>
+                        <md-input name="repositoryAddress" v-model="createPopin.repositoryAddress" type="text" required />
+                    </md-field>
+                    <md-field class="auth-type">
+                        <div>
+                            <label for="repositoryAuthType">Repository authentication type</label>
+                        </div>
+                        <div>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.NONE">None</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.PASS">Login - password</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.KEY">SSH key</md-radio>
+                        </div>
+                    </md-field>
+                    <div :hidden="createPopin.repositoryAuthType !== authTypes.PASS">
+                        <md-field>
+                            <label for="repositoryLogin">Login</label>
+                            <md-input name="repositoryLogin" v-model="createPopin.repositoryLogin" type="text" />
+                        </md-field>
+                        <md-field>
+                            <label for="repositoryPass">Password</label>
+                            <md-input name="repositoryPass" v-model="createPopin.repositoryPass" type="password" />
+                        </md-field>
+                    </div>
+                    <div :hidden="createPopin.repositoryAuthType !== authTypes.KEY">
+                        <md-field>
+                            <label for="repositorySshKey">SSH key file</label>
+                            <md-select v-model="createPopin.repositorySshKey" name="repositorySshKey">
+                                <md-option v-for="repositorySshKey in createPopin.availableSshKeys" :value="repositorySshKey.name" :key="repositorySshKey.name">{{ repositorySshKey.name }}</md-option>
+                            </md-select>
+                        </md-field>
+                        <md-field>
+                            <label for="repositorySshKeyUser">Ssh key user</label>
+                            <md-input name="repositorySshKeyUser" v-model="createPopin.repositorySshKeyUser" type="text" />
+                        </md-field>
+                        <md-field>
+                            <label for="repositorySshKeyPass">Key passphrase (leave blank if key has no passphrase)</label>
+                            <md-input name="repositorySshKeyPass" v-model="createPopin.repositorySshKeyPass" type="password" />
+                        </md-field>
+                    </div>
+                    <md-button class="md-raised md-primary" @click="getRepoBranches()">Next</md-button>
+                </md-step>
+                <md-step id="second" md-label="Repository GIT branch" :md-error="createPopin.secondStepError">
+                    <md-field>
+                        <label for="repositoryBranch">Choose GIT branch</label>
+                        <md-select v-model="createPopin.repositoryBranch" name="repositoryBranch">
+                            <md-option v-for="gitBranch in createPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
+                        </md-select>
+                    </md-field>
+                    <md-button class="md-raised md-primary" @click="getRepoFiles()">Next</md-button>
+                </md-step>
+                <md-step id="third" md-label="File selection" :md-error="createPopin.thirdStepError">
+                    <md-field>
+                        <label for="filePatterns">Configure which files to add to the set of tests</label>
+                        <md-input name="filePatterns" v-model="createPopin.fieldFilePattern" type="text" />
+                        <md-button class="md-raised md-primary md-dense md-icon-button md-small" @click="addFilePattern()">
+                            <md-icon>add</md-icon>
+                        </md-button>
+                    </md-field>
+                    <div>
+                        <ul>
+                            <li v-for="(filePattern, filePatternIndex) in createPopin.filePatterns" :value="filePattern" :key="filePatternIndex">
+                                <md-button class="md-icon-button md-mini md-accent" @click="deleteFilePattern(filePatternIndex)">
+                                    <md-icon>delete</md-icon>
+                                    <md-tooltip md-direction="top">Remove this pattern</md-tooltip>
+                                </md-button>
+                                {{ filePattern }}
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="md-layout md-gutter">
+                        <div class="md-layout-item">
+                            <strong>Available files</strong>
+                            <file-tree class="item"
+                                       :item="createPopin.availableFilesTree"
+                                       :testSuiteId="''">
+                            </file-tree>
+                        </div>
+                        <div class="md-layout-item">
+                            <file-tree class="item"
+                                       :item="createPopin.selectedFilesTree"
+                                       :testSuiteId="''">
+                            </file-tree>
+                        </div>
+                    </div>
+                    <md-button class="md-raised md-primary" @click="createTestSuite()">Create test suite</md-button>
+                </md-step>
+            </md-steppers>
         </form>
     </md-dialog>
     <md-dialog :md-active.sync="toggleBranchPopin.show">
