@@ -1,5 +1,6 @@
 'use strict';
 
+const EventEmitter = require('events');
 const Path = require('path');
 
 const ssh2Utils = require('ssh2').utils;
@@ -83,6 +84,7 @@ class SshKey {
 }
 
 const sshKeys = new Map();
+const sshKeyCollectionEventEmitter = new EventEmitter();
 
 async function initSshKeys() {
 	const config = await appConfig.getAppConfig();
@@ -102,15 +104,18 @@ async function initSshKeys() {
 		}
 
 		await sshKey.testFilesAccess();
-		await sshKey.setPrivKeyPass(''); // automatically decrypt those that have no passphrase
-
 		sshKeys.set(sshKey.name, sshKey);
+		await setPrivKeyPass(sshKey.name,''); // automatically decrypt those that have no passphrase
 	});
 }
 
 async function setPrivKeyPass(sshKeyName, passPhrase) {
 	const sshKey = getSshKeyByName(sshKeyName);
-	return await sshKey.setPrivKeyPass(passPhrase);
+	const success = await sshKey.setPrivKeyPass(passPhrase);
+	if (success) {
+		sshKeyCollectionEventEmitter.emit('sshKeyDecrypted', sshKey);
+	}
+	return success;
 }
 
 
@@ -129,6 +134,7 @@ function getSshKeyByName(sshKeyName) {
 
 module.exports = {
 	SshKey,
+	sshKeyCollectionEventEmitter,
 	initSshKeys,
 	getSshKeys,
 	getSshKeyByName,

@@ -62,8 +62,8 @@ const startApp = async () => {
 	const config = await appConfig.getAppConfig();
 	const port = config.server.port;
 	try {
-		await sshKeysModule.initSshKeys();
 		await testSuiteModule.initTestSuiteRepositories();
+		await sshKeysModule.initSshKeys();
 	} catch (e) {
 		console.error(e);
 	}

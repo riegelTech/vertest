@@ -7,6 +7,7 @@ const uuid = require('uuidv4');
 
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
+const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
 const utils = require('../utils');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
@@ -127,6 +128,7 @@ async function fetchTestSuites() {
 	itemsList.forEach(testSuite => {
 		testSuites.set(testSuite._id, new TestSuite(Object.assign(testSuite, {repository: testSuite.repository})));
 	});
+	sshKeyCollectionEventEmitter.on('sshKeyDecrypted', setDecryptedKeyToRepository);
 }
 
 async function getTestSuites() {
@@ -176,9 +178,16 @@ async function removeTestSuite(testSuite) {
 	if (itemsCount === 0) {
 		throw new Error(`No test suite found with id ${testUuid}`);
 	}
-	const oldTestSuite = (await cursor.toArray())[0];
 	await coll.deleteOne(filter);
 	testSuites.delete(testSuite._id);
+}
+
+function setDecryptedKeyToRepository(sshKey) {
+	testSuites.forEach(testSuite => {
+		if (testSuite.repository.sshKey.name === sshKey.name) {
+			testSuite.repository.setSshKey(sshKey);
+		}
+	});
 }
 
 module.exports = {
