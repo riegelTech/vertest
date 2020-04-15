@@ -12,4 +12,4 @@ sshKeys:
 
 workspace:
   repositoriesDir: ./cloneDir # can be also absolute
-  temproraryRepositoriesDir: ./tempDir # can be also absolute
+  temporaryRepositoriesDir: ./tempDir # can be also absolute

@@ -5,44 +5,8 @@ const router = express.Router();
 
 const repositoriesModule = require('../repositories/repositories');
 const sshKeyModule = require('../sshKeys/ssh-keys');
-const testSuitesModule = require('../testSuites/testSuite');
 
 const utils = require('../utils');
-
-async function getRepositories(req, res) {
-    res.send([]);
-}
-
-async function setPrivKey(req, res) {
-    const repoUrl = decodeURIComponent(req.params['repositoryAddress']);
-    const pass = req.body.keyPass;
-    let repository;
-    try {
-        repository = repositoriesModule.getTrackingRepository(repoUrl);
-    } catch (e) {
-        return res.status(404).send(e.message);
-    }
-
-    if (repository.authMethod === 'http') {
-        res.status(403).send(`Repository with address ${repository.address} does not use SSH authentication`);
-    }
-
-    repository.privKeyPass = pass;
-    await repository.init({forceInit: true, waitForClone: false});
-    if (!repository.sshKey.isDecrypted) {
-        return res.status(403).send(`Fail to decrypt SSH private key for repository ${repository.address}`);
-    }
-
-    const testSuites = await testSuitesModule.getTestSuites();
-    await Promise.all(testSuites
-        .filter(testSuite => testSuite.repository.address === repoUrl)
-        .map(async testSuite => {
-            testSuite.repository.privKeyPass = pass;
-            return testSuite.repository.init({forceInit: true, waitForClone: false});
-        }));
-
-    return res.status(200).send('OK');
-}
 
 async function createTemporaryRepository(req, res) {
     const sshKey = req.body.repositorySshKey ? sshKeyModule.getSshKeyByName(req.body.repositorySshKey) : null;
@@ -83,9 +47,7 @@ async function getRepositoryFiles(req, res) {
     res.status(200).send(filesAndBasePath);
 }
 
-router.get('/', getRepositories)
-    .post('/temp', createTemporaryRepository)
-	.post('/temp/:repoUuid/files', getRepositoryFiles)
-    .put('/:repositoryAddress/key-pass', setPrivKey);
+router.post('/temp', createTemporaryRepository)
+	.post('/temp/:repoUuid/files', getRepositoryFiles);
 
 module.exports = router;

@@ -47,7 +47,7 @@ class Session {
 }
 
 class User {
-	constructor({_id = uuidV4(), login = '', password = '', email = '', firstName = '', lastName = '', readOnly = true, hashPass = false}) {
+	constructor({_id = uuidV4.uuid(), login = '', password = '', email = '', firstName = '', lastName = '', readOnly = true, hashPass = false}) {
 		// TODO some params validations
 		this._id = _id;
 		this.login = login;
@@ -211,7 +211,7 @@ async function authenticate(login, pass, sessId) {
 	});
 
 	if (foundUser) {
-		const newSessId = uuidV4();
+		const newSessId = uuidV4.uuid();
 		sessions.set(newSessId, new Session(foundUser));
 		sessionCls.set('user', augmentUserProps(foundUser));
 		sessionCls.set('sessId', newSessId);

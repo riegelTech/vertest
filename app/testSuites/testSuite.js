@@ -42,7 +42,7 @@ class TestCase {
 }
 
 class TestSuite {
-	constructor({_id = uuid(), name = '', repository = null, tests = [], status = TestSuite.STATUSES.UP_TO_DATE}) {
+	constructor({_id = uuid.uuid(), name = '', repository = null, tests = [], status = TestSuite.STATUSES.UP_TO_DATE}) {
 		this._id = _id;
 		this.name = name;
 		this.status = status;
@@ -128,7 +128,6 @@ async function fetchTestSuites() {
 	itemsList.forEach(testSuite => {
 		const testSuiteInstance = new TestSuite(Object.assign(testSuite, {repository: testSuite.repository}));
 		testSuites.set(testSuiteInstance._id, testSuiteInstance);
-		testSuiteInstance.repository.testDirs = testSuite.repository._testDirs;
 	});
 	sshKeyCollectionEventEmitter.on('sshKeyDecrypted', setDecryptedKeyToRepository);
 }
@@ -186,7 +185,7 @@ async function removeTestSuite(testSuite) {
 
 function setDecryptedKeyToRepository(sshKey) {
 	testSuites.forEach(testSuite => {
-		if (testSuite.repository.sshKey.name === sshKey.name) {
+		if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && testSuite.repository.sshKey.name === sshKey.name) {
 			testSuite.repository.setSshKey(sshKey);
 		}
 	});
@@ -196,13 +195,14 @@ function watchTestSuitesChanges() {
 	setInterval(async () => {
 		const testSuites = await getTestSuites();
 		await Promise.all(testSuites.map(async testSuite => {
-			if (!testSuite.repository.sshKey.isDecrypted) {
+			if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && !testSuite.repository.sshKey.isDecrypted) {
 				return;
 			}
 			try {
 				await testSuite.repository.fetchRepository();
-				const newHeadSha = await testSuite.repository.lookupForChanges();
-				if (newHeadSha && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
+				const testFilesHasChanged = await testSuite.repository.lookupForChanges()
+					|| await testSuite.repository.lookupForChanges(true);
+				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
 					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
 					await updateTestSuite(testSuite);
 				}
