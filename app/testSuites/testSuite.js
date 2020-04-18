@@ -221,13 +221,13 @@ function watchTestSuitesChanges() {
 module.exports = {
 	TestSuite,
 	TestCase,
-	// start CRUD
+	// start test suite CRUD
 	addTestSuite,
 	getTestSuites,
 	getTestSuiteByUuid,
 	updateTestSuite,
 	removeTestSuite,
-	// end CRUD
+	// end test suite CRUD
 	initTestSuiteRepositories,
 	watchTestSuitesChanges
 };

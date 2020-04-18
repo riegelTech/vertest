@@ -1,13 +1,16 @@
 'use strict';
 
+const _ = require('lodash');
 const express = require('express');
 const router = express.Router();
 
 const appConfigModule = require('../appConfig/config');
 const repoModule = require('../repositories/repositories');
-const testCaseApi = require('./testCase-api');
 const testSuiteModule = require('./testSuite');
+const TestCase = testSuiteModule.TestCase;
 const TestSuite = testSuiteModule.TestSuite;
+const usersModule = require('../users/users');
+const utils = require('../utils');
 
 
 async function getTestSuites(req, res) {
@@ -102,7 +105,6 @@ async function solveTestSuiteDiff(req, res) {
 
  		res.send(testSuite);
 	} catch(e) {
-		console.error(e);
 		res.send({
 			success: false,
 			msg: e.message
@@ -124,7 +126,6 @@ async function createTestSuite(req, res) {
 			data: testSuite
 		});
 	} catch(e) {
-		console.error(e);
 		res.send({
 			success: false,
 			msg: e.message
@@ -150,6 +151,143 @@ async function deleteTestSuite(req, res) {
 	}
 }
 
+function getTestFromUrlParam(req) {
+	const testSuiteUuid = req.params.uuid;
+	const testCasePath = decodeURIComponent(req.params.testCasePath);
+	const testSuite = testSuiteModule.getTestSuiteByUuid(testSuiteUuid);
+	const testCase = testSuite.tests.find(testCase => testCase.testFilePath === testCasePath);
+	if (!testCase) {
+		throw new Error(`Test case not found for path ${testCasePath}`);
+	}
+	return {
+		testSuite,
+		testCase
+	}
+}
+
+function getTestCase(req, res) {
+	try {
+		const {testCase} = getTestFromUrlParam(req);
+		res.status(200).send(testCase);
+	} catch (e) {
+		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
+	}
+}
+
+function assertUserIsNotReadOnly() {
+	const curUser = usersModule.getCurrentUser();
+	if (curUser.readOnly) {
+		const err =  new Error(`User ${curUser._id} is readonly`);
+		err.code =  RESPONSE_HTTP_CODES.LOCKED;
+		throw err;
+	}
+	return;
+}
+
+async function affectUser(req, res) {
+	try {
+		assertUserIsNotReadOnly();
+	} catch (e) {
+		res.status(utils.getHttpCode(e.code));
+		return res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+
+	const userId = req.body.userId;
+
+	let testSuite;
+	let testCase;
+	try {
+		const entities = getTestFromUrlParam(req);
+		testSuite = entities.testSuite;
+		testCase = entities.testCase;
+	} catch (e) {
+		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
+	}
+
+	if (req.body.userId !== null) {
+		const user = await usersModule.getUser(userId);
+		testCase.user = _.omit(user, ['password']);
+		testCase.status = TestCase.STATUSES.IN_PROGRESS;
+	} else {
+		testCase.user = null;
+		testCase.status = TestCase.STATUSES.TODO;
+	}
+
+	try {
+		await testSuiteModule.updateTestSuite(testSuite);
+	} catch (e) {
+		res.status(utils.RESPONSE_HTTP_CODES.DEFAULT);
+	}
+
+	return res.send({
+		success: true
+	});
+}
+
+async function updateTestStatus(req, res) {
+	try {
+		assertUserIsNotReadOnly();
+	} catch (e) {
+		res.status(utils.getHttpCode(e.code));
+		return res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+
+	const curUser = usersModule.getCurrentUser();
+	let testStatus;
+	switch (req.body.newStatus) {
+		case TestCase.STATUSES.SUCCESS:
+			testStatus = TestCase.STATUSES.SUCCESS;
+			break;
+		case TestCase.STATUSES.FAILED:
+			testStatus = TestCase.STATUSES.FAILED;
+			break;
+		case TestCase.STATUSES.BLOCKED:
+			testStatus = TestCase.STATUSES.BLOCKED;
+			break;
+		case TestCase.STATUSES.TODO:
+			testStatus = TestCase.STATUSES.TODO;
+			break;
+		default:
+			testStatus = TestCase.STATUSES.IN_PROGRESS;
+	}
+
+	let testSuite;
+	let testCase;
+	try {
+		const entities = getTestFromUrlParam(req);
+		testSuite = entities.testSuite;
+		testCase = entities.testCase;
+	} catch (e) {
+		return res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
+	}
+
+	if (testCase.user._id !== curUser._id) {
+		return res.status(utils.RESPONSE_HTTP_CODES.LOCKED)
+			.send(`User "${curUser.firstName} ${curUser.lastName}" is not allowed to change ${testCase.testFilePath} status`);
+	}
+	try {
+		testCase.status = testStatus;
+		if (testCase.status === TestCase.STATUSES.TODO) {
+			testCase.user = null;
+		}
+
+		await testSuiteModule.updateTestSuite(testSuite);
+		return res.status(200).send('ok');
+	} catch(e) {
+		res.status(utils.getHttpCode(e.code));
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
 
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
@@ -157,11 +295,10 @@ router.get('/', getTestSuites)
 	.post('/', createTestSuite)
 	.put('/:uuid/solve', solveTestSuiteDiff)
 	.delete('/:uuid', deleteTestSuite)
-	.use('/:uuid/test-case', function (req, res, next) {
-		req.testSuiteUuid = req.params.uuid;
-		next();
-	})
-	.use('/:uuid/test-case', testCaseApi);
+	// start test case API
+	.get('/:uuid/test-case/:testCasePath', getTestCase)
+	.post('/:uuid/test-case/:testCasePath/attach-user/', affectUser)
+	.put('/:uuid/test-case/:testCasePath/set-status/', updateTestStatus);
 
 
 module.exports = router;
