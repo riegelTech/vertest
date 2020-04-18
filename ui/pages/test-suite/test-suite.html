@@ -1,8 +1,8 @@
 <main-layout v-if="testSuite">
     <h2>{{ testSuite.name }}</h2>
     <p><strong>{{ testSuite.repoAddress }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-    <md-progress-bar md-mode="determinate" :md-value="testSuite.advancement.percent"></md-progress-bar>
-    {{ testSuite.advancement.percent }}%
+    <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
+    {{ testSuite.progress.percent }}%
     <ul id="test-tree">
         <file-tree
                 class="item"

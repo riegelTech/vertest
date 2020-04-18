@@ -11,9 +11,9 @@
             <md-table-row slot="md-table-row" slot-scope="{ item }">
                 <md-table-cell md-label="Name" md-sort-by="name"><strong><router-link :to="`/test-suites/${item._id}`">{{ item.name }}</router-link></strong></md-table-cell>
                 <md-table-cell md-label="Repository" md-sort-by="repositoryName">{{ item.repositoryAddress }}</md-table-cell>
-                <md-table-cell md-label="Advancement" md-numeric md-sort-by="advancement.percent">
-                    <md-progress-bar md-mode="determinate" :md-value="item.advancement.percent"></md-progress-bar>
-                    {{ item.advancement.percent }}%
+                <md-table-cell md-label="Progress" md-numeric md-sort-by="progress.percent">
+                    <md-progress-bar md-mode="determinate" :md-value="item.progress.percent"></md-progress-bar>
+                    {{ item.progress.percent }}%
                 </md-table-cell>
                 <md-table-cell md-label="Git branch" md-sort-by="gitBranch">
                     <a class="change-git-branch-button" @click="toggleTestSuiteGitBranch(item._id)">

@@ -1,5 +1,6 @@
 'use strict';
 
+const EventEmitter = require('events');
 const Path = require('path');
 
 const {lowestCommonAncestor} = require('lowest-common-ancestor');
@@ -12,8 +13,9 @@ const utils = require('../utils');
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
-class TestCase {
+class TestCase extends EventEmitter {
 	constructor({testFilePath = '', basePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
+		super();
 		this.basePath = basePath;
 		this.testFilePath = testFilePath;
 		this.content = content;
@@ -39,6 +41,15 @@ class TestCase {
 		return this.status === TestCase.STATUSES.SUCCESS
 			|| this.status === TestCase.STATUSES.FAILED;
 	}
+
+	setStatus(newStatus) {
+		const availableStatuses = Object.values(TestCase.STATUSES);
+		if (!availableStatuses.includes(newStatus)) {
+			throw new Error(`Status "${newStatus}" is not a valid status`);
+		}
+		this.status = newStatus;
+		this.emit('statusUpdated', newStatus);
+	}
 }
 
 class TestSuite {
@@ -46,22 +57,10 @@ class TestSuite {
 		this._id = _id;
 		this.name = name;
 		this.status = status;
-		this.tests = tests;
+		this.tests = tests.map(rawTestCase => new TestCase(rawTestCase));
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
 
-		const finished = this.tests.reduce((total, testCase) => {
-			if (testCase.isFinished) {
-				total ++;
-			}
-			return total;
-		}, 0);
-		const total = this.tests.length;
-		const percent = total === 0 ? 0 : Math.round((finished / total) * 100 * 100) / 100;
-		this.advancement = {
-			finished,
-			total,
-			percent
-		};
+		this.updateProgress();
 
 		if (repository instanceof repoModule.Repository) {
 			this.repository = repository;
@@ -70,6 +69,10 @@ class TestSuite {
 				repoPath: repository._repoDir
 			}));
 		}
+
+		this.tests.forEach(testCase => {
+			testCase.on('statusUpdated', () => this.updateProgress());
+		});
 	}
 
 	async init() {
@@ -90,10 +93,12 @@ class TestSuite {
 	}
 
 	addTestCase(basePath, testFilePath) {
-		this.tests.push(new TestCase({
+		const testCase = new TestCase({
 			testFilePath,
 			basePath
-		}));
+		});
+		this.tests.push(testCase);
+		testCase.on('statusUpdated', () => this.updateProgress());
 	}
 
 	removeTestCase(testFilePath) {
@@ -101,7 +106,25 @@ class TestSuite {
 		if (testIndex === undefined) {
 			throw new Error(`Unable to find test with file path ${testFilePath}`);
 		}
+		const oldTestCase = this.tests[testIndex];
+		oldTestCase.off('updatedStatus');
 		this.tests.splice(testIndex, 1);
+	}
+
+	updateProgress() {
+		const finished = this.tests.reduce((total, testCase) => {
+			if (testCase.isFinished) {
+				total ++;
+			}
+			return total;
+		}, 0);
+		const total = this.tests.length;
+		const percent = total === 0 ? 0 : Math.round((finished / total) * 100 * 100) / 100;
+		this.progress = {
+			finished,
+			total,
+			percent
+		};
 	}
 
 	static get STATUSES() {

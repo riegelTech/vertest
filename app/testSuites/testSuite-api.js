@@ -210,10 +210,10 @@ async function affectUser(req, res) {
 	if (req.body.userId !== null) {
 		const user = await usersModule.getUser(userId);
 		testCase.user = _.omit(user, ['password']);
-		testCase.status = TestCase.STATUSES.IN_PROGRESS;
+		testCase.setStatus(TestCase.STATUSES.IN_PROGRESS);
 	} else {
 		testCase.user = null;
-		testCase.status = TestCase.STATUSES.TODO;
+		testCase.setStatus(TestCase.STATUSES.TODO);
 	}
 
 	try {
@@ -272,7 +272,7 @@ async function updateTestStatus(req, res) {
 			.send(`User "${curUser.firstName} ${curUser.lastName}" is not allowed to change ${testCase.testFilePath} status`);
 	}
 	try {
-		testCase.status = testStatus;
+		testCase.setStatus(testStatus);
 		if (testCase.status === TestCase.STATUSES.TODO) {
 			testCase.user = null;
 		}
