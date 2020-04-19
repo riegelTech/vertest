@@ -107,7 +107,7 @@ class TestSuite {
 			throw new Error(`Unable to find test with file path ${testFilePath}`);
 		}
 		const oldTestCase = this.tests[testIndex];
-		oldTestCase.off('updatedStatus');
+		oldTestCase.removeAllListeners('updatedStatus');
 		this.tests.splice(testIndex, 1);
 	}
 

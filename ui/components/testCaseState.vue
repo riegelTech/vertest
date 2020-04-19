@@ -1,11 +1,11 @@
 <template>
     <span>
         <span v-if="displayCurrentState">
-            <md-icon v-if="curState === statuses.TODO">hourglass_empty</md-icon>
-            <md-icon v-if="curState === statuses.IN_PROGRESS">thumbs_up_down</md-icon>
-            <md-icon v-if="curState === statuses.FAILED">thumb_down</md-icon>
+            <md-icon v-if="curState === statuses.TODO">play_circle_outline</md-icon>
+            <md-icon v-if="curState === statuses.IN_PROGRESS">person</md-icon>
+            <md-icon v-if="curState === statuses.FAILED">clear</md-icon>
             <md-icon v-if="curState === statuses.BLOCKED">report</md-icon>
-            <md-icon v-if="curState === statuses.SUCCESS">thumb_up</md-icon>
+            <md-icon v-if="curState === statuses.SUCCESS">done</md-icon>
         </span>
         <span v-if="displayStateSwitch">
             <md-field>

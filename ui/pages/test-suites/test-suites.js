@@ -107,7 +107,7 @@ export default {
 	methods: {
 		async initScreen() {
 			await this.initTestSuites();
-			await this.getSshKeys();
+			this.createPopin.availableSshKeys = await this.getSshKeys();
 		},
 		async initTestSuites() {
 			try {
@@ -175,7 +175,7 @@ export default {
 		async toggleTestSuiteGitBranch(testSuiteId) {
 			const testSuite = this.testSuites.find(testSuite => testSuite._id === testSuiteId);
 			this.toggleBranchPopin.testSuiteId = testSuiteId;
-			this.toggleBranchPopin.availableGitBranches = testSuite.repository.gitBranches;
+			this.toggleBranchPopin.availableGitBranches = testSuite.repository._gitBranches;
 			this.toggleBranchPopin.show = true;
 		},
 		changeTestStatus(testCaseId, newTestStatus) {
