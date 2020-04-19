@@ -64,7 +64,7 @@ const startApp = async () => {
 	try {
 		await testSuiteModule.initTestSuiteRepositories();
 		await sshKeysModule.initSshKeys();
-		testSuiteModule.watchTestSuitesChanges();
+		await testSuiteModule.watchTestSuitesChanges();
 	} catch (e) {
 		console.error(e);
 	}

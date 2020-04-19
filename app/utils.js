@@ -36,9 +36,11 @@ const RESPONSE_HTTP_CODES = {
 module.exports = {
     // fs
     access: util.promisify(fs.access),
+    readDir: util.promisify(fs.readdir),
     readFile: util.promisify(fs.readFile),
     mkdir: util.promisify(fs.mkdir),
     exists: util.promisify(fs.exists),
+    stat: util.promisify(fs.stat),
     // glob
     glob: util.promisify(glob),
     // http responses codes

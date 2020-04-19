@@ -3,9 +3,11 @@
 const EventEmitter = require('events');
 const Path = require('path');
 
+const fsExtra = require('fs-extra');
 const {lowestCommonAncestor} = require('lowest-common-ancestor');
 const uuid = require('uuidv4');
 
+const appConfig = require('../appConfig/config');
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
@@ -200,9 +202,10 @@ async function removeTestSuite(testSuite) {
 	const cursor = await coll.find(filter);
 	const itemsCount = await cursor.count();
 	if (itemsCount === 0) {
-		throw new Error(`No test suite found with id ${testUuid}`);
+		throw new Error(`No test suite found with id ${testSuite._id}`);
 	}
 	await coll.deleteOne(filter);
+	await testSuite.repository.remove();
 	testSuites.delete(testSuite._id);
 }
 
@@ -214,8 +217,26 @@ function setDecryptedKeyToRepository(sshKey) {
 	});
 }
 
-function watchTestSuitesChanges() {
+async function watchTestSuitesChanges() {
+	const config = await appConfig.getAppConfig();
+	const tempRepoDir = config.workspace.temporaryRepositoriesDir;
+	const HOUR_MS = 60 * 60 * 1000;
 	setInterval(async () => {
+		const tempsRepositories = await utils.readDir(tempRepoDir);
+		const unusedDirs = (await Promise.all(tempsRepositories
+			.map(async dirEntry => {
+				const dirPath = Path.join(tempRepoDir, dirEntry);
+				return {
+					stat: await utils.stat(dirPath),
+					dirPath
+				};
+			})))
+			.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
+
+		await Promise.all(unusedDirs.map(unusedDir => {
+			return fsExtra.remove(unusedDir.dirPath);
+		}));
+
 		const testSuites = await getTestSuites();
 		await Promise.all(testSuites.map(async testSuite => {
 			if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && !testSuite.repository.sshKey.isDecrypted) {

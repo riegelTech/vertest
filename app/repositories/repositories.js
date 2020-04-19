@@ -94,6 +94,10 @@ class Repository {
         return fsExtra.remove(oldDir);
     }
 
+    async remove() {
+        return fsExtra.remove(this._repoDir);
+    }
+
     async init({forceInit = false, waitForClone = false}) {
         // if repository exists just open it
         if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
