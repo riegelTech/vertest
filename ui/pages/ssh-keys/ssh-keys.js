@@ -32,7 +32,9 @@ export const sshKeysMixin = {
 					return this.sshKeys;
 				}
 			} catch (resp) {
-				window.location.href = '/';
+				if (resp.status !== 401) {
+					throw resp;
+				}
 			}
 		}
 	}

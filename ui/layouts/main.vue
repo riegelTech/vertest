@@ -17,16 +17,12 @@
 
                 <md-list>
                     <md-list-item>
-                        <md-icon>home</md-icon>
-                        <span class="md-list-item-text"><router-link to="/">Home</router-link></span>
+                        <md-icon>assignment</md-icon>
+                        <span class="md-list-item-text"><router-link to="/">Test suites</router-link></span>
                     </md-list-item>
                     <md-list-item>
                         <md-icon>group</md-icon>
                         <span class="md-list-item-text"><router-link to="/users">Users</router-link></span>
-                    </md-list-item>
-                    <md-list-item>
-                        <md-icon>assignment</md-icon>
-                        <span class="md-list-item-text"><router-link to="/test-suites">Test-suites</router-link></span>
                     </md-list-item>
                     <md-list-item>
                         <md-icon>vpn_key</md-icon>

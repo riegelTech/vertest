@@ -11,12 +11,14 @@ Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
+import {userEventBus, userMixin} from '../users/users';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';
 import DiffViewer from '../../components/diffViewer.vue';
 import TestCaseState from '../../components/testCaseState.vue';
 
+const defaultCurrentUser = null;
 const TEST_SUITE_PATH = '/api/test-suites/';
 const REPOSITORIES_PATH = '/api/repositories/';
 const AUTHENTICATION_TYPES = {
@@ -60,12 +62,17 @@ export default {
 		TabContent,
 		FileTree
 	},
+	mixins: [userMixin, sshKeysMixin],
 	data() {
 		return {
 			createPopin: getEmptyTestSuitePopin(),
 			authTypes: AUTHENTICATION_TYPES,
 			testSuites: [],
 			sshKeys: [],
+			loginPopup: {
+				show: false
+			},
+			currentUser: defaultCurrentUser,
 			diffPopin: {
 				show : false,
 				testSuiteId: null,
@@ -82,21 +89,43 @@ export default {
 			}
 		};
 	},
-	mixins: [sshKeysMixin],
 	async mounted() {
-		await this.initTestSuites();
-		this.createPopin.availableSshKeys = await this.getSshKeys();
+		userEventBus.$on('initCurrentUser', () => {
+			this.currentUser = this.$store.state.currentUser;
+			if (!this.$store.state.currentUser) {
+				this.showLoginPopup();
+			} else {
+				this.initScreen();
+			}
+		});
+		userEventBus.$on('userLogin', () => {
+			this.currentUser = this.$store.state.currentUser;
+			this.hideLoginPopup();
+			this.initScreen();
+		});
 	},
 	methods: {
+		async initScreen() {
+			await this.initTestSuites();
+			await this.getSshKeys();
+		},
 		async initTestSuites() {
 			try {
 				const response = await this.$http.get(TEST_SUITE_PATH);
 				if (response.status === 200) {
 					this.testSuites = response.body;
 				}
+				return true;
 			} catch (resp) {
-				window.location.href = '/';
+				this.showLoginPopup();
+				return false;
 			}
+		},
+		hideLoginPopup() {
+			this.loginPopup.show = false;
+		},
+		showLoginPopup() {
+			this.loginPopup.show = true;
 		},
 		async sendCreateTestSuite() {
 			try {
