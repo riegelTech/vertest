@@ -1,6 +1,6 @@
 'use strict';
 
-import {TEST_CASE_STATUSES} from '../pages/test-case/test-case';
+import {TEST_CASE_STATUSES} from './test-case';
 import TestCaseState from './testCaseState.vue';
 import Path from "path";
 

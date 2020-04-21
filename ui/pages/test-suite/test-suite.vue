@@ -9,4 +9,7 @@
             display: none;
         }
     }
+    .md-layout.md-gutter>.md-layout-item.test-suite-col-left{
+        padding-left: 40px
+    }
 </style>

@@ -1,7 +1,7 @@
 'use strict';
 
 import MainLayout from '../../layouts/main.vue';
-import TestCase from '../test-case/test-case.vue';
+import TestCase from '../../components/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
 import {fileTreeUtils} from '../../components/fileTree.js';
 

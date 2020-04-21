@@ -1,7 +1,7 @@
 'use strict';
 
-import {userMixin} from '../users/users';
-import TestCaseState from '../../components/testCaseState.vue';
+import {userMixin} from '../pages/users/users';
+import TestCaseState from './testCaseState.vue';
 
 const md = require('markdown-it')();
 

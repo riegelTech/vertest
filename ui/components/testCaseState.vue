@@ -21,7 +21,7 @@
     </span>
 </template>
 <script>
-    import {TEST_CASE_STATUSES} from '../pages/test-case/test-case';
+    import {TEST_CASE_STATUSES} from './test-case';
     export default {
         name: 'test-case-state',
         props: {

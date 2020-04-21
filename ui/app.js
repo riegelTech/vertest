@@ -10,7 +10,7 @@ import initComponent from './pages/init/init.vue';
 import usersComponent from './pages/users/users.vue';
 import testSuitesComponent from './pages/test-suites/test-suites.vue';
 import oneTestSuiteComponent from './pages/test-suite/test-suite.vue';
-import testCaseComponent from './pages/test-case/test-case.vue';
+import testCaseComponent from './components/test-case.vue';
 import sshKeysComponent from './pages/ssh-keys/ssh-keys.vue';
 
 import pageNotFoundComponent from './pages/404.vue';
