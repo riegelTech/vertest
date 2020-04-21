@@ -6,7 +6,7 @@
             <span class="folder" v-if="isFolder">
                 {{ item.name }}
             </span>
-            <router-link v-if="!isFolder && displayLink && item.link" :to="item.link">
+            <router-link class="file" v-if="!isFolder && displayLink && item.link" :to="item.link">
                 {{ item.name }}
             </router-link>
             <span class="file" v-else-if="!isFolder" @click="$emit('open-item', item)">
@@ -63,6 +63,9 @@
         .folder {
             cursor: pointer;
             font-weight: bold;
+        }
+        .file {
+            cursor: pointer;
         }
     }
 </style>

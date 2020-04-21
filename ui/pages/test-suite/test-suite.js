@@ -21,6 +21,7 @@ export default {
 	},
 	async mounted() {
 		const testSuiteId = this.$route.params.testSuiteId;
+		const testCaseId = this.$route.params.testCaseId;
 		try {
 			const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			if (response.status === 200) {
@@ -42,8 +43,16 @@ export default {
 					}
 				});
 			}
+			if (testCaseId) {
+				this.openTest({path: testCaseId});
+			}
 		} catch (resp) {
 			window.location.href = '/';
+		}
+	},
+	watch: {
+		'$route.params.testCaseId': function (testCaseId) {
+			this.openTest({path: decodeURIComponent(testCaseId)});
 		}
 	},
 	methods: {
