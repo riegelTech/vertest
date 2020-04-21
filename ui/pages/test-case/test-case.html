@@ -1,22 +1,22 @@
-<main-layout v-if="testCase">
-    <h2>{{ testCase.testFilePath }}</h2>
+<div v-if="testCaseLocal">
+    <h2>{{ testCaseLocal.testFilePath }}</h2>
     <div class="actions">
-        <p v-if="testCase.user">
+        <p v-if="testCaseLocal.user">
             <md-icon >person</md-icon>
-            <strong>{{ testCase.user.firstName }} {{ testCase.user.lastName }}</strong> {{ testCase.user.email }}
+            <strong>{{ testCaseLocal.user.firstName }} {{ testCaseLocal.user.lastName }}</strong> {{ testCaseLocal.user.email }}
         </p>
         <md-button v-if="!currentUser.readOnly" class="md-icon-button md-raised" @click="showAffectUserPopin()">
             <md-icon>person_add</md-icon>
         </md-button>
         <test-case-state
-                v-if="testCase.user && testCase.user._id === currentUser._id"
-                :test-state="testCase.status"
+                v-if="testCaseLocal.user && testCaseLocal.user._id === currentUser._id"
+                :test-state="testCaseLocal.status"
                 :display-current-state="false"
                 :display-state-switch="true"
                 @change-test-status="changeTestStatus($event)"
         ></test-case-state>
     </div>
-    <div v-html="testCase.mdContent"></div>
+    <div v-html="testCaseLocal.mdContent"></div>
     <md-dialog :md-active.sync="affectUserPopin.show">
         <md-dialog-title>Please select an user</md-dialog-title>
         <form>
@@ -31,4 +31,4 @@
             </md-dialog-actions>
         </form>
     </md-dialog>
-</main-layout>
+</div>

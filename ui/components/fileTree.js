@@ -55,13 +55,12 @@ export const fileTreeUtils = {
 	},
 	leafTransformer(treeToTransform, transformFn) {
 		function recursiveTransformTree(treeToTransform) {
-			let tree = Object.assign({}, treeToTransform);
-			if (tree.children) {
-				tree.children = tree.children.map(treeChild => recursiveTransformTree(treeChild));
+			if (treeToTransform.children) {
+				treeToTransform.children = treeToTransform.children.map(treeChild => recursiveTransformTree(treeChild));
 			} else {
-				tree = transformFn(tree);
+				treeToTransform = transformFn(treeToTransform);
 			}
-			return tree;
+			return treeToTransform;
 		}
 		return recursiveTransformTree(treeToTransform);
 	}
@@ -73,8 +72,8 @@ export default {
 	},
 	name: 'file-tree',
 	props: {
-		testSuiteId: '',
-		item: Object
+		item: Object,
+		displayLink: Boolean
 	},
 	data: function () {
 		return {

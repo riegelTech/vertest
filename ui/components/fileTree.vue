@@ -6,12 +6,15 @@
             <span class="folder" v-if="isFolder">
                 {{ item.name }}
             </span>
-            <router-link  v-if="!isFolder" :to="`/test-suites/${testSuiteId}/test-case/${encodeURIComponent(encodeURIComponent(item.path))}`">
+            <router-link v-if="!isFolder && displayLink && item.link" :to="item.link">
                 {{ item.name }}
             </router-link>
-            <span class="status-icon" v-if="!isFolder && item.testCase">
+            <span class="file" v-else-if="!isFolder" @click="$emit('open-item', item)">
+                {{ item.name }}
+            </span>
+            <span class="status-icon" v-if="!isFolder && item.status">
                 <test-case-state
-                        :test-state="item.testCase.status"
+                        :test-state="item.status"
                         :display-current-state="true"
                         :display-state-switch="false"
                 ></test-case-state>
@@ -23,7 +26,8 @@
                     v-for="(child, index) in item.children"
                     :key="index"
                     :item="child"
-                    :testSuiteId="testSuiteId"
+                    :display-link="displayLink"
+                    @open-item="$emit('open-item', $event)"
             ></file-tree>
         </ul>
     </li>

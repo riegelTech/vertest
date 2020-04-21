@@ -1,20 +1,22 @@
 'use strict';
 
 import MainLayout from '../../layouts/main.vue';
+import TestCase from '../test-case/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
-
 import {fileTreeUtils} from '../../components/fileTree.js';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
 
 export default {
 	components: {
+		TestCase,
 		MainLayout,
 		FileTree
 	},
 	data() {
 		return {
-			testSuite: null
+			testSuite: null,
+			openedTestCase: null
 		}
 	},
 	async mounted() {
@@ -32,8 +34,10 @@ export default {
 				this.testSuite.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
 				this.testSuite.testsTree = fileTreeUtils.leafTransformer(this.testSuite.testsTree, leaf => {
 					if (testFileMapping[leaf.fullPath]) {
+						const testCase = testFileMapping[leaf.fullPath];
 						return Object.assign({}, leaf, {
-							testCase: testFileMapping[leaf.fullPath]
+							status: testCase.status,
+							link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`
 						})
 					}
 				});
@@ -43,6 +47,11 @@ export default {
 		}
 	},
 	methods: {
-
+		openTest(testLink) {
+			const test = this.testSuite.tests.find(test => testLink.path === test.testFilePath);
+			if (test) {
+				this.openedTestCase = test;
+			}
+		}
 	}
 };

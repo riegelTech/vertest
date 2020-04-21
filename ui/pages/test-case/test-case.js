@@ -1,8 +1,6 @@
 'use strict';
 
-import MainLayout from '../../layouts/main.vue';
 import {userMixin} from '../users/users';
-import {userEventBus} from '../users/users';
 import TestCaseState from '../../components/testCaseState.vue';
 
 const md = require('markdown-it')();
@@ -19,13 +17,17 @@ export const TEST_CASE_STATUSES = {
 
 export default {
 	components: {
-		MainLayout,
 		TestCaseState
 	},
-	data() {
+	name: 'test-case',
+	props: {
+		testSuiteId: String,
+		testCase: Object
+	},
+	data: function () {
 		return {
 			testCaseStatuses: TEST_CASE_STATUSES,
-			testCase: null,
+			testCaseLocal: this.testCase,
 			currentUser: {
 				readOnly: true
 			},
@@ -37,42 +39,40 @@ export default {
 		}
 	},
 	mixins: [userMixin],
-	async mounted() {
-		userEventBus.$on('initCurrentUser', () => {
-			this.currentUser = this.$store.state.currentUser;
-			return this.initTestCase();
-		});
-		userEventBus.$on('userLogin', () => {
-			this.currentUser = this.$store.state.currentUser;
-			return this.initTestCase();
-		});
+	watch: {
+		testCase: function(testCaseToDisplay) {
+			this.testCaseLocal = testCaseToDisplay;
+		 	this.initTestCase();
+		 }
 	},
+	async mounted() {
+		return this.initTestCase()
+;	},
 	methods: {
 		async initTestCase() {
-			const testSuiteId = this.$route.params.testSuiteId;
-			const testCaseId = encodeURIComponent(this.$route.params.testCaseId);
-			if (testCaseId === 'undefined') {
+			if (!this.testCaseLocal) {
 				return;
 			}
 			let testCase;
+
 			try {
-				const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}`);
+				const response = await this.$http.get(`${TEST_SUITE_PATH}${this.testSuiteId}/test-case/${encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath))}`);
 				if (response.status === 200) {
-					testCase =  response.body;
+					testCase = response.body;
 				}
 			} catch (resp) {
-				window.location.href = '/';
+				// do nothing
 			}
 			if (testCase) {
 				testCase.mdContent = md.render(testCase.content);
-				this.testCase = testCase;
+				this.testCaseLocal = testCase;
 			}
 			try {
 				this.affectUserPopin.users = await this.getUsers();
 				const userId = testCase.user._id;
 				const existingUser = this.affectUserPopin.users.find(user => user._id === userId);
 				if (existingUser) {
-					this.testCase.user = existingUser;
+					this.testCaseLocal.user = existingUser;
 				}
 			} catch (e) {
 				// do nothing
@@ -86,7 +86,7 @@ export default {
 		},
 		async sendAffectUser() {
 			const testSuiteId = this.$route.params.testSuiteId;
-			const testCaseId = encodeURIComponent(this.$route.params.testCaseId);
+			const testCaseId = encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath));
 			try {
 				const response = await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}/attach-user/`, {
 					userId: this.affectUserPopin.selectedUser
@@ -101,7 +101,7 @@ export default {
 		},
 		async changeTestStatus(newStatus) {
 			const testSuiteId = this.$route.params.testSuiteId;
-			const testCaseId = encodeURIComponent(this.$route.params.testCaseId);
+			const testCaseId = encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath));
 			try {
 				const response = await this.$http.put(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}/set-status/`, {
 					newStatus

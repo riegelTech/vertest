@@ -1,13 +1,20 @@
 <main-layout v-if="testSuite">
     <h2>{{ testSuite.name }}</h2>
-    <p><strong>{{ testSuite.repoAddress }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-    <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
-    {{ testSuite.progress.percent }}%
-    <ul id="test-tree">
-        <file-tree
-                class="item"
-                :item="testSuite.testsTree"
-                :testSuiteId="testSuite._id"
-        ></file-tree>
-    </ul>
+    <div class="md-layout md-gutter">
+        <div class="md-layout-item md-size-20">
+            <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
+            <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
+            {{ testSuite.progress.percent }}%
+            <ul id="test-tree">
+                <file-tree
+                        class="item"
+                        :item="testSuite.testsTree"
+                        :display-link="false"
+                        @open-item="openTest"
+                ></file-tree>
+            </ul></div>
+        <div class="md-layout-item md-size-75">
+            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id"></test-case>
+        </div>
+    </div>
 </main-layout>
