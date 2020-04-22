@@ -82,6 +82,9 @@ export default {
 			if (this.currentUser.readOnly) {
 				alert('As read-only user, you do not have rights to do this');
 			}
+			if (this.testCaseLocal.user) {
+				this.affectUserPopin.selectedUser = this.testCaseLocal.user._id;
+			}
 			this.affectUserPopin.show = true;
 		},
 		async sendAffectUser() {

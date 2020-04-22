@@ -176,6 +176,7 @@ export default {
 			const testSuite = this.testSuites.find(testSuite => testSuite._id === testSuiteId);
 			this.toggleBranchPopin.testSuiteId = testSuiteId;
 			this.toggleBranchPopin.availableGitBranches = testSuite.repository._gitBranches;
+			this.toggleBranchPopin.selectedGitBranch = testSuite.repository._curBranch;
 			this.toggleBranchPopin.show = true;
 		},
 		changeTestStatus(testCaseId, newTestStatus) {
