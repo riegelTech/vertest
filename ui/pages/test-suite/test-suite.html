@@ -1,7 +1,13 @@
 <main-layout v-if="testSuite">
     <div class="md-layout md-gutter">
         <div class="md-layout-item md-size-30 test-suite-col-left">
-            <h2>{{ testSuite.name }}</h2>
+            <h2>
+                <router-link :to="'/#/test-suites/'">
+                    <md-icon>arrow_back_ios</md-icon>
+                    <md-tooltip md-direction="top">Back to test suites</md-tooltip>
+                </router-link>
+                {{ testSuite.name }}
+            </h2>
             <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
             <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
             {{ testSuite.progress.percent }}%
