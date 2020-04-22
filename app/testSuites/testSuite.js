@@ -251,6 +251,7 @@ async function watchTestSuitesChanges() {
 					await updateTestSuite(testSuite);
 				}
 			} catch (e) {
+				console.error(e)
 				if (e.code === 'EDELETEDBRANCH') {
 					testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
 					await updateTestSuite(testSuite);

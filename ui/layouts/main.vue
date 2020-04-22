@@ -30,7 +30,7 @@
                     </md-list-item>
                 </md-list>
             </md-drawer>
-            <md-drawer class="md-right" :md-active.sync="showSidepanel" v-if="currentUser !== null">
+            <md-drawer class="md-right" :md-active.sync="showSidepanel">
                 <md-toolbar class="md-transparent" md-elevation="0">
                     <span class="md-title">{{ currentUser.firstName }} {{ currentUser.lastName }}</span>
                 </md-toolbar>
@@ -44,14 +44,20 @@
                 </md-list>
             </md-drawer>
         </header>
-        <div>
+        <md-content>
             <slot></slot>
-        </div>
+        </md-content>
         <footer></footer>
     </div>
 </template>
 
 <script src="./main.js">
 </script>
-<style scoped>
+<style scoped lang="scss">
+    .page-container {
+        height: 100%;
+        min-height: 300px;
+        overflow: hidden;
+        position: relative;
+    }
 </style>

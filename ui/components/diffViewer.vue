@@ -4,24 +4,16 @@
             <tr v-for="(oldLine, oldLineIndex) in hunk.oldLines.content" class="less">
                 <td>{{ oldLineIndex + hunk.oldLines.start }}</td>
                 <td>-</td>
-                <td>{{ oldLine }}</td>
+                <td class="content">{{ oldLine }}</td>
             </tr>
             <tr v-for="(newLine, newLineIndex) in hunk.newLines.content" class="more">
                 <td>{{ newLineIndex + hunk.newLines.start }}</td>
                 <td>+</td>
-                <td>{{ newLine }}</td>
+                <td class="content">{{ newLine }}</td>
             </tr>
         </table>
     </div>
 </template>
-<script>
-    export default {
-        name: 'diff-viewer',
-        props: {
-            hunks: Array
-        }
-    };
-</script>
 <style scoped lang="scss">
     .diff-viewer{
         table {
@@ -31,13 +23,28 @@
             tr, td {
                 vertical-align: top;
                 border: none;
+                padding: 5px;
             }
             tr.less td {
-                background-color: #f00;
+                background-color: #fdaeb7;;
+                &.content {
+                    background-color: #ffeef0;
+                }
             }
             tr.more td {
-                background-color: #0f0;
+                background-color: #bef5cb;
+                &.content {
+                    background-color: #cdffd8;
+                }
             }
         }
     }
 </style>
+<script>
+    export default {
+        name: 'diff-viewer',
+        props: {
+            hunks: Array
+        }
+    };
+</script>
