@@ -8,13 +8,13 @@
             <ul id="test-tree">
                 <file-tree
                         class="item"
-                        :item="testSuite.testsTree"
+                        :item="testsTree"
                         :display-link="true"
                 ></file-tree>
             </ul>
         </div>
         <div class="md-layout-item md-size-65 test-suite-col-right">
-            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id"></test-case>
+            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" @updateTestCase="updateTestCase"></test-case>
         </div>
     </div>
 </main-layout>

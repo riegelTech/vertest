@@ -1,6 +1,7 @@
 <template>
     <li>
         <div
+                class="treeLine"
                 :class="{bold: isFolder}"
                 @click="toggle">
             <span class="folder" v-if="isFolder">
@@ -14,7 +15,7 @@
             </span>
             <span class="status-icon" v-if="!isFolder && item.status">
                 <test-case-state
-                        :test-state="item.status"
+                        :testState="item.status"
                         :display-current-state="true"
                         :display-state-switch="false"
                         :user="item.user"
@@ -60,13 +61,16 @@
                 top: -0.4em;
                 left: -1.3em;
             }
-        }
-        .folder {
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .file {
-            cursor: pointer;
+            .treeLine {
+                white-space: nowrap;
+            }
+            .folder {
+                cursor: pointer;
+                font-weight: bold;
+            }
+            .file {
+                cursor: pointer;
+            }
         }
     }
 </style>

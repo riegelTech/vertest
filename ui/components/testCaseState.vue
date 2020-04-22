@@ -40,6 +40,11 @@
                 curState: this.testState
             }
         },
+        watch: {
+            testState(newStatus) {
+                this.changeTestStatus(newStatus);
+            }
+        },
         methods: {
             changeTestStatus(newStatus) {
             	this.curState = newStatus;

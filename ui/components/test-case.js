@@ -88,11 +88,14 @@ export default {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath));
 			try {
+				const selectedUser = this.affectUserPopin.users.find(user => user._id === this.affectUserPopin.selectedUser);
+				this.testCaseLocal.user = selectedUser;
 				const response = await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}/attach-user/`, {
 					userId: this.affectUserPopin.selectedUser
 				});
 				if (response.status === 200) {
 					this.affectUserPopin.show = false;
+					this.$emit('updateTestCase', this.testCaseLocal);
 					await this.initTestCase();
 				}
 			} catch (resp) {
@@ -103,10 +106,12 @@ export default {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath));
 			try {
+				this.testCaseLocal.status = newStatus;
 				const response = await this.$http.put(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}/set-status/`, {
 					newStatus
 				});
 				if (response.status === 200) {
+					this.$emit('updateTestCase', this.testCaseLocal);
 					await this.initTestCase();
 				}
 			} catch (resp) {
