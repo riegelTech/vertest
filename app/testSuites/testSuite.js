@@ -1,5 +1,7 @@
 'use strict';
 
+import {TEST_CASE_STATUSES} from "../../ui/components/test-case";
+
 const EventEmitter = require('events');
 const Path = require('path');
 
@@ -97,7 +99,8 @@ class TestSuite {
 	addTestCase(basePath, testFilePath) {
 		const testCase = new TestCase({
 			testFilePath,
-			basePath
+			basePath,
+			status: TEST_CASE_STATUSES.TODO
 		});
 		this.tests.push(testCase);
 		testCase.on('statusUpdated', () => this.updateProgress());
@@ -244,6 +247,7 @@ async function watchTestSuitesChanges() {
 			}
 			try {
 				await testSuite.repository.fetchRepository();
+				await testSuite.repository.refreshAvailableGitBranches();
 				const testFilesHasChanged = await testSuite.repository.lookupForChanges()
 					|| await testSuite.repository.lookupForChanges(true);
 				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {

@@ -55,6 +55,7 @@
                 <label for="lastName">Last name</label>
                 <md-input name="lastName" v-model="userPopin.lastName" type="text" />
             </md-field>
+                <md-checkbox v-model="userPopin.readOnly">Read only</md-checkbox>
             <md-dialog-actions>
                 <md-button class="md-primary" @click="sendUser">Edit</md-button>
             </md-dialog-actions>

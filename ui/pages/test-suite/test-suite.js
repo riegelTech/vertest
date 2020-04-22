@@ -38,7 +38,8 @@ export default {
 						const testCase = testFileMapping[leaf.fullPath];
 						return Object.assign({}, leaf, {
 							status: testCase.status,
-							link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`
+							link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
+							user: testCase.user
 						})
 					}
 				});

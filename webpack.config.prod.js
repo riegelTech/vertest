@@ -6,12 +6,15 @@ const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
 	mode: 'production',
-	entry: [
-		'./ui/app.js'
-	],
+	entry: './ui/app.js',
 	output: {
 		path: path.resolve(__dirname, 'ui/dist'),
 		filename: 'app.js'
+	},
+	resolve: {
+		alias: {
+			vue: 'vue/dist/vue.js'
+		}
 	},
 	module: {
 		rules: [

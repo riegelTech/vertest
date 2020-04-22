@@ -19,7 +19,8 @@ const EMPTY_USER = {
 	password2: '',
 	email: '',
 	firstName: '',
-	lastName: ''
+	lastName: '',
+	readOnly: false
 };
 const USER_API_PATH = '/api/users/';
 const AUTH_API_PATH = '/auth/user';
@@ -110,7 +111,7 @@ export default {
 	methods: {
 		async initUsers() {
 			try {
-				this.users =  await this.getUsers();
+				this.users =  await this.getUsers(true);
 			} catch (resp) {
 				window.location.href = '/';
 			}
@@ -153,7 +154,8 @@ export default {
 					password: this.userPopin.password,
 					email: this.userPopin.email,
 					firstName: this.userPopin.firstName,
-					lastName: this.userPopin.lastName
+					lastName: this.userPopin.lastName,
+					readOnly: this.userPopin.readOnly
 				});
 				if (response.status !== 200) {
 					alert(response.body);

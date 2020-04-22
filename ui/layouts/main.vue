@@ -30,7 +30,7 @@
                     </md-list-item>
                 </md-list>
             </md-drawer>
-            <md-drawer class="md-right" :md-active.sync="showSidepanel">
+            <md-drawer class="md-right" :md-active.sync="showSidepanel" v-if="currentUser">
                 <md-toolbar class="md-transparent" md-elevation="0">
                     <span class="md-title">{{ currentUser.firstName }} {{ currentUser.lastName }}</span>
                 </md-toolbar>

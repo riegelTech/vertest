@@ -17,6 +17,7 @@
                         :test-state="item.status"
                         :display-current-state="true"
                         :display-state-switch="false"
+                        :user="item.user"
                 ></test-case-state>
             </span>
         </div>

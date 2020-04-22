@@ -2,7 +2,11 @@
     <span>
         <span v-if="displayCurrentState">
             <md-icon v-if="curState === statuses.TODO">play_circle_outline</md-icon>
-            <md-icon v-if="curState === statuses.IN_PROGRESS">person</md-icon>
+            <md-icon v-if="curState === statuses.IN_PROGRESS && !user">person</md-icon>
+            <md-icon v-if="curState === statuses.IN_PROGRESS && user">
+                <md-tooltip md-direction="top">{{ user.firstName }} {{ user.lastName }}</md-tooltip>
+                person
+            </md-icon>
             <md-icon v-if="curState === statuses.FAILED">clear</md-icon>
             <md-icon v-if="curState === statuses.BLOCKED">report</md-icon>
             <md-icon v-if="curState === statuses.SUCCESS">done</md-icon>
@@ -27,7 +31,8 @@
         props: {
             testState: Number,
             displayCurrentState: Boolean,
-            displayStateSwitch: Boolean
+            displayStateSwitch: Boolean,
+            user: Object
         },
         data: function () {
             return {

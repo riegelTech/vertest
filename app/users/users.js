@@ -108,7 +108,7 @@ async function getSuperAdmin() {
 }
 
 async function addUser(userProps) {
-	const newUser = new User(userProps);
+	const newUser = new User(Object.assign(userProps, {hashPass: true}));
 	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.USERS);
 	const sameUserNumber = await coll.find({
 		login: newUser.login
