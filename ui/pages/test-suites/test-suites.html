@@ -147,11 +147,12 @@
                 </md-select>
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="solveTestSuiteDiff(toggleBranchPopin.testSuiteId, toggleBranchPopin.selectedGitBranch)">Valid</md-button>
+                <md-button @click="toggleBranchPopin.show = false">Cancel</md-button>
+                <md-button class="md-primary" @click="solveTestSuiteDiff(toggleBranchPopin.testSuiteId, toggleBranchPopin.selectedGitBranch)">Next</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>
-    <md-dialog :md-active.sync="diffPopin.show">
+    <md-dialog class="diffViewer" :md-active.sync="diffPopin.show">
         <md-dialog-title>Diff viewer</md-dialog-title>
         <md-dialog-content>
         <md-tabs v-if="!diffPopin.diff.isEmpty" md-dynamic-height>
