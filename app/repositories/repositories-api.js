@@ -17,9 +17,9 @@ async function createTemporaryRepository(req, res) {
         }
     }
 
-    let result;
+    let temporaryRepository;
     try {
-        result = await repositoriesModule.createTempRepository({
+        temporaryRepository = await repositoriesModule.createTempRepository({
             sshKey,
             address: req.body.repositoryAddress,
             sshKeyUser: req.body.repositorySshKeyUser,
@@ -30,9 +30,12 @@ async function createTemporaryRepository(req, res) {
         return res.status(utils.RESPONSE_HTTP_CODES.DEFAULT).send('Repository creation failed');
     }
 
-    await result.refreshAvailableGitBranches();
+    await temporaryRepository.refreshAvailableGitBranches();
 
-    return res.status(200).send(result);
+    return res.status(200).send({
+        repoUuid: temporaryRepository.name,
+        branches: temporaryRepository.gitBranches
+    });
 }
 
 async function getRepositoryFiles(req, res) {
@@ -43,7 +46,7 @@ async function getRepositoryFiles(req, res) {
     const branchName = req.body.gitBranch;
 
     await repository.checkoutBranch(branchName);
-    const filesAndBasePath = await repository.collectTestFilesPaths();
+    const filesAndBasePath = await repository.collectTestFilesPaths(['**/**']);
 
     res.status(200).send(filesAndBasePath);
 }

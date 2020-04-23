@@ -1,7 +1,5 @@
 'use strict';
 
-import {TEST_CASE_STATUSES} from "../../ui/components/test-case";
-
 const EventEmitter = require('events');
 const Path = require('path');
 
@@ -57,7 +55,7 @@ class TestCase extends EventEmitter {
 }
 
 class TestSuite {
-	constructor({_id = uuid.uuid(), name = '', repository = null, tests = [], status = TestSuite.STATUSES.UP_TO_DATE}) {
+	constructor({_id = uuid.uuid(), name = '', repository = null, testDirs = [], tests = [], status = TestSuite.STATUSES.UP_TO_DATE}) {
 		this._id = _id;
 		this.name = name;
 		this.status = status;
@@ -74,18 +72,27 @@ class TestSuite {
 			}));
 		}
 
-		this.tests.forEach(testCase => {
-			testCase.on('statusUpdated', () => this.updateProgress());
-		});
+		this.testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
+		// Avoid first slash or dot - slash to start pattern
+		this.testDirs = this.testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
+
+		this.bindTestCasesStates();
 	}
 
 	async init() {
-		const testPaths = await this.repository.collectTestFilesPaths();
+		const testPaths = await this.repository.collectTestFilesPaths(this.testDirs);
 		this.tests = testPaths.filePaths.map(filePath => new TestCase({
 			basePath: testPaths.basePath,
 			testFilePath: filePath
 		}));
+		this.bindTestCasesStates();
 		await this.collectTests();
+	}
+
+	bindTestCasesStates() {
+		this.tests.forEach(testCase => {
+			testCase.on('statusUpdated', () => this.updateProgress());
+		});
 	}
 
 	collectTests() {
@@ -248,8 +255,8 @@ async function watchTestSuitesChanges() {
 			try {
 				await testSuite.repository.fetchRepository();
 				await testSuite.repository.refreshAvailableGitBranches();
-				const testFilesHasChanged = await testSuite.repository.lookupForChanges()
-					|| await testSuite.repository.lookupForChanges(true);
+				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testSuite.testDirs)
+					|| await testSuite.repository.lookupForChanges(testSuite.testDirs, true);
 				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
 					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
 					await updateTestSuite(testSuite);

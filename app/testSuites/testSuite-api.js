@@ -116,9 +116,8 @@ async function createTestSuite(req, res) {
 	const appConfig = await appConfigModule.getAppConfig();
 	try {
 		const repository = repoModule.getTempRepository(req.body.repositoryUuid);
-		repository.testDirs = req.body.filePatterns;
 		await repository.moveRepository(appConfig.workspace.repositoriesDir);
-		const testSuite = new TestSuite({name: req.body.testSuiteName, repository});
+		const testSuite = new TestSuite({name: req.body.testSuiteName, testDirs: req.body.filePatterns, repository});
 		await testSuite.init();
 		await testSuiteModule.addTestSuite(testSuite);
 		res.send({

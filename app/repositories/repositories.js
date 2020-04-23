@@ -19,7 +19,7 @@ const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
 const LOCAL_REF_PATH = 'refs/heads/';
 
 class Repository {
-    constructor({name = '', address = '', sshKey = null,  user = '', pass = '', repoPath = '', testDirs = []}) {
+    constructor({name = '', address = '', sshKey = null,  user = '', pass = '', repoPath = ''}) {
         if (!name) {
             throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
         }
@@ -45,9 +45,6 @@ class Repository {
         } else {
             this._repoDir = repoPath;
         }
-        this.testDirs = typeof testDirs === 'string' ? [testDirs] : testDirs;
-        // Avoid first slash or dot - slash to start pattern
-        this.testDirs = this.testDirs.map(testDirPattern => testDirPattern.replace(/^(\/|\.\/)/, ''));
     }
 
     static get authMethods() {
@@ -90,6 +87,8 @@ class Repository {
         await utils.mkdir(destDir);
         await fsExtra.copy(this._repoDir, destDir);
         this._repoDir = destDir;
+
+        this._gitRepository = await NodeGitRepository.open(this._repoDir);
 
         return fsExtra.remove(oldDir);
     }
@@ -163,8 +162,7 @@ class Repository {
         await utils.mkdir(this._repoDir);
 
         this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
-        await this.refreshAvailableGitBranches();
-        return this.collectTestFilesPaths();
+        return this.refreshAvailableGitBranches();
     }
 
     async refreshAvailableGitBranches() {
@@ -183,7 +181,7 @@ class Repository {
         return this._gitRepository.getReferenceCommit(branchName);
     }
 
-    async lookupForChanges(localChanges = false) {
+    async lookupForChanges(testDirs, localChanges = false) {
         let mostRecentCommit;
         try {
             if (localChanges) {
@@ -204,7 +202,7 @@ class Repository {
         if (!patches.length) {
             return false;
         }
-        const testDirs = this.testDirs;
+
         function fileMatchTest(patch) {
             return testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
         }
@@ -243,9 +241,9 @@ class Repository {
                 renamedPatches: []
             });
         }
-        const testDirs = this.testDirs;
+
         function fileMatchTest(patch) {
-            return testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
+            return testSuite.testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
         }
         async function getHunks(patch) {
             const hunks = await patch.hunks();
@@ -315,8 +313,8 @@ class Repository {
         await Reset.reset(this._gitRepository, commit, Reset.TYPE.HARD);
     }
 
-    async collectTestFilesPaths() {
-        const testFilesBatches = await Promise.all(this.testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir, nodir: true})));
+    async collectTestFilesPaths(testDirs) {
+        const testFilesBatches = await Promise.all(testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir, nodir: true})));
         return {
             basePath: this._repoDir,
             filePaths: ([].concat(...testFilesBatches))
@@ -338,18 +336,14 @@ async function createTempRepository({sshKey = null, address = '', sshKeyUser = '
         sshKey,
         sshKeyUser,
         user,
-        pass,
-        testDirs: '**/**' // catch all for further test file search
+        pass
     });
 
     await repository.init({waitForClone: true});
 
     tempRepositories.set(repoUuid, repository);
 
-    return {
-        repoUuid,
-        branches: repository.gitBranches
-    };
+    return repository;
 }
 
 function getTempRepository(repoName) {
