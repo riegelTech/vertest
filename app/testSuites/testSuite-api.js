@@ -71,7 +71,7 @@ async function solveTestSuiteDiff(req, res) {
 
 		modifiedPatches.forEach(patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
-			const newStatus = newStatuses[test.testFilePath];
+			const newStatus = newStatuses[test.testFilePath] || test.status;
 			if (newStatus === null) {
 				return;
 			}
