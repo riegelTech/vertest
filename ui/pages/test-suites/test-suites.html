@@ -38,7 +38,7 @@
             </md-table-row>
         </md-table>
     </div>
-    <md-dialog :md-active.sync="createPopin.show">
+    <md-dialog :md-active.sync="createPopin.show" class="test-suite-creation-dialog">
         <md-dialog-title>Please select a repository and a git branch</md-dialog-title>
         <form>
             <md-steppers md-linear :md-active-step.sync="createPopin.activeStep">
@@ -100,7 +100,7 @@
                 </md-step>
                 <md-step id="third" md-label="File selection" :md-error="createPopin.thirdStepError">
                     <md-field>
-                        <label for="filePatterns">Configure which files to add to the set of tests</label>
+                        <label for="filePatterns">Configure which files to add to the set of tests with template of type **/**.md</label>
                         <md-input name="filePatterns" v-model="createPopin.fieldFilePattern" type="text" />
                         <md-button class="md-raised md-primary md-dense md-icon-button md-small" @click="addFilePattern()">
                             <md-icon>add</md-icon>
@@ -214,5 +214,10 @@
                 <md-button class="md-primary" @click="login">Send</md-button>
             </md-dialog-actions>
         </form>
+    </md-dialog>
+    <md-dialog :md-active.sync="waitSpinner" :md-close-on-esc="false" :md-click-outside-to-close="false" class="wait-spinner">
+        <div>
+            <md-progress-spinner md-mode="indeterminate"></md-progress-spinner>
+        </div>
     </md-dialog>
 </main-layout>

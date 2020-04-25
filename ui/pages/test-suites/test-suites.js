@@ -27,7 +27,7 @@ const AUTHENTICATION_TYPES = {
 	KEY: 'key'
 };
 const EMPTY_TEST_SUITE = {
-	show: false,
+	show: true,
 	activeStep: 'first',
 	firstStepError: null,
 	testSuiteName: '',
@@ -86,7 +86,8 @@ export default {
 				testSuiteId: null,
 				availableGitBranches: [],
 				selectedGitBranch: null
-			}
+			},
+			waitSpinner: false
 		};
 	},
 	async mounted() {
@@ -121,6 +122,12 @@ export default {
 				return false;
 			}
 		},
+		showSpinner() {
+			this.waitSpinner = true;
+		},
+		hideSpinner() {
+			this.waitSpinner = false;
+		},
 		hideLoginPopup() {
 			this.loginPopup.show = false;
 		},
@@ -128,19 +135,23 @@ export default {
 			this.loginPopup.show = true;
 		},
 		async sendCreateTestSuite() {
+			this.showSpinner();
 			try {
 				const response = await this.$http.post(TEST_SUITE_PATH, {
 					name: this.createPopin.testSuiteName,
 					repoAddress: this.createPopin.selectedRepository,
 					gitBranch: this.createPopin.selectedGitBranch
 				});
+				this.hideSpinner();
 				if (response.status === 200) {
 					await this.initTestSuites();
 					this.hideCreatePopin();
 				}
 			} catch (resp) {
+				this.hideSpinner();
 				alert('Test suite creation failed');
 			}
+
 		},
 		async deleteTestSuite(testId) {
 			try {
@@ -243,6 +254,7 @@ export default {
 			} else {
 				this.createPopin.firstStepError = null;
 			}
+			this.showSpinner();
 			try {
 				const response = await this.$http.post(`${REPOSITORIES_PATH}temp`, {
 					repositoryAddress: this.createPopin.repositoryAddress,
@@ -253,6 +265,7 @@ export default {
 					repositorySshKeyUser: this.createPopin.repositorySshKeyUser,
 					repositorySshKeyPass: this.createPopin.repositorySshKeyPass
 				});
+				this.hideSpinner();
 				if (response.status === 200) {
 					this.createPopin.availableGitBranches = response.body.branches;
 					this.createPopin.repositoryUuid = response.body.repoUuid;
@@ -260,7 +273,8 @@ export default {
 					return true;
 				}
 			} catch (resp) {
-				console.error(resp);
+				this.hideSpinner();
+				this.createPopin.firstStepError = 'Repository creation failed, please check its address and credentials';
 			}
 			return false;
 		},
