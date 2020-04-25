@@ -14,33 +14,34 @@ server:
   port: 8080
 ```
 
-## repositories
+## sshKeys
 
-A list of GIT repositories where your tests are. Each repository have to specify a name, and an address.
-You can optionally specify repository credentials, like user - password couple,
-or paths to the public and private SSH keys.
-
-You can set test file search patterns for each repository. Patterns can be string or arrays of strings.
-Patterns are based on glob syntax : [glob syntax](https://facelessuser.github.io/wcmatch/glob/). But I can't
-guarantee full blog support.
+To access to private repositories, you may need SSH keyring files. These are considered as secrets, and not managed
+by application. So you have to setup the path where they are stored. At application start, encrypted private SSH keys
+have to be decrypted with passphrase that will NOT be stored.
 
 ```yaml
-repositories:
-  - name: Vertest
-    address: git@github.com:riegelTech/vertest.git
+sshKeys:
+  - name: "some ssh key"
     pubKey: /home/myUser/.ssh/id_rsa.pub
     privKey: /home/myUser/.ssh/id_rsa
-    testDirs: **/*-test.md
 
-  - name: My repository
-    address: https://myRepo.git
-    user: MyUser
-    pass: pass
-    testDirs:
-      - manual-test-plans/*.md
-      - other-test-plans/**/*.md
+  - name: "some other ssh key"
+    pubKey: /home/myOtherUser/.ssh/id_rsa.pub
+    privKey: /home/myOtherUser/.ssh/id_rsa
 ```
 
 > :warning:
 > If your SSH private key is encrypted, you will see a red lock symbol in repositories grid.
 > So you can enter its passphrase clicking on this symbol.
+
+## workspace
+
+Each test suite is linked to a full GIT repository, potentially very large, so you can choose where application will
+store the GIT repositories in disk.
+
+```yaml
+workspace:
+  repositoriesDir: ./cloneDir # can be also absolute
+  temporaryRepositoriesDir: ./tempDir # can be also absolute
+```
