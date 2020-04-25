@@ -21,14 +21,17 @@ const LOCAL_REF_PATH = 'refs/heads/';
 class Repository {
     constructor({name = '', address = '', sshKey = null,  user = '', pass = '', repoPath = ''}) {
         if (!name) {
-            throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
+            throw new Error(`Repository name is mandatory : "${name}" given.`);
         }
+        if (!repoPath) {
+            throw new Error(`Repository path is mandatory : "${repoPath}" given.`)
+        }
+        if (sshKey && pass) {
+            throw new Error('Cannot use both ssh and http authentication.')
+        }
+
         this.name = name;
         this.address = address;
-
-        if (sshKey && pass) {
-            throw new Error('Cannot use both ssh and http authentication, please check your configuration.')
-        }
 
         this.setSshKey(sshKey);
 
@@ -40,11 +43,7 @@ class Repository {
         this._curCommit = null;
         this._curBranch = null;
 
-        if (!repoPath) {
-            this._repoDir = Path.join(appConfig.workspace.repositoriesDir, this.name);
-        } else {
-            this._repoDir = repoPath;
-        }
+        this._repoDir = repoPath;
     }
 
     static get authMethods() {
@@ -173,6 +172,9 @@ class Repository {
             throw err;
         }
 
+        if (this._gitRepository.isEmpty()) {
+            return;
+        }
         return this.refreshAvailableGitBranches();
     }
 
