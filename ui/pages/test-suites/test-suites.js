@@ -27,7 +27,7 @@ const AUTHENTICATION_TYPES = {
 	KEY: 'key'
 };
 const EMPTY_TEST_SUITE = {
-	show: true,
+	show: false,
 	activeStep: 'first',
 	firstStepError: null,
 	testSuiteName: '',
@@ -145,7 +145,7 @@ export default {
 				this.hideSpinner();
 				if (response.status === 200) {
 					await this.initTestSuites();
-					this.hideCreatePopin();
+					return this.hideCreatePopin();
 				}
 			} catch (resp) {
 				this.hideSpinner();
@@ -219,14 +219,15 @@ export default {
 			this.createPopin.show = true;
 		},
 		hideCreatePopin() {
-			this.resetCreatePopin();
 			this.createPopin.show = false;
+			return this.resetCreatePopin();
 		},
 		hideDiffPopin() {
 			this.diffPopin.show = false;
 		},
-		resetCreatePopin() {
+		async resetCreatePopin() {
 			this.createPopin = getEmptyTestSuitePopin();
+			this.createPopin.availableSshKeys = await this.getSshKeys();
 		},
 		async getRepoBranches() {
 			let error = false;
@@ -336,7 +337,7 @@ export default {
 				});
 				if (response.status === 200) {
 					await this.initTestSuites();
-					this.hideCreatePopin();
+					return this.hideCreatePopin();
 				}
 			} catch (resp) {
 				alert('Test suite creation failed');
