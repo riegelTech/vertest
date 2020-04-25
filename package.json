@@ -1,6 +1,9 @@
 {
   "name": "VerTest",
-  "version": "1.0.0",
+  "version": "0.1.0-beta",
+  "engines": {
+    "node": "12.16.2"
+  },
   "description": "",
   "main": "index.js",
   "scripts": {
