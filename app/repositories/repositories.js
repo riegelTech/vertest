@@ -126,27 +126,32 @@ class Repository {
                 certificateCheck: () => 0
             }
         };
-        let creds = null;
+        let creds = false;
         if (this.authMethod === Repository.authMethods.SSH) {
             if (!this.sshKey.isDecrypted) {
                 const err = new Error(`Private key is encrypted for repository "${this.name}", please decrypt it`);
                 err.code = 'EPRIVKEYENCRYPTED';
                 throw err;
             }
-            const url = GitUrlParse(this.address);
-            creds = Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.getPrivKeyPass());
+            creds = true;
         }
-        if (this.authMethod === Repository.authMethods.HTTP) {
-            if (this.user && this.pass) {
-                creds = Cred.userpassPlaintextNew(this.user, this.pass);
-            } else if (this.user) {
-                creds = Cred.usernameNew(this.user);
-            }
+        if (this.authMethod === Repository.authMethods.HTTP && this.user) {
+            creds = true;
         }
 
         if (creds) {
-            opts.callbacks.credentials = function() {
-                return creds;
+            opts.callbacks.credentials = () => {
+                if (this.authMethod === Repository.authMethods.SSH) {
+                    const url = GitUrlParse(this.address);
+                    return Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.getPrivKeyPass());
+                }
+                if (this.authMethod === Repository.authMethods.HTTP) {
+                    if (this.user && this.pass) {
+                        return Cred.userpassPlaintextNew(this.user, this.pass);
+                    } else if (this.user) {
+                        return Cred.usernameNew(this.user);
+                    }
+                }
             }
         }
 
@@ -160,8 +165,14 @@ class Repository {
             await fsExtra.remove(this._repoDir);
         }
         await utils.mkdir(this._repoDir);
+        try {
+            this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
+        } catch (e) {
+            const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
+            err.code = 'EREPOSITORYCLONEERROR';
+            throw err;
+        }
 
-        this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
         return this.refreshAvailableGitBranches();
     }
 

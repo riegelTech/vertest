@@ -13,7 +13,7 @@ async function createTemporaryRepository(req, res) {
     if (sshKey instanceof sshKeyModule.SshKey && req.body.repositorySshKeyPass) {
         const success = await sshKey.setPrivKeyPass(req.body.repositorySshKeyPass);
         if (!success) {
-            return res.status(403).send(`Fail to decrypt SSH private key ${req.body.repositorySshKey}`);
+            return res.status(utils.RESPONSE_HTTP_CODES.REFUSED).send(`Fail to decrypt SSH private key ${req.body.repositorySshKey}`);
         }
     }
 
@@ -27,7 +27,7 @@ async function createTemporaryRepository(req, res) {
             pass: req.body.repositoryPass
         });
     } catch (e) {
-        return res.status(utils.RESPONSE_HTTP_CODES.DEFAULT).send('Repository creation failed');
+        return res.status(utils.getHttpCode(e.code)).send('Repository creation failed');
     }
 
     await temporaryRepository.refreshAvailableGitBranches();
