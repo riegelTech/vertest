@@ -3,6 +3,7 @@
 import {TEST_CASE_STATUSES} from './test-case';
 import TestCaseState from './testCaseState.vue';
 import Path from "path";
+import _ from "lodash";
 
 export const fileTreeUtils = {
 	buildTree(filePaths, baseDir) {
@@ -48,7 +49,7 @@ export const fileTreeUtils = {
 	},
 	flattenLeafs(tree) {
 		let flat = [];
-		this.leafTransformer(tree, treeSegment => {
+		this.leafTransformer(_.cloneDeep(tree), treeSegment => {
 			flat.push(treeSegment);
 		});
 		return flat;
