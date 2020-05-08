@@ -8,8 +8,10 @@ const NodeGit= require('nodegit');
 const tmp = require('tmp-promise');
 const uuid = require('uuidv4');
 
-const repoModule = require('./repositories');
-const utils = require('../utils');
+const gitServer = require('../testUtils/gitServer');
+const repoModule = require('../../repositories/repositories');
+const {SshKey} = require('../../sshKeys/ssh-keys');
+const utils = require('../../utils');
 
 chai.should();
 const expect = chai.expect;
@@ -34,6 +36,17 @@ describe('Repository module', function () {
 			await NodeGit.Repository.open(repositoryPath);
 		});
 
+		async function addContentToTestRepository() {
+			const folder = 'testDir';
+			const fileToCommit = Path.join(repositoryPath, 'testFile');
+			await utils.writeFile(fileToCommit, 'some data');
+			await utils.mkdir(Path.join(repositoryPath, folder));
+			const fileToCommit_2 = Path.join(repositoryPath, folder, 'testFile');
+			await utils.writeFile(fileToCommit_2, 'other data');
+			const signatures = await gitRepository.defaultSignature();
+			await gitRepository.createCommitOnHead(['testFile', Path.join(folder, 'testFile')], signatures, signatures, 'New commit');
+		}
+
 
 		it('Should instantiate a Repository', function () {
 			return new repoModule.Repository({
@@ -48,6 +61,7 @@ describe('Repository module', function () {
 			let repoTestPath;
 			beforeEach(async function () {
 				repoTestPath = Path.join(tmpSpace.path, 'repoTests', uuid.uuid());
+				await fsExtra.remove(repoTestPath);
 				await fsExtra.mkdirp(repoTestPath);
 			});
 
@@ -64,10 +78,7 @@ describe('Repository module', function () {
 
 			it('should init a non-empty GIT repository and get current commit and branches', async function () {
 				// given
-				const fileToCommit = Path.join(repositoryPath, 'testFile');
-				await utils.writeFile(fileToCommit, 'some data');
-				const signatures = await gitRepository.defaultSignature();
-				await gitRepository.createCommitOnHead(['testFile'], signatures, signatures, 'New commit');
+				await addContentToTestRepository();
 				// when
 				const newRepo = new repoModule.Repository({
 					name: 'some name',
@@ -75,13 +86,57 @@ describe('Repository module', function () {
 					repoPath: repoTestPath
 				});
 				await newRepo.init({forceInit: true, waitForClone: true});
+
 				newRepo.commit.should.not.be.null;
 				newRepo.gitBranch.should.eql('master');
 				newRepo.gitBranches.should.eql(['master']);
 			});
 
-			// https://www.npmjs.com/package/ssh2#server-examples
-			// https://git-scm.com/docs/pack-protocol/2.25.0
+			describe('Authentication', function () {
+
+				let gitServerPort;
+
+				beforeEach(async function () {
+					gitServerPort = await gitServer.createSshServer({
+						debug: true,
+						gitRepository,
+						allowedUser: 'foo',
+						allowedPassword: 'foobar',
+						allowedPubKeyPath: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey.pub'),
+						sshServerKey: Path.resolve(__dirname, '../fixtures/falseGitServerSshKey')
+					})
+				});
+
+				afterEach(async function () {
+					return gitServer.tearDownSshServer();
+				});
+
+				it.only('should clone remote GIT repository with SSH keyring that have been decrypted', async function () {
+					// given
+					await addContentToTestRepository();
+					const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
+					const decryptedSshKey = new SshKey({
+						name: 'foo',
+						pubKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey.pub'),
+						privKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey')
+					});
+					await decryptedSshKey.setPrivKeyPass('');
+					// when
+					const newRepo = new repoModule.Repository({
+						name: 'some name',
+						address: gitRespositorySshAddress,
+						repoPath: repoTestPath,
+						sshKey: decryptedSshKey,
+						user: 'foo'
+					});
+					await newRepo.init({forceInit: true, waitForClone: true});
+				});
+
+				it('should not clone remote GIT repository with SSH keyring that have an encrypted private key', async function () {
+
+				});
+
+			});
 
 			it('should clone a remote GIT repository using HTTP credentials', async function () {
 
@@ -91,13 +146,6 @@ describe('Repository module', function () {
 
 			});
 
-			it('should not clone remote GIT repository with SSH keyring that have an encrypted private key', async function () {
-
-			});
-
-			it('should clone remote GIT repository with SSH keyring that have been decrypted', async function () {
-
-			});
 
 			it('should throw error with bad SSH key or bad HTTP credentials', function () {
 
