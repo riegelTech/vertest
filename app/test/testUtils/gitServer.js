@@ -5,10 +5,10 @@ const fs = require('fs');
 const crypto = require('crypto');
 const Path = require('path');
 const {deflate} = require('zlib');
+const { execSync } = require('child_process');
 const util = require('util');
 
 const bops = require('bops');
-const fsextra = require('fs-extra');
 const NodeGit = require('nodegit');
 const pktLine = require('git-pkt-line');
 const ssh2 = require('ssh2');
@@ -33,9 +33,9 @@ function setBits(buffer, i, startBit, values) {
 }
 function setBit(buffer, i, bit, value){
 	if(value == 0){
-		buffer[i] &= ~(1 << bit);
+		buffer[i] &= ~(1 << 7 - bit);
 	}else{
-		buffer[i] |= (1 << bit);
+		buffer[i] |= (1 << 7 - bit);
 	}
 }
 
@@ -51,11 +51,15 @@ function readBit(buffer, i, bit){
 	return (buffer[i] >> bit) % 2;
 }
 
+function bufTobin(buffer) {
+	return buffer.toString('hex').split('').map(hexChar => parseInt(hexChar, 16).toString(2).padStart(4, '0')).join('')
+}
+
 async function sendRefPack(stream, gitRepository, references) {
 	const pkline = pktLine.framer(function (chunk) {
 		stream.write(chunk);
 	});
-	const packDirPath = './packfiles/';
+	// const packDirPath = './packfiles/';
 	for (const reference of references) {
 		////
 		const oids = [];
@@ -70,19 +74,26 @@ async function sendRefPack(stream, gitRepository, references) {
 				.start();
 		})).map(treeEntry => treeEntry.oid()));
 		oids.push(...treeIds);
+		const uniqueOids = oids.filter(function(elem, pos) {
+			return oids.indexOf(elem) == pos;
+		});
 
-		oids.sort();
+		// uniqueOids.sort();
+
+		// TODO finish with blobs, see https://stackoverflow.com/questions/26492303/what-does-peel-mean-in-git
+
+		console.log(uniqueOids);
 		const odb = await gitRepository.odb();
 
 		// TODO throw error if there is more than 9999 references to write
-		const headerBuf = Buffer.alloc(12);
+		const headerBuf = Buffer.alloc(12, 0, 'binary');
 		headerBuf.write('PACK');
 		headerBuf.writeUInt32BE(2, 4);
-		headerBuf.writeUInt32BE(oids.length, 8);
+		headerBuf.writeUInt32BE(uniqueOids.length, 8);
 
 		let bodyBuf = Buffer.alloc(0);
 
-		for(const oid of oids) {
+		for(const oid of uniqueOids) {
 			const odbObj = await odb.read(oid);
 			const objData = odbObj.toString();
 			const objSize = Buffer.byteLength(objData);
@@ -94,7 +105,11 @@ async function sendRefPack(stream, gitRepository, references) {
 				headerBitsSize += 1;
 			}
 			const headerSize = (lengthBitsSize + headerBitsSize) / 8;
-			const headerObjBuf = Buffer.alloc(headerSize);
+			const headerObjBuf = Buffer.alloc(headerSize, 0, 'binary');
+
+			if (objSize >= 16) {
+				setBit(headerObjBuf, 0, 0, 1);
+			}
 
 			switch (odbObj.type()) {
 				case NodeGit.Object.TYPE.COMMIT:
@@ -117,18 +132,11 @@ async function sendRefPack(stream, gitRepository, references) {
 					break;
 			}
 
-			console.log('objSize', objSize);
-			//console.log('lengthBitSize', lengthBitsSize, 2 ** lengthBitsSize);
 			let sizeBin = objSize.toString(2);
 			sizeBin = sizeBin.padStart(lengthBitsSize, '0');
 
-			//console.log('sizebin', sizeBin);
-
 			setBits(headerObjBuf, 0, 4, sizeBin.substring(sizeBin.length - 4).split('').map(ch => parseInt(ch)));
-			if (objSize < 16) {
-				setBit(headerObjBuf, 0, 0, 0);
-			} else {
-				setBit(headerObjBuf, 0, 0, 1);
+			if (objSize >= 16) {
 				let restOfSizeBits = sizeBin.slice(0, -4);
 				let curByteIndex = 1;
 				while (restOfSizeBits.length > 0) {
@@ -143,15 +151,7 @@ async function sendRefPack(stream, gitRepository, references) {
 				}
 			}
 
-			console.log('type : ', odbObj.type());
-			console.log('obj bytes');
-			for(let i = 0; i < headerSize; i++) {
-				console.log(readBits(headerObjBuf, i, 0, 8).join(' '));
-			}
-			const dataBuf = Buffer.from(odbObj.toString());
-			const compressedDataBuf = await deflatePromise(dataBuf);
-			console.log('odbObj in binary', Buffer.from(odbObj.toString()));
-			console.log('uncompressed', Buffer.byteLength(dataBuf), 'compressed : ', Buffer.byteLength(compressedDataBuf));
+			const compressedDataBuf = await deflatePromise(odbObj.toString());
 
 			bodyBuf = Buffer.concat([bodyBuf, headerObjBuf, compressedDataBuf], bodyBuf.length + headerObjBuf.length + compressedDataBuf.length);
 		}
@@ -159,27 +159,33 @@ async function sendRefPack(stream, gitRepository, references) {
 		const shasum = crypto.createHash('sha1');
 		shasum.update(Buffer.concat([headerBuf, bodyBuf], headerBuf.length + bodyBuf.length));
 		const tailBuf = shasum.digest();
-
 		const packfileBuf = Buffer.concat([headerBuf, bodyBuf, tailBuf], headerBuf.length + bodyBuf.length + tailBuf.length);
-
-		console.log(packfileBuf.toString('hex').split('').map(hexChar => parseInt(hexChar, 16).toString(2)).join(''));
+		const packFileBin = bufTobin(packfileBuf);
 
 		await utils.writeFile('./test.pack', packfileBuf);
 
-		pkline('pack', bops.from(packfileBuf));
-		////
+		const repoPath = Path.resolve(gitRepository.path(), '../');
 
-		// const oid = NodeGit.Oid.fromString(reference);
-		// const packBuilder = await NodeGit.Packbuilder.create(gitRepository);
-		// await packBuilder.insertCommit(oid);
-		//
-		// await fsextra.emptyDir(packDirPath);
-		// await packBuilder.write(packDirPath, 0, () => undefined, () => undefined);
-		// // console.log('to string ?', packBuilder.toString());
-		//
-		// const packFiles = fs.readdirSync(packDirPath);
-		// const packFile = packFiles.find(fileName => fileName.endsWith('.pack'));
-		// pkline('pack', bops.from(fs.readFileSync(Path.join(packDirPath, packFile))));
+		execSync(`cd ${repoPath} && git repack -a`);
+		const packfiles = await utils.readDir(Path.join(repoPath, '.git/objects/pack/'));
+		const idxFile = packfiles.find(packfile => packfile.endsWith('.idx'));
+		const res = execSync(`cd ${repoPath} && git verify-pack -v .git/objects/pack/${idxFile}`);
+		console.log('res', res.toString());
+		const nativePack = Path.join(repoPath, '.git/objects/pack', packfiles.find(packfile => packfile.endsWith('.pack')));
+
+		const nativePackBuf = fs.readFileSync(nativePack);
+		const nativePackFileBin = bufTobin(nativePackBuf);
+		console.log('////////////', nativePackBuf.length, packfileBuf.length);
+
+		const bytes = 5;
+		const startByte = 0;
+		for(let i = startByte; i < startByte + bytes; i++) {
+			console.log(nativePackFileBin.substring(i * 8, (i + 1) * 8));
+			console.log(packFileBin.substring(i * 8, (i + 1) * 8));
+			console.log('');
+		}
+
+		pkline('pack', bops.from(packfileBuf));
 	}
 	pkline('line', null);
 }
