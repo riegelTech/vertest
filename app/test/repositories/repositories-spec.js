@@ -62,7 +62,7 @@ describe('Repository module', function () {
 				expect(newRepo.gitBranch).to.be.null;
 			});
 
-			it('should init a non-empty GIT repository', async function () {
+			it('should init a non-empty GIT repository and get current commit and branches', async function () {
 				// given
 				const fileToCommit = Path.join(repositoryPath, 'testFile');
 				await utils.writeFile(fileToCommit, 'some data');
@@ -77,6 +77,34 @@ describe('Repository module', function () {
 				await newRepo.init({forceInit: true, waitForClone: true});
 				newRepo.commit.should.not.be.null;
 				newRepo.gitBranch.should.eql('master');
+				newRepo.gitBranches.should.eql(['master']);
+			});
+
+			// https://www.npmjs.com/package/ssh2#server-examples
+			// https://git-scm.com/docs/pack-protocol/2.25.0
+
+			it('should clone a remote GIT repository using HTTP credentials', async function () {
+
+			});
+
+			it('should clone a remote GIT repository using SSH keyring with a decrypted private key', async function () {
+
+			});
+
+			it('should not clone remote GIT repository with SSH keyring that have an encrypted private key', async function () {
+
+			});
+
+			it('should clone remote GIT repository with SSH keyring that have been decrypted', async function () {
+
+			});
+
+			it('should throw error with bad SSH key or bad HTTP credentials', function () {
+
+			});
+
+			it('should throw error with bad GIT repository address', function () {
+
 			});
 		});
 	});
