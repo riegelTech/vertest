@@ -167,7 +167,9 @@ class Repository {
         try {
             this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
         } catch (e) {
-            console.error(e);
+            if (e.code === 'EPRIVKEYENCRYPTED') {
+                throw e;
+            }
             const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
             err.code = 'EREPOSITORYCLONEERROR';
             throw err;

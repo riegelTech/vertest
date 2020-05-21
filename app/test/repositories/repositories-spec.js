@@ -8,7 +8,7 @@ const NodeGit= require('nodegit');
 const tmp = require('tmp-promise');
 const uuid = require('uuidv4');
 
-const gitServer = require('../testUtils/gitServer');
+const gitServer = require('../testUtils/git/gitServer');
 const repoModule = require('../../repositories/repositories');
 const {SshKey} = require('../../sshKeys/ssh-keys');
 const utils = require('../../utils');
@@ -104,14 +104,14 @@ describe('Repository module', function () {
 						allowedPassword: 'foobar',
 						allowedPubKeyPath: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey.pub'),
 						sshServerKey: Path.resolve(__dirname, '../fixtures/falseGitServerSshKey')
-					})
+					});
 				});
 
 				afterEach(async function () {
 					return gitServer.tearDownSshServer();
 				});
 
-				it.only('should clone remote GIT repository with SSH keyring that have been decrypted', async function () {
+				it('should clone remote GIT repository with SSH keyring without passphrase', async function () {
 					// given
 					await addContentToTestRepository();
 					const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
@@ -129,25 +129,109 @@ describe('Repository module', function () {
 						sshKey: decryptedSshKey,
 						user: 'foo'
 					});
-					await newRepo.init({forceInit: true, waitForClone: true});
+					return newRepo.init({forceInit: true, waitForClone: true});
 				});
 
-				it('should not clone remote GIT repository with SSH keyring that have an encrypted private key', async function () {
+				it('should fail to clone remote GIT repository with bad SSH key', async function () {
+					// given
+					await addContentToTestRepository();
+					const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
+					const decryptedSshKey = new SshKey({
+						name: 'foo',
+						pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
+						privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
+					});
+					await decryptedSshKey.setPrivKeyPass('foobar');
+					// when
+					const newRepo = new repoModule.Repository({
+						name: 'some name',
+						address: gitRespositorySshAddress,
+						repoPath: repoTestPath,
+						sshKey: decryptedSshKey,
+						user: 'foo'
+					});
+					return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Failed to clone repository ${gitRespositorySshAddress}, please check your credentials`);
+				});
+
+				describe('Should use protected ssh private keys', function () {
+
+					beforeEach(async function () {
+						gitServerPort = await gitServer.createSshServer({
+							debug: true,
+							gitRepository,
+							allowedUser: 'foo',
+							allowedPassword: 'foobar',
+							allowedPubKeyPath: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
+							sshServerKey: Path.resolve(__dirname, '../fixtures/falseGitServerSshKey')
+						});
+					});
+
+					afterEach(async function () {
+						return gitServer.tearDownSshServer();
+					});
+
+					it('should not clone remote GIT repository with SSH keyring that have a protected private key', async function () {
+						// given
+						await addContentToTestRepository();
+						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
+						const decryptedSshKey = new SshKey({
+							name: 'foo',
+							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
+							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
+						});
+						await decryptedSshKey.setPrivKeyPass('bad pass phrase');
+						// when
+						const newRepo = new repoModule.Repository({
+							name: 'some name',
+							address: gitRespositorySshAddress,
+							repoPath: repoTestPath,
+							sshKey: decryptedSshKey,
+							user: 'foo'
+						});
+
+						return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Private key is encrypted for repository "some name", please decrypt it`);
+					});
+
+					it('should clone remote GIT repository with SSH keyring that have a protected and decrypted private key', async function () {
+						// given
+						await addContentToTestRepository();
+						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
+						const decryptedSshKey = new SshKey({
+							name: 'foo',
+							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
+							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
+						});
+						await decryptedSshKey.setPrivKeyPass('foobar');
+						// when
+						const newRepo = new repoModule.Repository({
+							name: 'some name',
+							address: gitRespositorySshAddress,
+							repoPath: repoTestPath,
+							sshKey: decryptedSshKey,
+							user: 'foo'
+						});
+						return newRepo.init({forceInit: true, waitForClone: true});
+					});
+				});
+			});
+
+			describe('should clone a remote GIT repository using HTTP credentials', async function () {
+
+				beforeEach(async function () {
 
 				});
 
-			});
+				afterEach(async function () {
 
-			it('should clone a remote GIT repository using HTTP credentials', async function () {
+				});
 
-			});
+				it('with regular user / password', function () {
 
-			it('should clone a remote GIT repository using SSH keyring with a decrypted private key', async function () {
+				});
 
-			});
+				it('with bad user / password', function () {
 
-
-			it('should throw error with bad SSH key or bad HTTP credentials', function () {
+				});
 
 			});
 

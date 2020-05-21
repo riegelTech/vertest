@@ -5,7 +5,6 @@ const fs = require('fs');
 const crypto = require('crypto');
 const Path = require('path');
 const {deflate} = require('zlib');
-const { execSync } = require('child_process');
 const util = require('util');
 
 const bops = require('bops');
@@ -13,8 +12,6 @@ const NodeGit = require('nodegit');
 const pktLine = require('git-pkt-line');
 const ssh2 = require('ssh2');
 const ssh2Utils = ssh2.utils;
-
-const utils = require('../../utils');
 
 const deflatePromise = util.promisify(deflate);
 
@@ -95,9 +92,6 @@ async function sendRefPack(stream, gitRepository, references) {
 		const uniqueOids = oids.filter(function(elem, pos) {
 			return oids.indexOf(elem) == pos;
 		});
-
-		const repoPath = Path.resolve(gitRepository.path(), '../');
-
 
 		const odb = await gitRepository.odb();
 
@@ -246,15 +240,18 @@ async function createSshServer({gitRepository = null, allowedUser = '', allowedP
 		authMethod: 'publickey'
 	}, function(client) {
 		log('client connection');
+		let tries = 0;
 		client.on('authentication', function(ctx) {
-			log('client start authentication');
+			log(`client start authentication with user ${ctx.username} and method ${ctx.method}`);
+			if (tries > 2) {
+				return ctx.reject();
+			}
+			tries ++;
 			const user = Buffer.from(ctx.username);
-			log(`user : ${ctx.username}`);
 			if (user.length !== sshUser.length
 				|| !crypto.timingSafeEqual(user, sshUser)) {
 				return ctx.reject();
 			}
-			log(`method : ${ctx.method}`);
 			switch (ctx.method) {
 				case 'password':
 					const password = Buffer.from(ctx.password);
