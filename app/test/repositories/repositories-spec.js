@@ -8,7 +8,7 @@ const NodeGit= require('nodegit');
 const tmp = require('tmp-promise');
 const uuid = require('uuidv4');
 
-const gitServer = require('../testUtils/git/gitServer');
+const gitServer = require('../testUtils/git/sshGitServer');
 const repoModule = require('../../repositories/repositories');
 const {SshKey} = require('../../sshKeys/ssh-keys');
 const utils = require('../../utils');

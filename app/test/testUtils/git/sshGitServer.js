@@ -3,7 +3,6 @@
 
 const fs = require('fs');
 const crypto = require('crypto');
-const Path = require('path');
 const {deflate} = require('zlib');
 const util = require('util');
 
