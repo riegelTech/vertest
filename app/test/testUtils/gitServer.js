@@ -59,30 +59,46 @@ async function sendRefPack(stream, gitRepository, references) {
 	const pkline = pktLine.framer(function (chunk) {
 		stream.write(chunk);
 	});
-	// const packDirPath = './packfiles/';
 	for (const reference of references) {
-		////
 		const oids = [];
 		const commit = await gitRepository.getCommit(reference);
 		const treeOid = commit.treeId().tostrS();
 		oids.push(commit.sha(), treeOid);
 		const tree = await gitRepository.getTree(treeOid);
-		const treeIds = [treeOid].concat((await new Promise((res, rej) => {
+		const trees = [tree];
+		const treeEntries = await new Promise((res, rej) => {
 			tree.walk(false)
 				.on('end', res)
 				.on('error', rej)
 				.start();
-		})).map(treeEntry => treeEntry.oid()));
+		});
+
+		await Promise.all(treeEntries.map(async treeEntry => {
+			if (treeEntry.isTree()) {
+				trees.push(await treeEntry.getTree());
+			}
+		}));
+		const treesDatas = {};
+		// libGit does not provide a reliable toString function to access tree data
+		// So it is a home made one that works, see https://stackoverflow.com/a/37105125
+		await Promise.all(trees.map(async tree => {
+			let lines = Buffer.alloc(0);
+			tree.entries().forEach(treeEntry => {
+				let shaBin = Buffer.from(treeEntry.sha(), 'hex');
+				lines = Buffer.concat([lines, Buffer.from(`${treeEntry.filemode().toString(8)} ${treeEntry.name()}\0`), shaBin]);
+			});
+			treesDatas[tree.id().toString()] = lines;
+		}));
+
+		const treeIds = [treeOid].concat(treeEntries.map(treeEntry => treeEntry.oid()));
 		oids.push(...treeIds);
 		const uniqueOids = oids.filter(function(elem, pos) {
 			return oids.indexOf(elem) == pos;
 		});
 
-		// uniqueOids.sort();
+		const repoPath = Path.resolve(gitRepository.path(), '../');
 
-		// TODO finish with blobs, see https://stackoverflow.com/questions/26492303/what-does-peel-mean-in-git
 
-		console.log(uniqueOids);
 		const odb = await gitRepository.odb();
 
 		// TODO throw error if there is more than 9999 references to write
@@ -93,11 +109,30 @@ async function sendRefPack(stream, gitRepository, references) {
 
 		let bodyBuf = Buffer.alloc(0);
 
-		for(const oid of uniqueOids) {
-			const odbObj = await odb.read(oid);
-			const objData = odbObj.toString();
-			const objSize = Buffer.byteLength(objData);
+		const oidObjects = await Promise.all(uniqueOids.map(oid => odb.read(oid)));
 
+		// TODO improve this
+		oidObjects.sort((objA, objB) => {
+			if (objA.type() === NodeGit.Object.TYPE.COMMIT) {
+				return -1;
+			}
+			if (objB.type() === NodeGit.Object.TYPE.TREE) {
+				return objA.type() === NodeGit.Object.TYPE.BLOB ? -1 : 1;
+			}
+			if (objA.type() === objB.type()) {
+				return 0;
+			}
+			return objA.type() > objB.type() ? 1 : -1;
+		});
+
+
+		for(const odbObj of oidObjects) {
+			let objSize;
+			if (odbObj.type() === NodeGit.Object.TYPE.TREE) {
+				objSize = treesDatas[odbObj.id().toString()].length;
+			} else {
+				objSize = Buffer.from(odbObj.toString(), 'binary').length;
+			}
 			let headerBitsSize = 4;
 			let lengthBitsSize = 4;
 			while ((2 ** lengthBitsSize) < objSize) {
@@ -140,7 +175,7 @@ async function sendRefPack(stream, gitRepository, references) {
 				let restOfSizeBits = sizeBin.slice(0, -4);
 				let curByteIndex = 1;
 				while (restOfSizeBits.length > 0) {
-					if (restOfSizeBits.length === 7) { // last chunk
+					if (restOfSizeBits.length === 7) { // last chunk, set the MSB to zero
 						setBit(headerObjBuf, curByteIndex, 0, 0);
 					} else {
 						setBit(headerObjBuf, curByteIndex, 0, 1);
@@ -151,39 +186,20 @@ async function sendRefPack(stream, gitRepository, references) {
 				}
 			}
 
-			const compressedDataBuf = await deflatePromise(odbObj.toString());
+			let objData;
+			if (odbObj.type() === NodeGit.Object.TYPE.TREE) {
+				objData = await deflatePromise(treesDatas[odbObj.id().toString()]);
+			} else {
+				objData = await deflatePromise(odbObj.toString());
+			}
 
-			bodyBuf = Buffer.concat([bodyBuf, headerObjBuf, compressedDataBuf], bodyBuf.length + headerObjBuf.length + compressedDataBuf.length);
+			bodyBuf = Buffer.concat([bodyBuf, headerObjBuf, objData], bodyBuf.length + headerObjBuf.length + objData.length);
 		}
 
 		const shasum = crypto.createHash('sha1');
 		shasum.update(Buffer.concat([headerBuf, bodyBuf], headerBuf.length + bodyBuf.length));
 		const tailBuf = shasum.digest();
 		const packfileBuf = Buffer.concat([headerBuf, bodyBuf, tailBuf], headerBuf.length + bodyBuf.length + tailBuf.length);
-		const packFileBin = bufTobin(packfileBuf);
-
-		await utils.writeFile('./test.pack', packfileBuf);
-
-		const repoPath = Path.resolve(gitRepository.path(), '../');
-
-		execSync(`cd ${repoPath} && git repack -a`);
-		const packfiles = await utils.readDir(Path.join(repoPath, '.git/objects/pack/'));
-		const idxFile = packfiles.find(packfile => packfile.endsWith('.idx'));
-		const res = execSync(`cd ${repoPath} && git verify-pack -v .git/objects/pack/${idxFile}`);
-		console.log('res', res.toString());
-		const nativePack = Path.join(repoPath, '.git/objects/pack', packfiles.find(packfile => packfile.endsWith('.pack')));
-
-		const nativePackBuf = fs.readFileSync(nativePack);
-		const nativePackFileBin = bufTobin(nativePackBuf);
-		console.log('////////////', nativePackBuf.length, packfileBuf.length);
-
-		const bytes = 5;
-		const startByte = 0;
-		for(let i = startByte; i < startByte + bytes; i++) {
-			console.log(nativePackFileBin.substring(i * 8, (i + 1) * 8));
-			console.log(packFileBin.substring(i * 8, (i + 1) * 8));
-			console.log('');
-		}
 
 		pkline('pack', bops.from(packfileBuf));
 	}
