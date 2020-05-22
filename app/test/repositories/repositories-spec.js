@@ -8,7 +8,8 @@ const NodeGit= require('nodegit');
 const tmp = require('tmp-promise');
 const uuid = require('uuidv4');
 
-const gitServer = require('../testUtils/git/sshGitServer');
+const sshGitServer = require('../testUtils/git/sshGitServer');
+const httpGitServer = require('../testUtils/git/httpGitServer');
 const repoModule = require('../../repositories/repositories');
 const {SshKey} = require('../../sshKeys/ssh-keys');
 const utils = require('../../utils');
@@ -17,7 +18,7 @@ chai.should();
 const expect = chai.expect;
 
 describe('Repository module', function () {
-	describe('Repository class', async function () {
+	describe('Repository class', function () {
 
 		let tmpSpace;
 		let gitRepository;
@@ -97,8 +98,7 @@ describe('Repository module', function () {
 				let gitServerPort;
 
 				beforeEach(async function () {
-					gitServerPort = await gitServer.createSshServer({
-						debug: true,
+					gitServerPort = await sshGitServer.createSshServer({
 						gitRepository,
 						allowedUser: 'foo',
 						allowedPassword: 'foobar',
@@ -108,7 +108,7 @@ describe('Repository module', function () {
 				});
 
 				afterEach(async function () {
-					return gitServer.tearDownSshServer();
+					return sshGitServer.tearDownSshServer();
 				});
 
 				it('should clone remote GIT repository with SSH keyring without passphrase', async function () {
@@ -156,18 +156,14 @@ describe('Repository module', function () {
 				describe('Should use protected ssh private keys', function () {
 
 					beforeEach(async function () {
-						gitServerPort = await gitServer.createSshServer({
-							debug: true,
+						await sshGitServer.tearDownSshServer();
+						gitServerPort = await sshGitServer.createSshServer({
 							gitRepository,
 							allowedUser: 'foo',
 							allowedPassword: 'foobar',
 							allowedPubKeyPath: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							sshServerKey: Path.resolve(__dirname, '../fixtures/falseGitServerSshKey')
 						});
-					});
-
-					afterEach(async function () {
-						return gitServer.tearDownSshServer();
 					});
 
 					it('should not clone remote GIT repository with SSH keyring that have a protected private key', async function () {
@@ -215,21 +211,43 @@ describe('Repository module', function () {
 				});
 			});
 
-			describe('should clone a remote GIT repository using HTTP credentials', async function () {
+			describe.skip('should clone a remote GIT repository using HTTP credentials', function () {
+
+				let serverPort;
 
 				beforeEach(async function () {
-
+					serverPort = (await httpGitServer.createHttpServer({
+						debug: true,
+						gitRepository,
+						allowedUser: 'foo',
+						allowedPassword: 'bar'
+					})).port;
 				});
 
 				afterEach(async function () {
-
+					return httpGitServer.tearDownHttpServer();
 				});
 
-				it('with regular user / password', function () {
-
+				it('with regular user / password', async function () {
+					// given
+					await addContentToTestRepository();
+					const gitRespositoryHttpAddress = `http://foo@localhost:${serverPort}/test.git`;
+					// when
+					const newRepo = new repoModule.Repository({
+						name: 'some name',
+						address: gitRespositoryHttpAddress,
+						repoPath: repoTestPath,
+						user: 'foo',
+						pass: 'bar'
+					});
+					return newRepo.init({forceInit: true, waitForClone: true});
 				});
 
 				it('with bad user / password', function () {
+
+				});
+
+				it('with no password required', function () {
 
 				});
 
@@ -239,5 +257,7 @@ describe('Repository module', function () {
 
 			});
 		});
+
+
 	});
 });
