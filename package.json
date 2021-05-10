@@ -29,7 +29,7 @@
     "fs-extra": "9.0.0",
     "git-url-parse": "11.1.2",
     "glob": "7.1.6",
-    "lodash": "4.17.15",
+    "lodash": "4.17.21",
     "lowest-common-ancestor": "2.0.1",
     "minimatch": "3.0.4",
     "mongodb": "3.5.5",
