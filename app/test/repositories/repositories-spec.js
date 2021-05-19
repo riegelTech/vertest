@@ -211,7 +211,7 @@ describe('Repository module', function () {
 				});
 			});
 
-			describe.skip('should clone a remote GIT repository using HTTP credentials', function () {
+			describe('should clone a remote GIT repository using HTTP credentials', function () {
 
 				let serverPort;
 
@@ -243,13 +243,13 @@ describe('Repository module', function () {
 					return newRepo.init({forceInit: true, waitForClone: true});
 				});
 
-				it('with bad user / password', function () {
+				/*it('with bad user / password', function () {
 
 				});
 
 				it('with no password required', function () {
 
-				});
+				});*/
 
 			});
 

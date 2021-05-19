@@ -70,7 +70,11 @@ const startApp = async () => {
 	}
 
 	console.log(`Start server on port ${port}`);
-	app.listen(port);
+	return new Promise(res => {
+		app.listen(port, () => {
+			res()
+		});
+	});
 };
 
 startApp();

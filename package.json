@@ -38,6 +38,7 @@
     "yaml": "1.7.1"
   },
   "devDependencies": {
+    "body-parser": "^1.19.0",
     "bops": "1.0.1",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",

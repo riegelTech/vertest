@@ -85,7 +85,11 @@ async function createSshServer({gitRepository = null, allowedUser = '', allowedP
 								}
 								if (line === 'done\n') {
 									encode('line', 'NAK\n');
-									await gitCommands.sendRefPack(stream, gitRepository, wantedRefs);
+									const packs = await gitCommands.getRefPack(gitRepository, wantedRefs);
+									for (let ref of wantedRefs) {
+										encode('pack', packs.get(ref));
+										encode('line', null);
+									}
 								}
 								if (line.startsWith('flush-pkt')) {
 									stream.exit(0);

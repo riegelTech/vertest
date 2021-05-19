@@ -1,11 +1,11 @@
 'use strict';
 
 const crypto = require('crypto');
+const fs = require('fs');
 
 const {deflate} = require('zlib');
 const util = require('util');
 
-const bops = require('bops');
 const NodeGit = require('nodegit');
 const pktLine = require('git-pkt-line');
 
@@ -48,10 +48,10 @@ function bufTobin(buffer) {
 	return buffer.toString('hex').split('').map(hexChar => parseInt(hexChar, 16).toString(2).padStart(4, '0')).join('')
 }
 
-async function sendRefPack(stream, gitRepository, references) {
-	const pkline = pktLine.framer(function (chunk) {
-		stream.write(chunk);
-	});
+async function getRefPack(gitRepository, references, mayBeFileControlPath) {
+	const fileStream = mayBeFileControlPath ? fs.createWriteStream(mayBeFileControlPath) : null;
+
+	const packsBuffers = new Map();
 	for (const reference of references) {
 		const oids = [];
 		const commit = await gitRepository.getCommit(reference);
@@ -103,19 +103,20 @@ async function sendRefPack(stream, gitRepository, references) {
 
 		// TODO improve this
 		oidObjects.sort((objA, objB) => {
+			if (objA.type() === objB.type()) {
+				return objA.id().toString().localeCompare(objB.id().toString());
+			}
 			if (objA.type() === NodeGit.Object.TYPE.COMMIT) {
 				return -1;
 			}
 			if (objB.type() === NodeGit.Object.TYPE.TREE) {
 				return objA.type() === NodeGit.Object.TYPE.BLOB ? -1 : 1;
 			}
-			if (objA.type() === objB.type()) {
-				return 0;
-			}
+
 			return objA.type() > objB.type() ? 1 : -1;
 		});
 
-
+		const objectsShas = [];
 		for(const odbObj of oidObjects) {
 			let objSize;
 			if (odbObj.type() === NodeGit.Object.TYPE.TREE) {
@@ -178,25 +179,31 @@ async function sendRefPack(stream, gitRepository, references) {
 
 			let objData;
 			if (odbObj.type() === NodeGit.Object.TYPE.TREE) {
-				objData = await deflatePromise(treesDatas[odbObj.id().toString()]);
+				objData = await deflatePromise(treesDatas[odbObj.id().toString()], {level: 9});
 			} else {
-				objData = await deflatePromise(odbObj.toString());
+				objData = await deflatePromise(odbObj.toString(), {level: 9});
 			}
-
 			bodyBuf = Buffer.concat([bodyBuf, headerObjBuf, objData], bodyBuf.length + headerObjBuf.length + objData.length);
+			objectsShas.push(odbObj.id().toString());
 		}
 
 		const shasum = crypto.createHash('sha1');
 		shasum.update(Buffer.concat([headerBuf, bodyBuf], headerBuf.length + bodyBuf.length));
-		const tailBuf = shasum.digest();
-		const packfileBuf = Buffer.concat([headerBuf, bodyBuf, tailBuf], headerBuf.length + bodyBuf.length + tailBuf.length);
+		const sum = shasum.copy().digest('binary');
+		const tailBuf = Buffer.alloc(20, 0, 'binary');
+		tailBuf.write(sum, 0, 20, 'binary');
 
-		pkline('pack', bops.from(packfileBuf));
+		packsBuffers.set(reference, Buffer.concat([headerBuf, bodyBuf, tailBuf], headerBuf.length + bodyBuf.length + tailBuf.length));
+
+		if (fileStream) {
+			fileStream.write(packsBuffers.get(reference), 'binary');
+		}
 	}
-	pkline('line', null);
+	return packsBuffers;
 }
 
-async function sendUploadPackRefs(stream, gitRepository) {
+async function sendUploadPackRefs(stream, gitRepository, firstPkLines = [], http = false) {
+	// TODO this function should only return refs, transport layer should be responsible of framing and "pklineize" them
 	const references = await gitRepository.getReferences();
 	let headRef;
 	for(const ref of references) {
@@ -209,7 +216,19 @@ async function sendUploadPackRefs(stream, gitRepository) {
 		stream.write(chunk.toString());
 	});
 
-	pkline('line', `${headRef.target().tostrS()} HEAD\0multi_ack thin-pack side-band side-band-64k ofs-delta shallow no-progress include-tag multi_ack_detailed symref=HEAD:${headRef.name()} agent=git/2:2.1.1+github-607-gfba4028\n`);
+	for (const firstPkLine of firstPkLines) {
+		if(firstPkLine === null) {
+			pkline('line', null);
+		} else {
+			pkline('line', `${firstPkLine}\n`);
+		}
+	}
+
+	if (http) {
+		pkline('line', `${headRef.target().tostrS()} HEAD\0multi_ack\n`);
+	} else {
+		pkline('line', `${headRef.target().tostrS()} HEAD\0multi_ack thin-pack side-band side-band-64k ofs-delta shallow no-progress include-tag multi_ack_detailed symref=HEAD:${headRef.name()} agent=git/2:2.1.1+github-607-gfba4028\n`);
+	}
 	for(const refindex in references) {
 		let line = `${references[refindex].target().tostrS()} ${references[refindex].name()}`;
 		// TODO understand what is exactly a "peeled" ref
@@ -224,5 +243,5 @@ async function sendUploadPackRefs(stream, gitRepository) {
 
 module.exports = {
 	sendUploadPackRefs,
-	sendRefPack
+	getRefPack
 };
