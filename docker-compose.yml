@@ -7,7 +7,7 @@ services:
       - ./mongoData:/data/db
 
   node:
-    image: node:10.14.2
+    image: node:12.16.2
     depends_on:
       - mongo
     volumes:

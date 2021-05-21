@@ -31,7 +31,7 @@ describe('appConfig', function () {
             return Promise.resolve(configFileContent);
          }
       };
-      configModule = proxyquire('./config', {
+      configModule = proxyquire('../../appConfig/config', {
          '../utils': fsMock
       });
 
@@ -50,7 +50,7 @@ describe('appConfig', function () {
             'some-item': 'some-value'
          }
       };
-      const expectedConfPath = Path.join(__dirname, '../', '../', 'config.yml');
+      const expectedConfPath = Path.join(__dirname, '../', '../', '../', 'config.yml');
       // expect
       conf.should.eql(expectedParsedContent);
       fsMock.readFile.should.have.been.calledWith(expectedConfPath);
@@ -66,7 +66,7 @@ describe('appConfig', function () {
           .onSecondCall().callsFake((path, encoding) => {
             return Promise.resolve(configFileContent);
          });
-      const expectedSampleConfPath = Path.join(__dirname, '../', '../', 'config-sample.yml');
+      const expectedSampleConfPath = Path.join(__dirname, '../', '../', '../', 'config-sample.yml');
       // when
       await configModule.getAppConfig();
       fsMock.readFile.should.have.been.calledTwice;
@@ -94,7 +94,7 @@ describe('appConfig', function () {
    it('should fail if yaml parsing fails', async function () {
       // given
       const parsingError = 'Some parsing error';
-      configModule = proxyquire('./config', {
+      configModule = proxyquire('../../appConfig/config', {
          'fs': fsMock,
          'yaml': {
             parse() {
