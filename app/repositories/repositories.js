@@ -170,7 +170,12 @@ class Repository {
             if (e.code === 'EPRIVKEYENCRYPTED') {
                 throw e;
             }
-            const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
+            if (e.message.match(/credentials|authentication/)) {
+                const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
+                err.code = 'EREPOSITORYCLONEERROR';
+                throw err;
+            }
+            const err = new Error(`Failed to clone repository ${this.address}: ${e.message}`);
             err.code = 'EREPOSITORYCLONEERROR';
             throw err;
         }
@@ -189,7 +194,7 @@ class Repository {
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
     }
 
-    fetchRepository() {
+    async fetchRepository() {
         return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, Object.assign({prune: 1}, this._getRepoConnectionOptions(true)));
     }
 

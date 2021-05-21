@@ -43,6 +43,7 @@
     "chai": "4.3.4",
     "chai-as-promised": "7.1.1",
     "css-loader": "5.2.4",
+    "data-driven": "1.4.0",
     "git-pkt-line": "0.1.0",
     "markdown-it": "12.0.6",
     "mocha": "8.4.0",

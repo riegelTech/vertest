@@ -9,6 +9,8 @@ const gitCommands = require('./gitCommands');
 let httpServer;
 let log;
 
+let corrupted = false;
+
 async function sendRefs(res, gitRepository) {
 	res.status(200);
 	res.setHeader('Content-Type', 'application/x-git-upload-pack-advertisement');
@@ -32,7 +34,7 @@ async function createHttpServer({gitRepository = null, allowedUser = '', allowed
 		const auth = {login: allowedUser, password: allowedPassword}; // change this
 		const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
 		const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-		if (login && password && login === auth.login && password === auth.password) {
+		if (!auth.login || (login && password && login === auth.login && password === auth.password)) {
 			return next()
 		}
 
@@ -68,6 +70,9 @@ async function createHttpServer({gitRepository = null, allowedUser = '', allowed
 
 			for(let ref of wantedRefs) {
 				encode('line', `ACK ${ref}\n`);
+				if (corrupted) {
+					res.write(Buffer.alloc(1, 0, 'binary'));
+				}
 				res.write(packBuffs.get(ref));
 			}
 		}
@@ -92,7 +97,17 @@ async function tearDownHttpServer() {
 	});
 }
 
+function corruptGitServer() {
+	corrupted = true;
+}
+
+function decorruptGitServer() {
+	corrupted = false;
+}
+
 module.exports = {
 	createHttpServer,
-	tearDownHttpServer
+	tearDownHttpServer,
+	corruptGitServer,
+	decorruptGitServer
 };
