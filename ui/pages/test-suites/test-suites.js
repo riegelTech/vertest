@@ -11,7 +11,8 @@ Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
-import {userEventBus, userMixin} from '../users/users';
+import {userEventBus} from '../users/userMixin';
+import {userMixin} from '../users/userMixin';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';

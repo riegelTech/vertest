@@ -1,6 +1,6 @@
 'use strict';
 
-import {userMixin} from '../pages/users/users';
+import {userMixin} from '../pages/users/userMixin';
 import TestCaseState from './testCaseState.vue';
 
 const md = require('markdown-it')();

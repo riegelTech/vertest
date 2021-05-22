@@ -1,7 +1,7 @@
 'use strict';
 
-import {userMixin} from '../pages/users/users';
-import {userEventBus} from '../pages/users/users';
+import {userMixin} from '../pages/users/userMixin';
+import {userEventBus} from '../pages/users/userMixin';
 
 const defaultCurrentUser = null;
 
