@@ -107,7 +107,7 @@ class TestSuite {
 		const testCase = new TestCase({
 			testFilePath,
 			basePath,
-			status: TEST_CASE_STATUSES.TODO
+			status: TestCase.STATUSES.TODO
 		});
 		this.tests.push(testCase);
 		testCase.on('statusUpdated', () => this.updateProgress());
