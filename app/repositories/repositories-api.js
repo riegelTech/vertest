@@ -30,6 +30,7 @@ async function createTemporaryRepository(req, res) {
         return res.status(utils.getHttpCode(e.code)).send('Repository creation failed');
     }
 
+    await temporaryRepository.fetchRepository();
     await temporaryRepository.refreshAvailableGitBranches();
 
     return res.status(200).send({

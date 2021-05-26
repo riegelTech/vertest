@@ -4,6 +4,8 @@ import {userMixin} from '../pages/users/userMixin';
 import TestCaseState from './testCaseState.vue';
 
 const md = require('markdown-it')();
+const url = require('url');
+const Path = require('path-browserify');
 
 const TEST_SUITE_PATH = '/api/test-suites/';
 
@@ -35,7 +37,8 @@ export default {
 				show: false,
 				users: [],
 				selectedUser: null
-			}
+			},
+			appConfig: null
 		}
 	},
 	mixins: [userMixin],
@@ -46,13 +49,32 @@ export default {
 		 }
 	},
 	async mounted() {
-		return this.initTestCase()
+		return this.initTestCase();
 ;	},
 	methods: {
 		async initTestCase() {
 			if (!this.testCaseLocal) {
 				return;
 			}
+
+			const defaultRender = md.renderer.rules.image;
+			const testCaseBasePath = this.testCaseLocal.basePath;
+			const relativeTestFile = this.testCaseLocal.testFilePath;
+			md.renderer.rules.image = function (tokens, idx, options, env, self) {
+				const token = tokens[idx];
+				const src = token.attrs[token.attrIndex('src')][1];
+				const resourceUrl = url.parse(src);
+
+				if (!resourceUrl.protocol && !resourceUrl.host) {
+					const currentUrl = window.location;
+					token.attrs[token.attrIndex('src')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${src}`;
+				}
+
+				// pass token to default renderer.
+				return defaultRender(tokens, idx, options, env, self);
+			};
+
+
 			let testCase;
 
 			try {

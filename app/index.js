@@ -69,6 +69,13 @@ const startApp = async () => {
 		console.error(e);
 	}
 
+	app.use('/api/config', async function (req, res) {
+		res.send(config);
+	});
+
+	const cloneDir = config.workspace.repositoriesDir;
+	app.use('/repositoriesStatics/', express.static(cloneDir));
+
 	console.log(`Start server on port ${port}`);
 	return new Promise(res => {
 		app.listen(port, () => {

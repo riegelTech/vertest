@@ -74,6 +74,7 @@ export default {
 				show: false
 			},
 			currentUser: defaultCurrentUser,
+			appConfig: null,
 			diffPopin: {
 				show : false,
 				testSuiteId: null,

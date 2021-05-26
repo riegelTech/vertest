@@ -61,3 +61,4 @@
         position: relative;
     }
 </style>
+<style lang="scss" src="./custom.scss"></style>
