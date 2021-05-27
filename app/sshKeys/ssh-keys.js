@@ -3,6 +3,7 @@
 const EventEmitter = require('events');
 const Path = require('path');
 
+const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
 const ssh2Utils = require('ssh2').utils;
 
 const appConfig = require('../appConfig/config');
@@ -102,10 +103,13 @@ async function initSshKeys() {
 			sshKeys.clear();
 			throw err;
 		}
-
-		await sshKey.testFilesAccess();
-		sshKeys.set(sshKey.name, sshKey);
-		await setPrivKeyPass(sshKey.name,''); // automatically decrypt those that have no passphrase
+		try {
+			await sshKey.testFilesAccess();
+			sshKeys.set(sshKey.name, sshKey);
+			await setPrivKeyPass(sshKey.name,''); // automatically decrypt those that have no passphrase
+		} catch (e) {
+			logs.error({message: e.message});
+		}
 	});
 }
 

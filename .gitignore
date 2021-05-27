@@ -3,6 +3,8 @@ node_modules/
 testFilesRepo/
 mongoData/*
 !mongoData/.gitkeep
+logs/*
+!logs/.gitkeep
 cloneDir/*
 !cloneDir/.gitkeep
 tempDir/*

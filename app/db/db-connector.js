@@ -14,10 +14,7 @@ const DB_TABLES = {
 };
 
 const client = new MongoClient(mongoUrl, {
-	autoReconnect: true,
-	reconnectTries: 5,
-	reconnectInterval: 2000,
-	useNewUrlParser: true
+	useUnifiedTopology: true
 });
 
 async function connect() {

@@ -231,6 +231,17 @@ function deauthenticate(sessId) {
 	return true;
 }
 
+function getUserBySessId(sessId) {
+	const sessionCls = getNamespace('sessions');
+	if (sessId && sessions.has(sessId)) {
+		const session = sessions.get(sessId);
+		if (session.isValid) {
+			return session.user;
+		}
+	}
+	return null;
+}
+
 function getCurrentUser () {
 	const sessionCls = getNamespace('sessions');
 	return sessionCls.get('user');
@@ -242,6 +253,7 @@ module.exports = {
 	deauthenticate,
 	getUsers,
 	getUser,
+	getUserBySessId,
 	getSuperAdmin,
 	addUser,
 	updateUser,

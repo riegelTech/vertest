@@ -37,6 +37,7 @@
     "path-browserify": "1.0.1",
     "url": "0.11.0",
     "uuidv4": "6.2.8 ",
+    "winston": "3.3.3",
     "yaml": "1.10.2"
   },
   "devDependencies": {

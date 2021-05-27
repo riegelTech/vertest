@@ -5,6 +5,7 @@ const router = express.Router();
 
 const repositoriesModule = require('../repositories/repositories');
 const sshKeyModule = require('../sshKeys/ssh-keys');
+const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
 
 const utils = require('../utils');
 
@@ -13,7 +14,9 @@ async function createTemporaryRepository(req, res) {
     if (sshKey instanceof sshKeyModule.SshKey && req.body.repositorySshKeyPass) {
         const success = await sshKey.setPrivKeyPass(req.body.repositorySshKeyPass);
         if (!success) {
-            return res.status(utils.RESPONSE_HTTP_CODES.REFUSED).send(`Fail to decrypt SSH private key ${req.body.repositorySshKey}`);
+            const errorMsg = `Repository creation failed: fail to decrypt SSH private key ${req.body.repositorySshKey}`;
+            logs.error({message: errorMsg});
+            return res.status(utils.RESPONSE_HTTP_CODES.REFUSED).send(errorMsg);
         }
     }
 
@@ -27,9 +30,11 @@ async function createTemporaryRepository(req, res) {
             pass: req.body.repositoryPass
         });
     } catch (e) {
-        return res.status(utils.getHttpCode(e.code)).send('Repository creation failed');
+        const errorMsg = `Repository creation failed: ${e.message}`;
+        logs.error({message: errorMsg});
+        return res.status(utils.getHttpCode(e.code)).send(errorMsg);
     }
-
+    logs.info({message: `Repository successfully created at ${temporaryRepository.repoPath}, clone of ${temporaryRepository.address}`});
     await temporaryRepository.fetchRepository();
     await temporaryRepository.refreshAvailableGitBranches();
 

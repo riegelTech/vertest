@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 
 const appConfigModule = require('../appConfig/config');
+const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
 const repoModule = require('../repositories/repositories');
 const testSuiteModule = require('./testSuite');
 const TestCase = testSuiteModule.TestCase;
@@ -22,6 +23,7 @@ async function getTestSuites(req, res) {
 
 		res.send(testSuites);
 	} catch(e) {
+		logs.error({message: e.message});
 		res.send({
 			success: false,
 			msg: e.message
@@ -34,6 +36,7 @@ async function getTestSuite(req, res) {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		res.send(testSuite);
 	} catch(e) {
+		logs.error({message: e.message});
 		res.send({
 			success: false,
 			msg: e.message
@@ -49,6 +52,7 @@ async function getTestSuiteDiff(req, res) {
 		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
 		res.send(repositoryDiff);
 	} catch(e) {
+		logs.error({message: e.message});
 		res.send({
 			success: false,
 			msg: e.message
@@ -71,6 +75,9 @@ async function solveTestSuiteDiff(req, res) {
 
 		modifiedPatches.forEach(patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
+			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
+				logs.info({message: `Test status changed from ${test.status} to ${newStatuses[test.testFilePath]}`, id: testSuite._id, testCaseFile: test.testFilePath});
+			}
 			const newStatus = newStatuses[test.testFilePath] || test.status;
 			if (newStatus === null) {
 				return;
@@ -80,22 +87,28 @@ async function solveTestSuiteDiff(req, res) {
 
 		addedPatches.forEach(patch => {
 			testSuite.addTestCase(repository._repoDir, patch.file);
+			logs.info({message: `Add test case to ${testSuite.name} due to git update`, id: testSuite._id, testCaseFile: patch.file});
 		});
 
 		deletedPatches.forEach(patch => {
 			testSuite.removeTestCase(patch.file);
+			logs.info({message: `Remove test case from ${testSuite.name} due to git update`, id: testSuite._id, testCaseFile: patch.file});
 		});
 
 		renamedPatches.forEach(patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			test.testFilePath = patch.newFile;
+			logs.info({message: `Rename test case into ${testSuite.name} due to git update, from ${patch.file} to ${patch.newFile}`, id: testSuite._id, testCaseFile: patch.file});
 		});
 
 		if (targetBranch) {
 			await repository.checkoutBranch(targetBranch, targetCommit);
+			const oldBranch = testSuite.gitBranch;
 			testSuite.gitBranch = targetBranch;
+			logs.info({message: `Change branch for ${testSuite.name}, from ${oldBranch} to ${targetBranch}`, id: testSuite._id});
 		}
 		await repository.checkoutCommit(targetCommit);
+		logs.info({message: `Change HEAD commit for ${testSuite.name}, to ${targetCommit}`, id: testSuite._id});
 
 		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
 		testSuite.gitCommitSha = targetCommit;
@@ -105,6 +118,7 @@ async function solveTestSuiteDiff(req, res) {
 
  		res.send(testSuite);
 	} catch(e) {
+		logs.error({message: e.message});
 		res.send({
 			success: false,
 			msg: e.message
@@ -125,6 +139,7 @@ async function createTestSuite(req, res) {
 			data: testSuite
 		});
 	} catch(e) {
+		logs.error({message: e.message});
 		res.send({
 			success: false,
 			msg: e.message
@@ -143,6 +158,7 @@ async function deleteTestSuite(req, res) {
 			data: testSuiteToDelete
 		});
 	} catch (e) {
+		logs.error({message: e.message});
 		res.send({
 			success: false,
 			msg: e.message
@@ -218,6 +234,7 @@ async function affectUser(req, res) {
 	try {
 		await testSuiteModule.updateTestSuite(testSuite);
 	} catch (e) {
+		logs.error({message: e.message});
 		res.status(utils.RESPONSE_HTTP_CODES.DEFAULT);
 	}
 
@@ -279,6 +296,7 @@ async function updateTestStatus(req, res) {
 		await testSuiteModule.updateTestSuite(testSuite);
 		return res.status(200).send('ok');
 	} catch(e) {
+		logs.error({message: e.message});
 		res.status(utils.getHttpCode(e.code));
 		res.send({
 			success: false,

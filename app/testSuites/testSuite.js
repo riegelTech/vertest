@@ -12,6 +12,7 @@ const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
 const utils = require('../utils');
+const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
@@ -197,6 +198,7 @@ async function updateTestSuite(testSuite) {
 	}
 	await coll.updateOne(filter, {$set: testSuite});
 	testSuites.set(testSuite._id, testSuite);
+	logs.info({message: `Test suite ${testSuite.name} updated`, id: testSuite._id});
 }
 
 async function addTestSuite(testSuite){
@@ -204,6 +206,7 @@ async function addTestSuite(testSuite){
 
 	await coll.insertOne(testSuite);
 	testSuites.set(testSuite._id, testSuite);
+	logs.info({message: `Test suite ${testSuite.name} added`, id: testSuite._id});
 }
 
 async function removeTestSuite(testSuite) {
@@ -217,6 +220,7 @@ async function removeTestSuite(testSuite) {
 	await coll.deleteOne(filter);
 	await testSuite.repository.remove();
 	testSuites.delete(testSuite._id);
+	logs.info({message: `Test suite ${testSuite.name} deleted`, id: testSuite._id});
 }
 
 function setDecryptedKeyToRepository(sshKey) {
@@ -241,7 +245,7 @@ async function watchTestSuitesChanges() {
 					dirPath
 				};
 			})))
-			.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
+				.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
 
 		await Promise.all(unusedDirs.map(unusedDir => {
 			return fsExtra.remove(unusedDir.dirPath);
@@ -258,17 +262,19 @@ async function watchTestSuitesChanges() {
 				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testSuite.testDirs)
 					|| await testSuite.repository.lookupForChanges(testSuite.testDirs, true);
 				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
+					logs.info({message: `Repository change detected for test suite ${testSuite.name}`, id: testSuite._id});
 					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
 					await updateTestSuite(testSuite);
 				}
 			} catch (e) {
-				console.error(e)
 				if (e.code === 'EDELETEDBRANCH') {
+					logs.info({message: `Git branch deleted, please change destination branch for test suite ${testSuite.name}`, id: testSuite._id});
 					testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
 					await updateTestSuite(testSuite);
 					await testSuite.repository.refreshAvailableGitBranches();
 					return;
 				}
+				logs.error({message: e.message});
 			}
 		}));
 	}, 5000);
