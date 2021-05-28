@@ -5,7 +5,8 @@ const express = require('express');
 const router = express.Router();
 
 const appConfigModule = require('../appConfig/config');
-const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
+const logsModule = require('../logsModule/logsModule');
+const logs = logsModule.getDefaultLoggerSync();
 const repoModule = require('../repositories/repositories');
 const testSuiteModule = require('./testSuite');
 const TestCase = testSuiteModule.TestCase;
@@ -73,10 +74,11 @@ async function solveTestSuiteDiff(req, res) {
 
 		const {addedPatches, deletedPatches, modifiedPatches, renamedPatches} = await repository.getRepositoryDiff(testSuite, targetCommit);
 
+		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 		modifiedPatches.forEach(patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
-				logs.info({message: `Test status changed from ${test.status} to ${newStatuses[test.testFilePath]}`, id: testSuite._id, testCaseFile: test.testFilePath});
+				testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test file ${test.testFilePath} status changed from ${test.status} to ${newStatuses[test.testFilePath]}`);
 			}
 			const newStatus = newStatuses[test.testFilePath] || test.status;
 			if (newStatus === null) {
@@ -87,34 +89,35 @@ async function solveTestSuiteDiff(req, res) {
 
 		addedPatches.forEach(patch => {
 			testSuite.addTestCase(repository._repoDir, patch.file);
-			logs.info({message: `Add test case to ${testSuite.name} due to git update`, id: testSuite._id, testCaseFile: patch.file});
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Add test case file ${patch.file} to ${testSuite.name} due to git update`);
 		});
 
 		deletedPatches.forEach(patch => {
 			testSuite.removeTestCase(patch.file);
-			logs.info({message: `Remove test case from ${testSuite.name} due to git update`, id: testSuite._id, testCaseFile: patch.file});
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Remove test case ${patch.file} from ${testSuite.name} due to git update`);
 		});
 
 		renamedPatches.forEach(patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			test.testFilePath = patch.newFile;
-			logs.info({message: `Rename test case into ${testSuite.name} due to git update, from ${patch.file} to ${patch.newFile}`, id: testSuite._id, testCaseFile: patch.file});
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Rename test case into ${testSuite.name} due to git update, from ${patch.file} to ${patch.newFile}`);
 		});
 
 		if (targetBranch) {
 			await repository.checkoutBranch(targetBranch, targetCommit);
 			const oldBranch = testSuite.gitBranch;
 			testSuite.gitBranch = targetBranch;
-			logs.info({message: `Change branch for ${testSuite.name}, from ${oldBranch} to ${targetBranch}`, id: testSuite._id});
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Change branch for ${testSuite.name}, from ${oldBranch} to ${targetBranch}`);
 		}
 		await repository.checkoutCommit(targetCommit);
-		logs.info({message: `Change HEAD commit for ${testSuite.name}, to ${targetCommit}`, id: testSuite._id});
+		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Change HEAD commit for ${testSuite.name}, to ${targetCommit}`);
 
 		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
 		testSuite.gitCommitSha = targetCommit;
 		await Promise.all(testSuite.tests.map(test => test.fetchTestContent()));
 
 		await testSuiteModule.updateTestSuite(testSuite);
+		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test suite ${testSuite.name} updated`);
 
  		res.send(testSuite);
 	} catch(e) {
@@ -134,6 +137,8 @@ async function createTestSuite(req, res) {
 		const testSuite = new TestSuite({name: req.body.testSuiteName, testDirs: req.body.filePatterns, repository});
 		await testSuite.init();
 		await testSuiteModule.addTestSuite(testSuite);
+		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
+		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test suite ${testSuite.name} ${testSuite._id} successfully created`);
 		res.send({
 			success: true,
 			data: testSuite
@@ -152,7 +157,8 @@ async function deleteTestSuite(req, res) {
 	try {
 		const testSuiteToDelete = testSuiteModule.getTestSuiteByUuid(testUuid);
 		await testSuiteModule.removeTestSuite(testSuiteToDelete);
-
+		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuiteToDelete._id);
+		testSuiteLogger.log(`test-suite-${testSuiteToDelete._id}`, `Test suite ${testSuiteToDelete.name} ${testSuiteToDelete._id} successfully deleted`);
 		res.send({
 			success: true,
 			data: testSuiteToDelete

@@ -10,6 +10,12 @@ const config = require('../appConfig/config');
 
 
 let defaultLogger = null;
+let loggers = new Map();
+
+const defaultFormat = winston.format.combine(
+	winston.format.timestamp(),
+	winston.format.json()
+);
 
 async function getDefaultLogger() {
 	if (defaultLogger) {
@@ -21,10 +27,7 @@ async function getDefaultLogger() {
 	try {
 		await fsp.access(appConfig.workspace.logsDir, fs.constants.W_OK);
 		defaultLogger = winston.createLogger({
-			format: winston.format.combine(
-				winston.format.timestamp(),
-				winston.format.json()
-			),
+			format: defaultFormat,
 			transports: [
 				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, 'info.log'), level: 'info' }),
 				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, 'error.log'), level: 'error' }),
@@ -48,7 +51,44 @@ function getDefaultLoggerSync() {
 	return defaultLogger;
 }
 
+async function getTestSuiteLogger (id) {
+	if (loggers.has(id)) {
+		return loggers.get(id);
+	}
+
+	const appConfig = await config.getAppConfig();
+
+	let idLogger;
+	try {
+		await fsp.access(appConfig.workspace.logsDir, fs.constants.W_OK);
+		idLogger = winston.createLogger({
+			levels: {
+				[`test-suite-${id}`]: 2,
+				info: 2
+			},
+			format: defaultFormat,
+			transports: [
+				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, `${id}.log`), level: `test-suite-${id}`}),
+				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, 'info.log'), level: 'info' })
+			]
+		});
+	} catch (e) {
+		idLogger = winston.createLogger({
+			format: winston.format.simple(),
+			transports: [
+				new winston.transports.Console({level: 'info'}),
+				new winston.transports.Console({level: 'error'})
+			]
+		});
+	}
+
+	loggers.set(id, idLogger);
+
+	return idLogger;
+}
+
 module.exports = {
 	getDefaultLogger,
-	getDefaultLoggerSync
+	getDefaultLoggerSync,
+	getTestSuiteLogger
 };
