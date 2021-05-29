@@ -24,7 +24,7 @@ async function getTestSuites(req, res) {
 
 		res.send(testSuites);
 	} catch(e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.send({
 			success: false,
 			msg: e.message
@@ -37,7 +37,7 @@ async function getTestSuite(req, res) {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		res.send(testSuite);
 	} catch(e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.send({
 			success: false,
 			msg: e.message
@@ -53,7 +53,7 @@ async function getTestSuiteDiff(req, res) {
 		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
 		res.send(repositoryDiff);
 	} catch(e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.send({
 			success: false,
 			msg: e.message
@@ -121,7 +121,7 @@ async function solveTestSuiteDiff(req, res) {
 
  		res.send(testSuite);
 	} catch(e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.send({
 			success: false,
 			msg: e.message
@@ -144,7 +144,7 @@ async function createTestSuite(req, res) {
 			data: testSuite
 		});
 	} catch(e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.send({
 			success: false,
 			msg: e.message
@@ -164,7 +164,7 @@ async function deleteTestSuite(req, res) {
 			data: testSuiteToDelete
 		});
 	} catch (e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.send({
 			success: false,
 			msg: e.message
@@ -198,7 +198,7 @@ function getTestCase(req, res) {
 function assertUserIsNotReadOnly() {
 	const curUser = usersModule.getCurrentUser();
 	if (curUser.readOnly) {
-		const err =  new Error(`User ${curUser._id} is readonly`);
+		const err =  new Error(`User "${curUser.login}" (${curUser._id}) is readonly`);
 		err.code =  RESPONSE_HTTP_CODES.LOCKED;
 		throw err;
 	}
@@ -209,6 +209,7 @@ async function affectUser(req, res) {
 	try {
 		assertUserIsNotReadOnly();
 	} catch (e) {
+		logs.error(e.message);
 		res.status(utils.getHttpCode(e.code));
 		return res.send({
 			success: false,
@@ -225,8 +226,11 @@ async function affectUser(req, res) {
 		testSuite = entities.testSuite;
 		testCase = entities.testCase;
 	} catch (e) {
+		logs.error(e.message);
 		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
+
+	const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 
 	if (req.body.userId !== null) {
 		const user = await usersModule.getUser(userId);
@@ -235,12 +239,20 @@ async function affectUser(req, res) {
 	} else {
 		testCase.user = null;
 		testCase.setStatus(TestCase.STATUSES.TODO);
+
 	}
 
 	try {
 		await testSuiteModule.updateTestSuite(testSuite);
+		if (testCase.user) {
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" successfully affected to user "${testCase.user.login}" (${userId})`);
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case status automatically switched to "IN_PROGRESS"`);
+		} else {
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" successfully unaffected`);
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case status automatically switched to "TODO"`);
+		}
 	} catch (e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.status(utils.RESPONSE_HTTP_CODES.DEFAULT);
 	}
 
@@ -253,6 +265,7 @@ async function updateTestStatus(req, res) {
 	try {
 		assertUserIsNotReadOnly();
 	} catch (e) {
+		logs.error(e.message);
 		res.status(utils.getHttpCode(e.code));
 		return res.send({
 			success: false,
@@ -261,22 +274,22 @@ async function updateTestStatus(req, res) {
 	}
 
 	const curUser = usersModule.getCurrentUser();
-	let testStatus;
+	let newTestStatus;
 	switch (req.body.newStatus) {
 		case TestCase.STATUSES.SUCCESS:
-			testStatus = TestCase.STATUSES.SUCCESS;
+			newTestStatus = TestCase.STATUSES.SUCCESS;
 			break;
 		case TestCase.STATUSES.FAILED:
-			testStatus = TestCase.STATUSES.FAILED;
+			newTestStatus = TestCase.STATUSES.FAILED;
 			break;
 		case TestCase.STATUSES.BLOCKED:
-			testStatus = TestCase.STATUSES.BLOCKED;
+			newTestStatus = TestCase.STATUSES.BLOCKED;
 			break;
 		case TestCase.STATUSES.TODO:
-			testStatus = TestCase.STATUSES.TODO;
+			newTestStatus = TestCase.STATUSES.TODO;
 			break;
 		default:
-			testStatus = TestCase.STATUSES.IN_PROGRESS;
+			newTestStatus = TestCase.STATUSES.IN_PROGRESS;
 	}
 
 	let testSuite;
@@ -286,23 +299,34 @@ async function updateTestStatus(req, res) {
 		testSuite = entities.testSuite;
 		testCase = entities.testCase;
 	} catch (e) {
+		logs.error(e.message);
 		return res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
 
+	const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
+
 	if (testCase.user._id !== curUser._id) {
+		const errMessage = `User "${curUser.firstName} ${curUser.lastName}" is not allowed to change ${testCase.testFilePath} status`;
+		logs.error(errMessage);
 		return res.status(utils.RESPONSE_HTTP_CODES.LOCKED)
-			.send(`User "${curUser.firstName} ${curUser.lastName}" is not allowed to change ${testCase.testFilePath} status`);
+			.send(errMessage);
 	}
+	const oldStatus = TestCase.STATUSE_HR(testCase.status);
+	const newStatus = TestCase.STATUSE_HR(newTestStatus);
 	try {
-		testCase.setStatus(testStatus);
+		testCase.setStatus(newTestStatus);
 		if (testCase.status === TestCase.STATUSES.TODO) {
 			testCase.user = null;
 		}
 
 		await testSuiteModule.updateTestSuite(testSuite);
+		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatus}" to "${newStatus}"`);
+		if (testCase.user === null) {
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" successfully unaffected`);
+		}
 		return res.status(200).send('ok');
 	} catch(e) {
-		logs.error({message: e.message});
+		logs.error(e.message);
 		res.status(utils.getHttpCode(e.code));
 		res.send({
 			success: false,

@@ -3,6 +3,7 @@
 const EventEmitter = require('events');
 const Path = require('path');
 
+const _ = require('lodash');
 const fsExtra = require('fs-extra');
 const {lowestCommonAncestor} = require('lowest-common-ancestor');
 const uuid = require('uuidv4');
@@ -35,6 +36,10 @@ class TestCase extends EventEmitter {
 			SUCCESS: 4,
 			FAILED: 5
 		}
+	}
+
+	static STATUSE_HR(statusNum) {
+		return _.invert(TestCase.STATUSES)[statusNum];
 	}
 
 	async fetchTestContent() {
