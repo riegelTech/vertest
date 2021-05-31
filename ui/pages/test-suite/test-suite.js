@@ -3,6 +3,7 @@
 import MainLayout from '../../layouts/main.vue';
 import TestCase from '../../components/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
+import TestSuiteHistory from '../../components/testSuiteHistory.vue';
 import {fileTreeUtils} from '../../components/fileTree.js';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
@@ -11,7 +12,8 @@ export default {
 	components: {
 		TestCase,
 		MainLayout,
-		FileTree
+		FileTree,
+		TestSuiteHistory
 	},
 	data() {
 		return {

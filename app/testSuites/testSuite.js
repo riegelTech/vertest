@@ -38,7 +38,7 @@ class TestCase extends EventEmitter {
 		}
 	}
 
-	static STATUSE_HR(statusNum) {
+	static STATUS_HR(statusNum) {
 		return _.invert(TestCase.STATUSES)[statusNum];
 	}
 
@@ -68,6 +68,8 @@ class TestSuite {
 		this.status = status;
 		this.tests = tests.map(rawTestCase => new TestCase(rawTestCase));
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
+
+		this.history = [];
 
 		this.updateProgress();
 

@@ -87,8 +87,31 @@ async function getTestSuiteLogger (id) {
 	return idLogger;
 }
 
+async function readTestSuiteLogs(testSuiteId, start = 0, limit = 10) {
+	if (!loggers.has(testSuiteId)) {
+		throw new Error(`No logger exists for test suite "${testSuiteId}"`);
+	}
+	const testSuiteLogger = loggers.get(testSuiteId);
+	const options = {
+		from: new Date(0),
+		level: `test-suite-${testSuiteId}`,
+		start,
+		limit,
+		order: 'desc'
+	}
+	return new Promise((res, rej) => {
+		testSuiteLogger.query(options, (err, result) => {
+			if (err) {
+				return rej(err);
+			}
+			return res(result.file);
+		});
+	});
+}
+
 module.exports = {
 	getDefaultLogger,
 	getDefaultLoggerSync,
-	getTestSuiteLogger
+	getTestSuiteLogger,
+	readTestSuiteLogs
 };

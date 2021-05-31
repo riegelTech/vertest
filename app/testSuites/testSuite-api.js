@@ -35,6 +35,8 @@ async function getTestSuites(req, res) {
 async function getTestSuite(req, res) {
 	try {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
+		const lastTenLogs = await logsModule.readTestSuiteLogs(req.params.uuid);
+		testSuite.history = lastTenLogs;
 		res.send(testSuite);
 	} catch(e) {
 		logs.error(e.message);
@@ -311,8 +313,8 @@ async function updateTestStatus(req, res) {
 		return res.status(utils.RESPONSE_HTTP_CODES.LOCKED)
 			.send(errMessage);
 	}
-	const oldStatus = TestCase.STATUSE_HR(testCase.status);
-	const newStatus = TestCase.STATUSE_HR(newTestStatus);
+	const oldStatus = TestCase.STATUS_HR(testCase.status);
+	const newStatus = TestCase.STATUS_HR(newTestStatus);
 	try {
 		testCase.setStatus(newTestStatus);
 		if (testCase.status === TestCase.STATUSES.TODO) {
@@ -320,9 +322,9 @@ async function updateTestStatus(req, res) {
 		}
 
 		await testSuiteModule.updateTestSuite(testSuite);
-		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatus}" to "${newStatus}"`);
+		testSuiteLogger.log(`test-suite-${testSuite._id}`, {message: `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatus}" to "${newStatus}"`, userId: curUser._id});
 		if (testCase.user === null) {
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" successfully unaffected`);
+			testSuiteLogger.log(`test-suite-${testSuite._id}`, {message: `Test case "${testCase.testFilePath}" successfully unaffected`, userId: curUser._id});
 		}
 		return res.status(200).send('ok');
 	} catch(e) {

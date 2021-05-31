@@ -23,4 +23,5 @@
             <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" @updateTestCase="updateTestCase"></test-case>
         </div>
     </div>
+    <test-suite-history :testSuiteHistoryBase="testSuite.history" :testSuiteId="testSuite._id"></test-suite-history>
 </main-layout>

@@ -1,0 +1,5 @@
+<ul>
+    <li v-for="(testSuiteHistoryEntry) in testSuiteHistory" :value="testSuiteHistoryEntry">
+        <span class="date">{{ testSuiteHistoryEntry.date }}</span><span class="message">{{ testSuiteHistoryEntry.message }}</span><span>{{ testSuiteHistoryEntry.userId }}</span>
+    </li>
+</ul>
