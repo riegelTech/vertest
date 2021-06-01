@@ -1,5 +1,8 @@
-<ul>
-    <li v-for="(testSuiteHistoryEntry) in testSuiteHistory" :value="testSuiteHistoryEntry">
-        <span class="date">{{ testSuiteHistoryEntry.date }}</span><span class="message">{{ testSuiteHistoryEntry.message }}</span><span>{{ testSuiteHistoryEntry.userId }}</span>
-    </li>
-</ul>
+<md-table v-model="testSuiteHistory" md-sort="timestamp" md-sort-order="asc" md-card>
+    <md-table-row slot="md-table-row" slot-scope="{ item }">
+        <md-table-cell md-label="Date" md-sort-by="timestamp"><strong>{{ new Date(item.timestamp) | moment("DD-MM-YYYY HH:mm:ss") }}</strong></md-table-cell>
+        <md-table-cell md-label="Test Case" md-sort-by="testFilePath">{{ item.testFilePath }}</md-table-cell>
+        <md-table-cell md-label="Message">{{ item.message }}</md-table-cell>
+        <md-table-cell md-label="User" md-sort-by="userFirstName">{{ item.userFirstName }} {{ item.userLastName }}</md-table-cell>
+    </md-table-row>
+</md-table>

@@ -68,6 +68,7 @@ async function solveTestSuiteDiff(req, res) {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		const repository = testSuite.repository;
 		const {currentCommit, targetCommit, targetBranch, newStatuses} = req.body;
+		const curUser = usersModule.getCurrentUser();
 
 		const effectiveCurrentCommit = await repository.getCurrentCommit(testSuite.gitBranch);
 		if (effectiveCurrentCommit.sha() !== currentCommit) {
@@ -76,11 +77,13 @@ async function solveTestSuiteDiff(req, res) {
 
 		const {addedPatches, deletedPatches, modifiedPatches, renamedPatches} = await repository.getRepositoryDiff(testSuite, targetCommit);
 
-		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
-		modifiedPatches.forEach(patch => {
+		const modificationsToLog = [];
+		modifiedPatches.forEach(async patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
-				testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test file ${test.testFilePath} status changed from ${test.status} to ${newStatuses[test.testFilePath]}`);
+				modificationsToLog.push({
+					message: `Test file "${test.testFilePath}" status changed from "${test.status}" to "${newStatuses[test.testFilePath]}"`
+				});
 			}
 			const newStatus = newStatuses[test.testFilePath] || test.status;
 			if (newStatus === null) {
@@ -91,35 +94,55 @@ async function solveTestSuiteDiff(req, res) {
 
 		addedPatches.forEach(patch => {
 			testSuite.addTestCase(repository._repoDir, patch.file);
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Add test case file ${patch.file} to ${testSuite.name} due to git update`);
+			modificationsToLog.push({
+				message: `Add test case file "${patch.file}" to "${testSuite.name}" due to git update`,
+				testFilePath: patch.file
+			});
 		});
 
 		deletedPatches.forEach(patch => {
 			testSuite.removeTestCase(patch.file);
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Remove test case ${patch.file} from ${testSuite.name} due to git update`);
+			modificationsToLog.push({
+				message: `Remove test case "${patch.file}" from "${testSuite.name}" due to git update`,
+				testFilePath: patch.file
+			});
 		});
 
 		renamedPatches.forEach(patch => {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			test.testFilePath = patch.newFile;
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Rename test case into ${testSuite.name} due to git update, from ${patch.file} to ${patch.newFile}`);
+			modificationsToLog.push({
+				message: `Rename test case into "${testSuite.name}" due to git update, from "${patch.file}" to "${patch.newFile}"`,
+				testFilePath: patch.file
+			});
+			modificationsToLog.push({
+				message: `Rename test case into "${testSuite.name}" due to git update, from "${patch.file}" to "${patch.newFile}"`,
+				testFilePath: patch.newFile // add another log line to retrieve the renaming action with both file names
+			});
 		});
 
 		if (targetBranch) {
 			await repository.checkoutBranch(targetBranch, targetCommit);
 			const oldBranch = testSuite.gitBranch;
 			testSuite.gitBranch = targetBranch;
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Change branch for ${testSuite.name}, from ${oldBranch} to ${targetBranch}`);
+			modificationsToLog.push({
+				message: `Change branch for ${testSuite.name}, from ${oldBranch} to ${targetBranch}`
+			});
 		}
 		await repository.checkoutCommit(targetCommit);
-		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Change HEAD commit for ${testSuite.name}, to ${targetCommit}`);
+		modificationsToLog.push({
+			message: `Change HEAD commit for ${testSuite.name}, to ${targetCommit}`
+		});
 
 		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
 		testSuite.gitCommitSha = targetCommit;
 		await Promise.all(testSuite.tests.map(test => test.fetchTestContent()));
 
 		await testSuiteModule.updateTestSuite(testSuite);
-		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test suite ${testSuite.name} updated`);
+
+		for (let auditLog in modificationsToLog) {
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, auditLog.message, auditLog.testFilePath);
+		}
 
  		res.send(testSuite);
 	} catch(e) {
@@ -134,13 +157,13 @@ async function solveTestSuiteDiff(req, res) {
 async function createTestSuite(req, res) {
 	const appConfig = await appConfigModule.getAppConfig();
 	try {
+		const curUser = usersModule.getCurrentUser();
 		const repository = repoModule.getTempRepository(req.body.repositoryUuid);
 		await repository.moveRepository(appConfig.workspace.repositoriesDir);
 		const testSuite = new TestSuite({name: req.body.testSuiteName, testDirs: req.body.filePatterns, repository});
 		await testSuite.init();
 		await testSuiteModule.addTestSuite(testSuite);
-		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
-		testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test suite ${testSuite.name} ${testSuite._id} successfully created`);
+		await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test suite ${testSuite.name} ${testSuite._id} successfully created`);
 		res.send({
 			success: true,
 			data: testSuite
@@ -157,10 +180,10 @@ async function createTestSuite(req, res) {
 async function deleteTestSuite(req, res) {
 	const testUuid = req.params.uuid;
 	try {
+		const curUser = usersModule.getCurrentUser();
 		const testSuiteToDelete = testSuiteModule.getTestSuiteByUuid(testUuid);
 		await testSuiteModule.removeTestSuite(testSuiteToDelete);
-		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuiteToDelete._id);
-		testSuiteLogger.log(`test-suite-${testSuiteToDelete._id}`, `Test suite ${testSuiteToDelete.name} ${testSuiteToDelete._id} successfully deleted`);
+		await logsModule.auditLogForTestSuite(testUuid, curUser, `Test suite ${testSuiteToDelete.name} ${testSuiteToDelete._id} successfully deleted`);
 		res.send({
 			success: true,
 			data: testSuiteToDelete
@@ -204,7 +227,6 @@ function assertUserIsNotReadOnly() {
 		err.code =  RESPONSE_HTTP_CODES.LOCKED;
 		throw err;
 	}
-	return;
 }
 
 async function affectUser(req, res) {
@@ -218,7 +240,7 @@ async function affectUser(req, res) {
 			msg: e.message
 		});
 	}
-
+	const curUser = usersModule.getCurrentUser();
 	const userId = req.body.userId;
 
 	let testSuite;
@@ -231,8 +253,6 @@ async function affectUser(req, res) {
 		logs.error(e.message);
 		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
-
-	const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 
 	if (req.body.userId !== null) {
 		const user = await usersModule.getUser(userId);
@@ -247,11 +267,11 @@ async function affectUser(req, res) {
 	try {
 		await testSuiteModule.updateTestSuite(testSuite);
 		if (testCase.user) {
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" successfully affected to user "${testCase.user.login}" (${userId})`);
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case status automatically switched to "IN_PROGRESS"`);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully affected to user "${testCase.user.login}" (${userId})`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "IN_PROGRESS"`, testCase.testFilePath);
 		} else {
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case "${testCase.testFilePath}" successfully unaffected`);
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, `Test case status automatically switched to "TODO"`);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully unaffected`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "TODO"`, testCase.testFilePath);
 		}
 	} catch (e) {
 		logs.error(e.message);
@@ -305,8 +325,6 @@ async function updateTestStatus(req, res) {
 		return res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
 
-	const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
-
 	if (testCase.user._id !== curUser._id) {
 		const errMessage = `User "${curUser.firstName} ${curUser.lastName}" is not allowed to change ${testCase.testFilePath} status`;
 		logs.error(errMessage);
@@ -322,9 +340,9 @@ async function updateTestStatus(req, res) {
 		}
 
 		await testSuiteModule.updateTestSuite(testSuite);
-		testSuiteLogger.log(`test-suite-${testSuite._id}`, {message: `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatus}" to "${newStatus}"`, userId: curUser._id});
+		await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatus}" to "${newStatus}"`, testCase.testFilePath);
 		if (testCase.user === null) {
-			testSuiteLogger.log(`test-suite-${testSuite._id}`, {message: `Test case "${testCase.testFilePath}" successfully unaffected`, userId: curUser._id});
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully unaffected`, testCase.testFilePath);
 		}
 		return res.status(200).send('ok');
 	} catch(e) {

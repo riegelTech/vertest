@@ -1,5 +1,8 @@
 'use strict';
 
+import Vue from 'vue';
+Vue.use(require('vue-moment'));
+
 export default {
     name: 'test-suite-history',
     props: {
@@ -12,8 +15,7 @@ export default {
         }
     },
     async mounted() {
-        console.log(this.testSuiteHistory);
-        return ;
+        return;
     },
     methods: {
 

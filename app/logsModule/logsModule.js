@@ -51,9 +51,9 @@ function getDefaultLoggerSync() {
 	return defaultLogger;
 }
 
-async function getTestSuiteLogger (id) {
-	if (loggers.has(id)) {
-		return loggers.get(id);
+async function getTestSuiteLogger (testSuiteId) {
+	if (loggers.has(testSuiteId)) {
+		return loggers.get(testSuiteId);
 	}
 
 	const appConfig = await config.getAppConfig();
@@ -63,12 +63,12 @@ async function getTestSuiteLogger (id) {
 		await fsp.access(appConfig.workspace.logsDir, fs.constants.W_OK);
 		idLogger = winston.createLogger({
 			levels: {
-				[`test-suite-${id}`]: 2,
+				[`test-suite-${testSuiteId}`]: 2,
 				info: 2
 			},
 			format: defaultFormat,
 			transports: [
-				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, `${id}.log`), level: `test-suite-${id}`}),
+				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, `${testSuiteId}.log`), level: `test-suite-${testSuiteId}`}),
 				new winston.transports.File({ filename: path.join(appConfig.workspace.logsDir, 'info.log'), level: 'info' })
 			]
 		});
@@ -82,9 +82,25 @@ async function getTestSuiteLogger (id) {
 		});
 	}
 
-	loggers.set(id, idLogger);
+	loggers.set(testSuiteId, idLogger);
 
 	return idLogger;
+}
+
+async function auditLogForTestSuite(testSuiteId, user, message, testFilePath) {
+	const logger = await getTestSuiteLogger(testSuiteId);
+
+	const logObject = {
+		message,
+		userId: user._id,
+		userLogin: user.login,
+		userFirstName: user.firstName,
+		userLastName: user.lastName
+	};
+	if (testFilePath) {
+		logObject.testFilePath = testFilePath;
+	}
+	return logger.log(`test-suite-${testSuiteId}`, logObject);
 }
 
 async function readTestSuiteLogs(testSuiteId, start = 0, limit = 10) {
@@ -98,7 +114,7 @@ async function readTestSuiteLogs(testSuiteId, start = 0, limit = 10) {
 		start,
 		limit,
 		order: 'desc'
-	}
+	};
 	return new Promise((res, rej) => {
 		testSuiteLogger.query(options, (err, result) => {
 			if (err) {
@@ -113,5 +129,6 @@ module.exports = {
 	getDefaultLogger,
 	getDefaultLoggerSync,
 	getTestSuiteLogger,
+	auditLogForTestSuite,
 	readTestSuiteLogs
 };
