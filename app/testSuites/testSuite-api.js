@@ -35,9 +35,22 @@ async function getTestSuites(req, res) {
 async function getTestSuite(req, res) {
 	try {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
-		const lastTenLogs = await logsModule.readTestSuiteLogs(req.params.uuid);
-		testSuite.history = lastTenLogs;
 		res.send(testSuite);
+	} catch(e) {
+		logs.error(e.message);
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
+async function getTestSuiteHistory(req, res) {
+	try {
+		const from = req.body.from;
+		const number = req.body.number;
+		const logs = await logsModule.readTestSuiteLogs(req.params.uuid, from, number);
+		res.send(logs);
 	} catch(e) {
 		logs.error(e.message);
 		res.send({
@@ -359,6 +372,7 @@ async function updateTestStatus(req, res) {
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
 	.post('/:uuid/diff', getTestSuiteDiff)
+	.post('/:uuid/history', getTestSuiteHistory)
 	.post('/', createTestSuite)
 	.put('/:uuid/solve', solveTestSuiteDiff)
 	.delete('/:uuid', deleteTestSuite)

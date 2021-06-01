@@ -55,7 +55,7 @@
 </script>
 <style scoped lang="scss">
     .page-container {
-        height: 100%;
+        height: auto;
         min-height: 300px;
         overflow: hidden;
         position: relative;

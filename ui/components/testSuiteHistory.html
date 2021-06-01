@@ -1,8 +1,11 @@
-<md-table v-model="testSuiteHistory" md-sort="timestamp" md-sort-order="asc" md-card>
-    <md-table-row slot="md-table-row" slot-scope="{ item }">
-        <md-table-cell md-label="Date" md-sort-by="timestamp"><strong>{{ new Date(item.timestamp) | moment("DD-MM-YYYY HH:mm:ss") }}</strong></md-table-cell>
-        <md-table-cell md-label="Test Case" md-sort-by="testFilePath">{{ item.testFilePath }}</md-table-cell>
-        <md-table-cell md-label="Message">{{ item.message }}</md-table-cell>
-        <md-table-cell md-label="User" md-sort-by="userFirstName">{{ item.userFirstName }} {{ item.userLastName }}</md-table-cell>
-    </md-table-row>
-</md-table>
+<div>
+    <md-button class="md-primary md-dense md-elevation-1" @click="getTestSuiteHistory">Load more logs</md-button>
+    <md-table v-model="testSuiteHistory" md-sort="timestamp" md-sort-order="desc" :md-sort.sync="currentSort" :md-sort-order.sync="currentSortOrder" md-card>
+        <md-table-row slot="md-table-row" slot-scope="{ item }">
+            <md-table-cell md-label="Date" md-sort-by="timestamp"><strong>{{ new Date(item.timestamp) | moment("DD-MM-YYYY HH:mm:ss") }}</strong></md-table-cell>
+            <md-table-cell md-label="Test Case">{{ item.testFilePath }}</md-table-cell>
+            <md-table-cell md-label="Message">{{ item.message }}</md-table-cell>
+            <md-table-cell md-label="User">{{ item.userFirstName }} {{ item.userLastName }}</md-table-cell>
+        </md-table-row>
+    </md-table>
+</div>
