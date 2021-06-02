@@ -95,7 +95,7 @@ async function solveTestSuiteDiff(req, res) {
 			const test = testSuite.getTestCaseByFilePath(patch.file);
 			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
 				modificationsToLog.push({
-					message: `Test file "${test.testFilePath}" status changed from "${test.status}" to "${newStatuses[test.testFilePath]}"`
+					message: `Test file "${test.testFilePath}" status changed from "${TestCase.STATUS_HR(test.status)}" to "${TestCase.STATUS_HR(newStatuses[test.testFilePath])}"`
 				});
 			}
 			const newStatus = newStatuses[test.testFilePath] || test.status;
@@ -153,9 +153,9 @@ async function solveTestSuiteDiff(req, res) {
 
 		await testSuiteModule.updateTestSuite(testSuite);
 
-		for (let auditLog in modificationsToLog) {
+		modificationsToLog.forEach(async auditLog => {
 			await logsModule.auditLogForTestSuite(testSuite._id, curUser, auditLog.message, auditLog.testFilePath);
-		}
+		});
 
  		res.send(testSuite);
 	} catch(e) {
@@ -280,11 +280,11 @@ async function affectUser(req, res) {
 	try {
 		await testSuiteModule.updateTestSuite(testSuite);
 		if (testCase.user) {
-			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully affected to user "${testCase.user.login}" (${userId})`, testCase.testFilePath);
-			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "IN_PROGRESS"`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully affected to user "${testCase.user.login}"`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "${TestCase.STATUS_HR(TestCase.STATUSES.IN_PROGRESS)}"`, testCase.testFilePath);
 		} else {
 			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully unaffected`, testCase.testFilePath);
-			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "TODO"`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "${TestCase.STATUS_HR(TestCase.STATUSES.TODO)}"`, testCase.testFilePath);
 		}
 	} catch (e) {
 		logs.error(e.message);

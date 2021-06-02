@@ -1,16 +1,10 @@
 <main-layout v-if="testSuite">
+    <bread-crumb></bread-crumb>
     <div class="md-layout md-gutter">
         <div class="md-layout-item md-size-30 test-suite-col-left">
-            <h2>
-                <router-link :to="'/#/test-suites/'">
-                    <md-icon>arrow_back_ios</md-icon>
-                    <md-tooltip md-direction="top">Back to test suites</md-tooltip>
-                </router-link>
-                {{ testSuite.name }}
-            </h2>
-            <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-            <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
-            {{ testSuite.progress.percent }}%
+
+
+
             <ul id="test-tree">
                 <file-tree
                         class="item"
@@ -20,8 +14,16 @@
             </ul>
         </div>
         <div class="md-layout-item md-size-65 test-suite-col-right">
+            <div v-if="!openedTestCase">
+                <h2>
+                    {{ testSuite.name }}
+                </h2>
+                <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
+                <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
+                {{ testSuite.progress.percent }}%
+            </div>
             <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" @updateTestCase="updateTestCase"></test-case>
+            <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
         </div>
     </div>
-    <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
 </main-layout>

@@ -1,4 +1,5 @@
 <div>
+    <h2>Test suite history</h2>
     <md-button class="md-primary md-dense md-elevation-1" @click="getTestSuiteHistory">Load more logs</md-button>
     <md-table v-model="testSuiteHistory" md-sort="timestamp" md-sort-order="desc" :md-sort.sync="currentSort" :md-sort-order.sync="currentSortOrder" md-card>
         <md-table-row slot="md-table-row" slot-scope="{ item }">

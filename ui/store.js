@@ -10,7 +10,9 @@ export default new Vuex.Store({
 		currentUser: null,
 		users: [],
 		sshKeys: [],
-		appConfig: null
+		appConfig: null,
+		currentTestSuite: null,
+		currentTestCase: null
 	},
 	mutations: {
 		currentUser (state, user) {
@@ -24,6 +26,12 @@ export default new Vuex.Store({
 		},
 		appConfig (state, appConfig) {
 			state.appConfig = appConfig;
+		},
+		currentTestSuite (state, currentTestSuite) {
+			state.currentTestSuite = currentTestSuite;
+		},
+		currentTestCase (state, currentTestCase) {
+			state.currentTestCase = currentTestCase;
 		}
 	}
 });

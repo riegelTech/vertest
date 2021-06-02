@@ -56,7 +56,7 @@
 <style scoped lang="scss">
     .page-container {
         height: auto;
-        min-height: 300px;
+        min-height: 100%;
         overflow: hidden;
         position: relative;
     }

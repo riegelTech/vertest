@@ -20,8 +20,13 @@ const router = new VueRouter({
 		{ path: '/', component: testSuitesComponent },
 		{ path: '/init', component: initComponent },
 		{ path: '/users', component: usersComponent},
-		{ path: '/test-suites/:testSuiteId', component: oneTestSuiteComponent},
-		{ path: '/test-suites/:testSuiteId/test-case/:testCaseId', component: oneTestSuiteComponent},
+		{
+			path: '/test-suites/:testSuiteId',
+			component: oneTestSuiteComponent,
+			children: [
+				{ path: '/test-suites/:testSuiteId/test-case/:testCaseId', component: oneTestSuiteComponent}
+			]
+		},
 		{ path: '/ssh-keys', component: sshKeysComponent},
 		{ path: '*', component: pageNotFoundComponent}
 	]

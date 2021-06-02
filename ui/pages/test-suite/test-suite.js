@@ -5,15 +5,17 @@ import TestCase from '../../components/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
 import TestSuiteHistory from '../../components/testSuiteHistory.vue';
 import {fileTreeUtils} from '../../components/fileTree.js';
+import BreadCrumb from '../../components/breadCrumb.vue';
+import {breadCrumbEventBus} from '../../components/breadCrumb.vue';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
-
 export default {
 	components: {
 		TestCase,
 		MainLayout,
 		FileTree,
-		TestSuiteHistory
+		TestSuiteHistory,
+		BreadCrumb
 	},
 	data() {
 		return {
@@ -23,11 +25,15 @@ export default {
 		}
 	},
 	async mounted() {
-		return this.initTestSuite();
+		this.initTestSuite();
 	},
 	watch: {
 		'$route.params.testCaseId': function (testCaseId) {
-			this.openTest({path: decodeURIComponent(testCaseId)});
+			if (testCaseId) {
+				this.openTest({path: decodeURIComponent(testCaseId)});
+			} else {
+				this.closeTest();
+			}
 		}
 	},
 	methods: {
@@ -38,6 +44,8 @@ export default {
 				const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 				if (response.status === 200) {
 					this.testSuite = response.body;
+					this.$store.commit('currentTestSuite', this.testSuite);
+					breadCrumbEventBus.$emit('initCurrentTestSuite');
 					const filePaths = this.testSuite.tests.map(testCase => testCase.testFilePath);
 
 					const testFileMapping = {};
@@ -57,7 +65,9 @@ export default {
 					});
 				}
 				if (testCaseId) {
-					this.openTest({path: testCaseId});
+					this.openTest({path: decodeURIComponent(testCaseId)});
+				} else {
+					this.closeTest();
 				}
 			} catch (resp) {
 				window.location.href = '/';
@@ -69,8 +79,14 @@ export default {
 		openTest(testLink) {
 			const test = this.getTestCase(testLink.path);
 			if (test) {
+				this.$store.commit('currentTestCase', test);
+				breadCrumbEventBus.$emit('initCurrentTestCase');
 				this.openedTestCase = test;
 			}
+		},
+		closeTest() {
+			this.$store.commit('currentTestCase', null);
+			this.openedTestCase = null;
 		},
 		updateTestCase() {
 			return this.initTestSuite();
