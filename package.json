@@ -58,6 +58,7 @@
     "ssh2": "0.8.9",
     "tmp-promise": "3.0.2",
     "vue": "2.6.12",
+    "vue-d3-charts": "0.2.8",
     "vue-form-wizard": "0.8.4",
     "vue-loader": "15.9.7",
     "vue-material": "1.0.0-beta-11",

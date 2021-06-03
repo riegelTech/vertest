@@ -2,9 +2,6 @@
     <bread-crumb></bread-crumb>
     <div class="md-layout md-gutter">
         <div class="md-layout-item md-size-30 test-suite-col-left">
-
-
-
             <ul id="test-tree">
                 <file-tree
                         class="item"
@@ -19,8 +16,14 @@
                     {{ testSuite.name }}
                 </h2>
                 <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-                <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
-                {{ testSuite.progress.percent }}%
+                <div class="md-layout md-gutter">
+                    <div class="md-layout-item md-size-50">
+                        <D3PieChart v-if="testSuiteProgressChart && testSuiteProgressChartConfig" :config="testSuiteProgressChartConfig" :datum="testSuiteProgressChart" title="Global test suite progression"></D3PieChart>
+                    </div>
+                    <div class="md-layout-item md-size-50">
+                        <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart" title="Detailed test suite progression"></D3PieChart>
+                    </div>
+                </div>
             </div>
             <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" @updateTestCase="updateTestCase"></test-case>
             <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
