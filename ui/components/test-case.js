@@ -88,11 +88,16 @@ export default {
 				if (!resourceUrl.protocol && !resourceUrl.host) {
 					const resourceRelativePath = Path.join(Path.dirname(relativeTestFile), href);
 					const isASibling = siblingTestCases.find(testCase => testCase.testFilePath === resourceRelativePath);
-					if (isASibling) {
+					if (isASibling) { // document also included in the test suite's regular and tracked tests
 						const hashPath = currentUrl.hash;
 						token.attrs[token.attrIndex('href')][1] = url.resolve(currentUrl.href, Path.join(hashPath, `../${encodeURIComponent(encodeURIComponent(resourceRelativePath))}`));
 					} else {
-						token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${href}`;
+						if (Path.extname(href) === '.md') {
+							const resourceIdentifier = encodeURIComponent(encodeURIComponent(`${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${href}`));
+							token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/#/mdvisu/${resourceIdentifier}`;
+						} else {
+							token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${href}`;
+						}
 					}
 				}
 				// pass token to default renderer.

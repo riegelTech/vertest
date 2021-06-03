@@ -11,6 +11,7 @@ import usersComponent from './pages/users/users.vue';
 import testSuitesComponent from './pages/test-suites/test-suites.vue';
 import oneTestSuiteComponent from './pages/test-suite/test-suite.vue';
 import sshKeysComponent from './pages/ssh-keys/ssh-keys.vue';
+import markdownVisualizer from './components/markdownVisualizer.vue';
 
 import pageNotFoundComponent from './pages/404.vue';
 
@@ -28,6 +29,7 @@ const router = new VueRouter({
 			]
 		},
 		{ path: '/ssh-keys', component: sshKeysComponent},
+		{ path: '/mdvisu/:resource', component:markdownVisualizer},
 		{ path: '*', component: pageNotFoundComponent}
 	]
 });
