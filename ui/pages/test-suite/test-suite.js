@@ -61,7 +61,7 @@ export default {
 		}
 	},
 	async mounted() {
-		this.initTestSuite();
+		return this.initTestSuite();
 	},
 	watch: {
 		'$route.params.testCaseId': function (testCaseId) {

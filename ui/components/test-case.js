@@ -24,7 +24,8 @@ export default {
 	name: 'test-case',
 	props: {
 		testSuiteId: String,
-		testCase: Object
+		testCase: Object,
+		siblingTestCases: Array
 	},
 	data: function () {
 		return {
@@ -57,21 +58,45 @@ export default {
 				return;
 			}
 
-			const defaultRender = md.renderer.rules.image;
 			const testCaseBasePath = this.testCaseLocal.basePath;
 			const relativeTestFile = this.testCaseLocal.testFilePath;
+			const siblingTestCases = this.siblingTestCases;
+			const currentUrl = window.location;
+
+			const defaultImageRender = md.renderer.rules.image;
 			md.renderer.rules.image = function (tokens, idx, options, env, self) {
+				console.log('image');
 				const token = tokens[idx];
 				const src = token.attrs[token.attrIndex('src')][1];
 				const resourceUrl = url.parse(src);
 
 				if (!resourceUrl.protocol && !resourceUrl.host) {
-					const currentUrl = window.location;
 					token.attrs[token.attrIndex('src')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${src}`;
 				}
-
 				// pass token to default renderer.
-				return defaultRender(tokens, idx, options, env, self);
+				return defaultImageRender(tokens, idx, options, env, self);
+			};
+
+			const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
+				return self.renderToken(tokens, idx, options);
+			};
+			md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+				const token = tokens[idx];
+				const href = token.attrs[token.attrIndex('href')][1];
+				const resourceUrl = url.parse(href);
+
+				if (!resourceUrl.protocol && !resourceUrl.host) {
+					const resourceRelativePath = Path.join(Path.dirname(relativeTestFile), href);
+					const isASibling = siblingTestCases.find(testCase => testCase.testFilePath === resourceRelativePath);
+					if (isASibling) {
+						const hashPath = currentUrl.hash;
+						token.attrs[token.attrIndex('href')][1] = url.resolve(currentUrl.href, Path.join(hashPath, `../${encodeURIComponent(encodeURIComponent(resourceRelativePath))}`));
+					} else {
+						token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${href}`;
+					}
+				}
+				// pass token to default renderer.
+				return defaultLinkRender(tokens, idx, options, env, self);
 			};
 
 

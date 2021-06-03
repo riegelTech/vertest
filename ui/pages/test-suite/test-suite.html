@@ -25,7 +25,7 @@
                     </div>
                 </div>
             </div>
-            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" @updateTestCase="updateTestCase"></test-case>
+            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" :siblingTestCases="testSuite.tests" @updateTestCase="updateTestCase"></test-case>
             <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
         </div>
     </div>
