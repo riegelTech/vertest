@@ -60,8 +60,6 @@ export default {
 			testsTree: null,
 			testSuiteStatusChart: null,
 			testSuiteStatusChartConfig: {},
-			testSuiteProgressChart: null,
-			testSuiteProgressChartConfig: {},
 			testSuiteGitLog: null,
 			testSuiteGitLogError: '',
 			diffPopin: {
@@ -120,7 +118,6 @@ export default {
 						}
 					});
 					this.testSuiteStatusChartData();
-					this.testSuiteProgressionChartData();
 					await this.initTestSuiteGitLog();
 				}
 				if (testCaseId) {
@@ -214,52 +211,6 @@ export default {
 		updateTestCaseDisplay() {
 			return this.initTestSuite();
 		},
-		testSuiteProgressionChartData() {
-			const tests = this.testSuite.tests;
-			const total = tests.length;
-
-			const statuses = {
-				TODO: 0,
-				IN_PROGRESS: 1,
-				BLOCKED: 3,
-				SUCCESS: 4,
-				FAILED: 5
-			};
-
-			function getTestsStatusPercent(status, total) {
-				const part = tests.filter(test => test.status === status).length;
-				return Math.round((part / total) * 100);
-			}
-
-			const totalTodo = getTestsStatusPercent(statuses.TODO, total);
-			const totalProgress = getTestsStatusPercent(statuses.IN_PROGRESS, total);
-			const totalBlocked = getTestsStatusPercent(statuses.BLOCKED, total);
-			const totalSuccess = getTestsStatusPercent(statuses.SUCCESS, total);
-			const totalFailed = getTestsStatusPercent(statuses.FAILED, total);
-
-			this.testSuiteProgressChart = [{
-				name: "Finished",
-				total: totalSuccess + totalFailed
-			}, {
-				name: "To do",
-				total: totalTodo
-			}, {
-				name: "In progress",
-				total: totalBlocked + totalProgress
-			}];
-			// colors based on https://material.io/resources/color/#!/?view.left=0&view.right=0 picked on material palette on the Blue row
-			this.testSuiteProgressChartConfig = Object.assign({}, DEFAULT_TEST_SUITE_CHART_CONFIG, {
-				key: 'name',
-				value: 'total',
-				color: {
-					keys: {
-						'Finished': '#1565c0', // 800
-						'To do': '#bbdefb', // 100
-						'In progress': '#42a5f5' // 400
-					}
-				}
-			});
-		},
 		testSuiteStatusChartData() {
 			const tests = this.testSuite.tests;
 			const total = tests.length;
@@ -284,20 +235,20 @@ export default {
 			const totalFailed = getTestsStatusPercent(statuses.FAILED, total);
 
 			this.testSuiteStatusChart = [{
-				name: "To do",
-				total: totalTodo
-			}, {
-				name: "In progress",
-				total: totalProgress
-			}, {
-				name: "Blocked",
-				total: totalBlocked
-			}, {
 				name: "Success",
 				total: totalSuccess
 			}, {
 				name: "Failed",
 				total: totalFailed
+			}, {
+				name: "Blocked",
+				total: totalBlocked
+			}, {
+				name: "In progress",
+				total: totalProgress
+			}, {
+				name: "To do",
+				total: totalTodo
 			}];
 
 			this.testSuiteStatusChartConfig = Object.assign({}, DEFAULT_TEST_SUITE_CHART_CONFIG, {

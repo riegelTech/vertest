@@ -1,7 +1,13 @@
 $primary-color: #448aff;
+.test-suite-title {
+  padding-left: 14px;
+  a {
+    text-decoration: none;
+  }
+}
 ul#test-tree {
   list-style-type: none;
-  padding: 0 0 0 1em;
+  padding: 0;
   li:first-child:before,
   li:first-child:after {
     display: none;

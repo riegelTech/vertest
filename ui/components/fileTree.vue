@@ -1,5 +1,5 @@
 <template>
-    <li>
+    <li :class="{root: item.name == 'root', lastchild : item.isLastChild}" >
         <div
                 class="treeLine"
                 :class="{bold: isFolder}"
@@ -38,28 +38,35 @@
 <script src="./fileTree.js"></script>
 
 <style scoped lang="scss">
+    $grey-light: #999;
     ul {
         list-style-type: none;
-        padding-left: 2em;
+        padding-left: 0;
         li {
             position: relative;
-            &:before,
-            &:after {
-                font-family: Material Icons;
-                -webkit-font-feature-settings: "liga";
-                font-feature-settings: "liga";
-                position: absolute;
+            border-left: 1px solid #999;
+            padding-left: 14px;
+            left: 1px;
+            &.lastchild {
+                border-left: none;
+                &:after {
+                    position: absolute;
+                    content: " ";
+                    top: -1px;
+                    left: 0;
+                    width: 0px;
+                    height: 11px;
+                    border-left: 1px solid $grey-light;
+                }
             }
             &:before {
-
-                content: "more_horiz";
-                top: 0.2em;
-                left: -1em;
-            }
-            &:after {
-                content: "more_vert";
-                top: -0.4em;
-                left: -1.3em;
+                position: absolute;
+                content: " ";
+                top: 10px;
+                left: 0;
+                width: 13px;
+                height: 0px;
+                border-top: 1px solid $grey-light  ;
             }
             .treeLine {
                 white-space: nowrap;
@@ -71,6 +78,9 @@
             .file {
                 cursor: pointer;
             }
+        }
+        li.root {
+            border-left: none;
         }
     }
 </style>

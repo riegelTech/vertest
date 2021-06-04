@@ -38,13 +38,18 @@ export const fileTreeUtils = {
 					});
 				}
 			}
+			if (tree.length > 0) {
+				tree[tree.length - 1] = Object.assign(tree[tree.length - 1], {isLastChild: true});
+			}
+
 			return tree;
 		}
 
 		return {
 			name: 'root',
 			path: baseDir,
-			children: buildTreeRecursive(shortenedFilePaths)
+			children: buildTreeRecursive(shortenedFilePaths),
+			isLastChild: true
 		};
 	},
 	flattenLeafs(tree) {

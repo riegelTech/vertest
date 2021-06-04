@@ -2,6 +2,11 @@
     <bread-crumb></bread-crumb>
     <div class="md-layout md-gutter">
         <div class="md-layout-item md-size-30 test-suite-col-left">
+            <h2 class="test-suite-title">
+                <router-link :to="`/test-suites/${testSuite._id}`">
+                    {{ testSuite.name }}
+                </router-link>
+            </h2>
             <ul id="test-tree">
                 <file-tree
                         class="item"
@@ -12,17 +17,27 @@
         </div>
         <div class="md-layout-item md-size-65 test-suite-col-right">
             <div v-if="!openedTestCase">
-                <h2>
-                    {{ testSuite.name }}
-                </h2>
-                <div class="md-layout">
-                    <h4>Repository</h4>
-                </div>
                 <div class="md-layout">
                     <div class="md-layout-item md-size-50">
-                        <p><md-icon>link</md-icon>&nbsp;<strong>{{ testSuite.repository.address }}</strong></p>
+                        <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart"></D3PieChart>
+                    </div>
+                    <div class="md-layout-item md-size-50">
+                        <p><md-icon>link</md-icon>&nbsp;<span>{{ testSuite.repository.address }}</span></p>
                         <p>
-                            <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}
+                            <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}&nbsp;
+                            <a @click="toggleTestSuiteGitBranch(testSuite._id)">Change current GIT branch</a>
+                        </p>
+                        <p v-if="testSuite.status === 'to_update'">
+                            <md-button class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(testSuite._id)">
+                                <md-icon>warning</md-icon>
+                                <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
+                            </md-button>
+                        </p>
+                        <p v-if="testSuite.status === 'to_toggle_branch'">
+                            <md-button class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(testSuite._id)">
+                                <md-icon>warning</md-icon>
+                                <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
+                            </md-button>
                         </p>
                         <ul v-if="testSuiteGitLog" class="test-suite-git-log">
                             <li v-for="gitCommit of testSuiteGitLog">
@@ -45,31 +60,7 @@
                                 </p>
                             </li>
                         </ul>
-                    </div>
-                    <div class="md-layout-item md-size-50">
-                        <p>
-                            <md-button @click="toggleTestSuiteGitBranch(testSuite._id)" class="md-raised md-primary">Change current GIT branch</md-button>
-                        </p>
-                        <p v-if="testSuite.status === 'to_update'">
-                            <md-button class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(testSuite._id)">
-                                <md-icon>warning</md-icon>
-                                <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
-                            </md-button>
-                        </p>
-                        <p v-if="testSuite.status === 'to_toggle_branch'">
-                            <md-button class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(testSuite._id)">
-                                <md-icon>warning</md-icon>
-                                <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
-                            </md-button>
-                        </p>
-                    </div>
-                </div>
-                <div class="md-layout">
-                    <div class="md-layout-item md-size-50">
-                        <D3PieChart v-if="testSuiteProgressChart && testSuiteProgressChartConfig" :config="testSuiteProgressChartConfig" :datum="testSuiteProgressChart" title="Global test suite progression"></D3PieChart>
-                    </div>
-                    <div class="md-layout-item md-size-50">
-                        <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart" title="Detailed test suite progression"></D3PieChart>
+
                     </div>
                 </div>
                 <div class="md-layout">

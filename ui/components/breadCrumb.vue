@@ -1,6 +1,6 @@
 <template>
     <div v-if="display" class="breadcrumb">
-        <router-link :to="'/#/test-suites/'">
+        <router-link :to="'/#/test-suites/'" class="home">
             <md-icon>home</md-icon>
             <md-tooltip md-direction="top">Home page</md-tooltip>
         </router-link>
@@ -80,7 +80,18 @@
 	}
 </script>
 <style scoped lang="scss">
-    .breadcrumb a {
-        text-decoration: none;
+    .breadcrumb {
+        padding-left: 14px;
+        margin: 5px 0;
+        color: #448aff;
+        a {
+            text-decoration: none;
+        }
+        a.home i{
+            color: #448aff;
+            font-size: 20px !important;
+            position: relative;
+            top: -2px;
+        }
     }
 </style>
