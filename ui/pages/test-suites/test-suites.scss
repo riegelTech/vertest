@@ -2,16 +2,10 @@
  max-height: 600px;
  overflow: auto;
 }
-.change-git-branch-button {
- cursor: pointer;
-}
 .md-dialog.test-suite-creation-dialog{
   /deep/ .md-stepper-text {
     white-space: normal;
   }
-}
-.md-dialog.test-suite-creation-dialog .md-stepper-text {
-
 }
 .md-field.auth-type {
   display: block;

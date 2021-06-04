@@ -62,11 +62,25 @@ class Repository {
     }
 
     get commit() {
+        return this._curCommit ? this._curCommit : null;
+    }
+
+    get commitSha() {
         return this._curCommit ? this._curCommit.sha() : null;
     }
 
     get gitBranch() {
         return this._curBranch;
+    }
+
+    static getfullCommit(commit) {
+        return {
+            sha: commit.sha(),
+            date: commit.date().getTime(),
+            author: commit.author().toString(false),
+            committer: commit.committer().toString(false),
+            message: commit.message()
+        };
     }
 
     setSshKey(newSshKey) {
@@ -332,6 +346,18 @@ class Repository {
     async checkoutCommit(commitSha) {
         const commit = await this._gitRepository.getCommit(commitSha);
         await Reset.reset(this._gitRepository, commit, Reset.TYPE.HARD);
+    }
+
+    async getGitLog(limit) {
+        const ancestors = [];
+        for (let i = 1; i <= limit; i++) {
+            const ancestor = await this._curCommit.nthGenAncestor(i);
+            if (ancestor) {
+                ancestors.push(ancestor);
+            }
+        }
+
+        return ancestors;
     }
 
     async collectTestFilesPaths(testDirs) {

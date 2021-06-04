@@ -6,6 +6,8 @@ import FileTree from '../../components/fileTree.vue';
 import TestSuiteHistory from '../../components/testSuiteHistory.vue';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import BreadCrumb from '../../components/breadCrumb.vue';
+import DiffViewer from '../../components/diffViewer.vue';
+import TestCaseState from '../../components/testCaseState.vue';
 import {breadCrumbEventBus} from '../../components/breadCrumb.vue';
 import { D3PieChart } from 'vue-d3-charts';
 
@@ -47,7 +49,9 @@ export default {
 		FileTree,
 		TestSuiteHistory,
 		BreadCrumb,
-		D3PieChart
+		D3PieChart,
+		DiffViewer,
+		TestCaseState
 	},
 	data() {
 		return {
@@ -57,7 +61,23 @@ export default {
 			testSuiteStatusChart: null,
 			testSuiteStatusChartConfig: {},
 			testSuiteProgressChart: null,
-			testSuiteProgressChartConfig: {}
+			testSuiteProgressChartConfig: {},
+			testSuiteGitLog: null,
+			testSuiteGitLogError: '',
+			diffPopin: {
+				show : false,
+				testSuiteId: null,
+				diff: {
+					isEmpty: true
+				},
+				newStatuses: {}
+			},
+			toggleBranchPopin: {
+				show: false,
+				testSuiteId: null,
+				availableGitBranches: [],
+				selectedGitBranch: null
+			}
 		}
 	},
 	async mounted() {
@@ -101,6 +121,7 @@ export default {
 					});
 					this.testSuiteStatusChartData();
 					this.testSuiteProgressionChartData();
+					await this.initTestSuiteGitLog();
 				}
 				if (testCaseId) {
 					this.openTest({path: decodeURIComponent(testCaseId)});
@@ -110,6 +131,70 @@ export default {
 			} catch (resp) {
 				window.location.href = '/';
 			}
+		},
+		async initTestSuiteGitLog() {
+			const logLimit = 5;
+			const testSuiteGitPath = `${TEST_SUITE_PATH}${this.testSuite._id}/gitLog/${logLimit}`;
+			try {
+				const response = await this.$http.get(testSuiteGitPath);
+				if (response.status === 200) {
+					this.testSuiteGitLog = response.body;
+				}
+			} catch (resp) {
+				this.testSuiteGitLogError = `Failed to load git log: ${resp.body}`;
+			}
+		},
+		async solveTestSuiteDiff(testSuiteId, newGitBranch) {
+			try {
+				this.diffPopin.newStatuses = {};
+				this.diffPopin.testSuiteId = testSuiteId;
+				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
+					branchName: newGitBranch
+				})).body;
+				this.diffPopin.diff.modifiedPatches.forEach(patch => {
+					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
+				});
+				this.diffPopin.newStatuses = {};
+				this.diffPopin.diff.targetBranch = newGitBranch;
+				this.toggleBranchPopin.show = false;
+				this.diffPopin.show = true;
+			} catch (e) {
+				alert('Test suite diff failed');
+			}
+		},
+		async toggleTestSuiteGitBranch(testSuiteId) {
+			this.toggleBranchPopin.testSuiteId = testSuiteId;
+			this.toggleBranchPopin.availableGitBranches = this.testSuite.repository._gitBranches;
+			this.toggleBranchPopin.selectedGitBranch = this.testSuite.repository._curBranch;
+			this.toggleBranchPopin.show = true;
+		},
+		changeTestStatus(testCaseId, newTestStatus) {
+			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
+		},
+		async submitNewTestsStatuses() {
+			const nullStatus = Object.values(this.diffPopin.newStatuses).find(newStatus => newStatus === null);
+			if (nullStatus !== undefined && !confirm('At least one modified test has not been validated, continue ?')) {
+				return;
+			}
+			try {
+				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, {
+					currentCommit: this.diffPopin.diff.currentCommit,
+					targetCommit: this.diffPopin.diff.targetCommit,
+					newStatuses: this.diffPopin.newStatuses,
+					targetBranch: this.diffPopin.diff.targetBranch
+				});
+				if (response.status !== 200) {
+					alert(response.body);
+					return;
+				}
+				await this.initTestSuite();
+				this.hideDiffPopin();
+			} catch (e) {
+				alert('Test suite solving failed');
+			}
+		},
+		hideDiffPopin() {
+			this.diffPopin.show = false;
 		},
 		getTestCase(testCasePath) {
 			return this.testSuite.tests.find(test => testCasePath === test.testFilePath);
@@ -126,7 +211,7 @@ export default {
 			this.$store.commit('currentTestCase', null);
 			this.openedTestCase = null;
 		},
-		updateTestCase() {
+		updateTestCaseDisplay() {
 			return this.initTestSuite();
 		},
 		testSuiteProgressionChartData() {

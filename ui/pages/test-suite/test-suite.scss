@@ -1,0 +1,44 @@
+$primary-color: #448aff;
+ul#test-tree {
+  list-style-type: none;
+  padding: 0 0 0 1em;
+  li:first-child:before,
+  li:first-child:after {
+    display: none;
+  }
+}
+
+.change-git-branch-button {
+  cursor: pointer;
+}
+ul.test-suite-git-log {
+  font-size: 10px;
+  margin: 0;
+  margin-left: 6px;
+  padding: 0;
+  p {
+    margin: 0
+  }
+
+  li {
+    list-style-type: none;
+    border-left: 2px solid $primary-color;
+    padding-left: 12px;
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: -5px;
+    i.md-icon {
+      position: absolute;
+      top: -8px;
+      left: -13px;
+      font-size: 14px !important;
+    }
+    p {
+      position: relative;
+      top: -5px;
+      .sha {
+        color: $primary-color;
+      }
+    }
+  }
+}

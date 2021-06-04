@@ -16,8 +16,6 @@ import {userMixin} from '../users/userMixin';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';
-import DiffViewer from '../../components/diffViewer.vue';
-import TestCaseState from '../../components/testCaseState.vue';
 
 const defaultCurrentUser = null;
 const TEST_SUITE_PATH = '/api/test-suites/';
@@ -57,8 +55,6 @@ function getEmptyTestSuitePopin() {
 export default {
 	components: {
 		MainLayout,
-		DiffViewer,
-		TestCaseState,
 		FormWizard,
 		TabContent,
 		FileTree
@@ -75,20 +71,6 @@ export default {
 			},
 			currentUser: defaultCurrentUser,
 			appConfig: null,
-			diffPopin: {
-				show : false,
-				testSuiteId: null,
-				diff: {
-					isEmpty: true
-				},
-				newStatuses: {}
-			},
-			toggleBranchPopin: {
-				show: false,
-				testSuiteId: null,
-				availableGitBranches: [],
-				selectedGitBranch: null
-			},
 			waitSpinner: false
 		};
 	},
@@ -167,65 +149,12 @@ export default {
 				alert('Test suite deletion failed');
 			}
 		},
-		async solveTestSuiteDiff(testSuiteId, newGitBranch) {
-			try {
-				this.diffPopin.newStatuses = {};
-				this.diffPopin.testSuiteId = testSuiteId;
-				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
-					branchName: newGitBranch
-				})).body;
-				this.diffPopin.diff.modifiedPatches.forEach(patch => {
-					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
-				});
-				this.diffPopin.newStatuses = {};
-				this.diffPopin.diff.targetBranch = newGitBranch;
-				this.toggleBranchPopin.show = false;
-				this.diffPopin.show = true;
-			} catch (e) {
-				alert('Test suite diff failed');
-			}
-		},
-		async toggleTestSuiteGitBranch(testSuiteId) {
-			const testSuite = this.testSuites.find(testSuite => testSuite._id === testSuiteId);
-			this.toggleBranchPopin.testSuiteId = testSuiteId;
-			this.toggleBranchPopin.availableGitBranches = testSuite.repository._gitBranches;
-			this.toggleBranchPopin.selectedGitBranch = testSuite.repository._curBranch;
-			this.toggleBranchPopin.show = true;
-		},
-		changeTestStatus(testCaseId, newTestStatus) {
-			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
-		},
-		async submitNewTestsStatuses() {
-			const nullStatus = Object.values(this.diffPopin.newStatuses).find(newStatus => newStatus === null);
-			if (nullStatus !== undefined && !confirm('At least one modified test has not been validated, continue ?')) {
-				return;
-			}
-			try {
-				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, {
-					currentCommit: this.diffPopin.diff.currentCommit,
-					targetCommit: this.diffPopin.diff.targetCommit,
-					newStatuses: this.diffPopin.newStatuses,
-					targetBranch: this.diffPopin.diff.targetBranch
-				});
-				if (response.status !== 200) {
-					alert(response.body);
-					return;
-				}
-				await this.initTestSuites();
-				this.hideDiffPopin();
-			} catch (e) {
-				alert('Test suite solving failed');
-			}
-		},
 		showCreatePopin() {
 			this.createPopin.show = true;
 		},
 		hideCreatePopin() {
 			this.createPopin.show = false;
 			return this.resetCreatePopin();
-		},
-		hideDiffPopin() {
-			this.diffPopin.show = false;
 		},
 		async resetCreatePopin() {
 			this.createPopin = getEmptyTestSuitePopin();

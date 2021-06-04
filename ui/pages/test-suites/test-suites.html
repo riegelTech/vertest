@@ -16,20 +16,17 @@
                     {{ item.progress.percent }}%
                 </md-table-cell>
                 <md-table-cell md-label="Git branch" md-sort-by="gitBranch">
-                    <a class="change-git-branch-button" @click="toggleTestSuiteGitBranch(item._id)">
-                        {{ item.gitBranch }}
-                        <md-tooltip md-direction="top">Change test suite GIT branch</md-tooltip>
-                    </a>
+                    <span class="i-code-git icon-flow-branch"></span>{{ item.gitBranch }}
                 </md-table-cell>
                 <md-table-cell md-label="Action">
-                    <md-button v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(item._id)">
+                    <router-link v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" :to="`/test-suites/${item._id}`">
                         <md-icon>warning</md-icon>
                         <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
-                    </md-button>
-                    <md-button v-if="item.status === 'to_toggle_branch'" class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(item._id)">
+                    </router-link>
+                    <router-link v-if="item.status === 'to_toggle_branch'" class="md-icon-button md-mini md-accent" :to="`/test-suites/${item._id}`">
                         <md-icon>warning</md-icon>
                         <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
-                    </md-button>
+                    </router-link>
                     <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
                         <md-tooltip md-direction="top">Delete test suite</md-tooltip>
@@ -136,68 +133,6 @@
                 </md-step>
             </md-steppers>
         </form>
-    </md-dialog>
-    <md-dialog :md-active.sync="toggleBranchPopin.show">
-        <md-dialog-title>Please select a new git branch</md-dialog-title>
-        <form>
-            <md-field>
-                <label for="newGitBranch">New git branch</label>
-                <md-select v-model="toggleBranchPopin.selectedGitBranch" name="gitBranch">
-                    <md-option v-for="gitBranch in toggleBranchPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
-                </md-select>
-            </md-field>
-            <md-dialog-actions>
-                <md-button @click="toggleBranchPopin.show = false">Cancel</md-button>
-                <md-button class="md-primary" @click="solveTestSuiteDiff(toggleBranchPopin.testSuiteId, toggleBranchPopin.selectedGitBranch)">Next</md-button>
-            </md-dialog-actions>
-        </form>
-    </md-dialog>
-    <md-dialog class="diffViewer" :md-active.sync="diffPopin.show">
-        <md-dialog-title>Diff viewer</md-dialog-title>
-        <md-dialog-content>
-        <md-tabs v-if="!diffPopin.diff.isEmpty" md-dynamic-height>
-            <md-tab md-label="Modified" v-if="diffPopin.diff.modifiedPatches.length > 0">
-                <div v-for="patch in diffPopin.diff.modifiedPatches">
-                    <strong v-if="patch.file === patch.newFile">{{ patch.file }}</strong>
-                    <strong v-if="patch.file !== patch.newFile">{{ patch.file }} => {{ patch.newFile }}</strong>
-                    <test-case-state
-                            :testState="patch.test.status"
-                            :displayCurrentState="true"
-                            :displayStateSwitch="true"
-                            :user="patch.test.user"
-                            v-on:change-test-status="changeTestStatus(patch.test.testFilePath, $event)"
-                    >
-                    </test-case-state>
-                    <diff-viewer :hunks="patch.hunks"></diff-viewer>
-                </div>
-            </md-tab>
-            <md-tab md-label="Deleted" v-if="diffPopin.diff.deletedPatches.length > 0">
-                <div v-for="patch in diffPopin.diff.deletedPatches">
-                    <strong>{{ patch.file }}</strong>
-                    <test-case-state :testState="patch.test.status" :displayCurrentState="true"></test-case-state>
-                </div>
-            </md-tab>
-            <md-tab md-label="Added" v-if="diffPopin.diff.addedPatches.length > 0">
-                <div v-for="patch in diffPopin.diff.addedPatches">
-                    <strong>{{ patch.file }}</strong>
-                </div>
-            </md-tab>
-            <md-tab md-label="Renamed" v-if="diffPopin.diff.renamedPatches.length > 0">
-                <ul>
-                    <li v-for="patch in diffPopin.diff.renamedPatches">
-                        <strong>{{ patch.file }} => {{ patch.newFile }}</strong>
-                    </li>
-                </ul>
-            </md-tab>
-        </md-tabs>
-        <md-content v-if="diffPopin.diff.isEmpty">
-            There is no differences between current local and target repository state.
-        </md-content>
-        </md-dialog-content>
-        <md-dialog-actions>
-            <md-button @click="hideDiffPopin">Cancel</md-button>
-            <md-button class="md-primary" @click="submitNewTestsStatuses">Finish</md-button>
-        </md-dialog-actions>
     </md-dialog>
     <md-dialog :md-active.sync="loginPopup.show" :md-click-outside-to-close="false" :md-close-on-esc="false">
         <md-dialog-title>Login</md-dialog-title>

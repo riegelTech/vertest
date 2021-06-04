@@ -15,8 +15,56 @@
                 <h2>
                     {{ testSuite.name }}
                 </h2>
-                <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-                <div class="md-layout md-gutter">
+                <div class="md-layout">
+                    <h4>Repository</h4>
+                </div>
+                <div class="md-layout">
+                    <div class="md-layout-item md-size-50">
+                        <p><md-icon>link</md-icon>&nbsp;<strong>{{ testSuite.repository.address }}</strong></p>
+                        <p>
+                            <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}
+                        </p>
+                        <ul v-if="testSuiteGitLog" class="test-suite-git-log">
+                            <li v-for="gitCommit of testSuiteGitLog">
+                                <md-icon class="md-primary">circle</md-icon>
+                                <p>
+                                    <span class="sha">
+                                        {{ gitCommit.sha | shortenGitSha }}
+                                        <md-tooltip md-direction="top">{{ gitCommit.sha }}</md-tooltip>
+                                    </span>
+                                    <span class="date">{{ gitCommit.date | moment("DD-MM-YYYY HH:mm:ss") }}</span>
+                                    <span class="author">
+                                        {{ gitCommit.author | gitAuthorName }}
+                                        <md-tooltip md-direction="top">{{ gitCommit.author | gitAuthorEmail }}</md-tooltip>
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="message">
+                                        {{ gitCommit.message | shortenGitMessage }}
+                                    </span>
+                                </p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="md-layout-item md-size-50">
+                        <p>
+                            <md-button @click="toggleTestSuiteGitBranch(testSuite._id)" class="md-raised md-primary">Change current GIT branch</md-button>
+                        </p>
+                        <p v-if="testSuite.status === 'to_update'">
+                            <md-button class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(testSuite._id)">
+                                <md-icon>warning</md-icon>
+                                <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
+                            </md-button>
+                        </p>
+                        <p v-if="testSuite.status === 'to_toggle_branch'">
+                            <md-button class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(testSuite._id)">
+                                <md-icon>warning</md-icon>
+                                <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
+                            </md-button>
+                        </p>
+                    </div>
+                </div>
+                <div class="md-layout">
                     <div class="md-layout-item md-size-50">
                         <D3PieChart v-if="testSuiteProgressChart && testSuiteProgressChartConfig" :config="testSuiteProgressChartConfig" :datum="testSuiteProgressChart" title="Global test suite progression"></D3PieChart>
                     </div>
@@ -24,9 +72,74 @@
                         <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart" title="Detailed test suite progression"></D3PieChart>
                     </div>
                 </div>
+                <div class="md-layout">
+                    <h4>Test suite history</h4>
+                    <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
+                </div>
             </div>
-            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" :siblingTestCases="testSuite.tests" @updateTestCase="updateTestCase"></test-case>
-            <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
+            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" :siblingTestCases="testSuite.tests" @updateTestCase="updateTestCaseDisplay"></test-case>
         </div>
     </div>
+    <md-dialog :md-active.sync="toggleBranchPopin.show">
+        <md-dialog-title>Please select a new git branch</md-dialog-title>
+        <form>
+            <md-field>
+                <label for="newGitBranch">New git branch</label>
+                <md-select v-model="toggleBranchPopin.selectedGitBranch" name="gitBranch">
+                    <md-option v-for="gitBranch in toggleBranchPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
+                </md-select>
+            </md-field>
+            <md-dialog-actions>
+                <md-button @click="toggleBranchPopin.show = false">Cancel</md-button>
+                <md-button class="md-primary" @click="solveTestSuiteDiff(toggleBranchPopin.testSuiteId, toggleBranchPopin.selectedGitBranch)">Next</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
+    <md-dialog class="diffViewer" :md-active.sync="diffPopin.show">
+        <md-dialog-title>Diff viewer</md-dialog-title>
+        <md-dialog-content>
+            <md-tabs v-if="!diffPopin.diff.isEmpty" md-dynamic-height>
+                <md-tab md-label="Modified" v-if="diffPopin.diff.modifiedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.modifiedPatches">
+                        <strong v-if="patch.file === patch.newFile">{{ patch.file }}</strong>
+                        <strong v-if="patch.file !== patch.newFile">{{ patch.file }} => {{ patch.newFile }}</strong>
+                        <test-case-state
+                                :testState="patch.test.status"
+                                :displayCurrentState="true"
+                                :displayStateSwitch="true"
+                                :user="patch.test.user"
+                                v-on:change-test-status="changeTestStatus(patch.test.testFilePath, $event)"
+                        >
+                        </test-case-state>
+                        <diff-viewer :hunks="patch.hunks"></diff-viewer>
+                    </div>
+                </md-tab>
+                <md-tab md-label="Deleted" v-if="diffPopin.diff.deletedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.deletedPatches">
+                        <strong>{{ patch.file }}</strong>
+                        <test-case-state :testState="patch.test.status" :displayCurrentState="true"></test-case-state>
+                    </div>
+                </md-tab>
+                <md-tab md-label="Added" v-if="diffPopin.diff.addedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.addedPatches">
+                        <strong>{{ patch.file }}</strong>
+                    </div>
+                </md-tab>
+                <md-tab md-label="Renamed" v-if="diffPopin.diff.renamedPatches.length > 0">
+                    <ul>
+                        <li v-for="patch in diffPopin.diff.renamedPatches">
+                            <strong>{{ patch.file }} => {{ patch.newFile }}</strong>
+                        </li>
+                    </ul>
+                </md-tab>
+            </md-tabs>
+            <md-content v-if="diffPopin.diff.isEmpty">
+                There is no differences between current local and target repository state.
+            </md-content>
+        </md-dialog-content>
+        <md-dialog-actions>
+            <md-button @click="hideDiffPopin">Cancel</md-button>
+            <md-button class="md-primary" @click="submitNewTestsStatuses">Finish</md-button>
+        </md-dialog-actions>
+    </md-dialog>
 </main-layout>

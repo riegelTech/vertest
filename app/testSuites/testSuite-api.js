@@ -45,6 +45,23 @@ async function getTestSuite(req, res) {
 	}
 }
 
+async function getTestSuiteRepositoryGitLog(req, res) {
+	try {
+		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
+		const parentsCommit = await testSuite.repository.getGitLog(req.params.limit);
+		parentsCommit.forEach((rawCommit, index) => {
+			parentsCommit[index] = repoModule.Repository.getfullCommit(rawCommit);
+		});
+		res.send(parentsCommit);
+	} catch(e) {
+		logs.error(e.message);
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
 async function getTestSuiteHistory(req, res) {
 	try {
 		const from = req.body.from;
@@ -371,6 +388,7 @@ async function updateTestStatus(req, res) {
 
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
+	.get('/:uuid/gitLog/:limit', getTestSuiteRepositoryGitLog)
 	.post('/:uuid/diff', getTestSuiteDiff)
 	.post('/:uuid/history', getTestSuiteHistory)
 	.post('/', createTestSuite)

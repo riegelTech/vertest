@@ -78,7 +78,7 @@ describe('Repository module', function () {
 					repoPath: repoTestPath
 				});
 				await newRepo.init({forceInit: true, waitForClone: true});
-				expect(newRepo.commit).to.be.null;
+				expect(newRepo.commitSha).to.be.null;
 				expect(newRepo.gitBranch).to.be.null;
 			});
 
@@ -93,7 +93,7 @@ describe('Repository module', function () {
 				});
 				await newRepo.init({forceInit: true, waitForClone: true});
 
-				newRepo.commit.should.not.be.null;
+				newRepo.commitSha.should.not.be.null;
 				newRepo.gitBranch.should.eql('master');
 				newRepo.gitBranches.should.eql(['master']);
 			});

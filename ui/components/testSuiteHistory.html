@@ -1,12 +1,11 @@
-<div>
-    <h2>Test suite history</h2>
-    <md-button class="md-primary md-dense md-elevation-1" @click="getTestSuiteHistory">Load more logs</md-button>
+<div class="test-suite-history">
     <md-table v-model="testSuiteHistory" md-sort="timestamp" md-sort-order="desc" :md-sort.sync="currentSort" :md-sort-order.sync="currentSortOrder" md-card>
         <md-table-row slot="md-table-row" slot-scope="{ item }">
-            <md-table-cell md-label="Date" md-sort-by="timestamp"><strong>{{ new Date(item.timestamp) | moment("DD-MM-YYYY HH:mm:ss") }}</strong></md-table-cell>
+            <md-table-cell width="20%" md-label="Date" md-sort-by="timestamp">{{ new Date(item.timestamp) | moment("DD-MM-YYYY HH:mm:ss") }}</md-table-cell>
             <md-table-cell md-label="Test Case">{{ item.testFilePath }}</md-table-cell>
             <md-table-cell md-label="Message">{{ item.message }}</md-table-cell>
             <md-table-cell md-label="User">{{ item.userFirstName }} {{ item.userLastName }}</md-table-cell>
         </md-table-row>
     </md-table>
+    <md-button class="md-primary md-dense md-elevation-1" @click="getTestSuiteHistory">Load more logs</md-button>
 </div>
