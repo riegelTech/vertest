@@ -2,6 +2,7 @@
 node_modules/
 testFilesRepo/
 mongoData/*
+backup
 !mongoData/.gitkeep
 logs/*
 !logs/.gitkeep
