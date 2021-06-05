@@ -21,3 +21,7 @@ cp -R ./backup/logs/* ./logs/
 # 4- restore the git dirs
 rm -rf ./cloneDir/*
 cp -R ./backup/repos/* ./cloneDir/
+
+# 5- restart the docker containers to refresh all data
+docker-compose down
+docker-compose -f ./docker-compose.yml up
