@@ -1,10 +1,13 @@
 <template src="./test-case.html" />
 <script src="./test-case.js" />
-<style scoped lang="scss">
+<style lang="scss">
     .actions {
         display: flex;
-        p {
+        span.user-name {
             margin-top: 9px;
+        }
+        .md-field {
+            margin: -12px 0 0 12px;
         }
     }
 </style>

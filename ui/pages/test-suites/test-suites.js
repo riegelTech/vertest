@@ -93,6 +93,9 @@ export default {
 		async initScreen() {
 			await this.initTestSuites();
 			this.createPopin.availableSshKeys = await this.getSshKeys();
+			if (this.createPopin.availableSshKeys.length > 0) {
+				this.createPopin.repositorySshKey = this.createPopin.availableSshKeys[0].name;
+			}
 		},
 		async initTestSuites() {
 			try {
@@ -202,6 +205,9 @@ export default {
 					this.createPopin.availableGitBranches = response.body.branches;
 					this.createPopin.repositoryUuid = response.body.repoUuid;
 					this.createPopin.activeStep = 'second';
+					if (this.createPopin.availableGitBranches.length > 0 && this.createPopin.availableGitBranches.find(branch => branch === 'master')) {
+						this.createPopin.repositoryBranch = 'master';
+					}
 					return true;
 				}
 			} catch (resp) {
@@ -254,8 +260,24 @@ export default {
 			}
 			const flatFiles = fileTreeUtils.flattenLeafs(this.createPopin.availableFilesTree)
 				.map(leaf => leaf.fullPath);
+
 			const selectedFiles = flatFiles.filter(filePath => {
-				return this.createPopin.filePatterns.some(filePattern => minimatch(filePath, filePattern));
+				let selected = false;
+				this.createPopin.filePatterns.forEach(filePattern => {
+					const isNegativePattern = filePattern.startsWith('!');
+					if (!selected && !isNegativePattern && minimatch(filePath, filePattern)) { // if unselected anymore and positively matched
+						selected = true;
+					} else if (selected && isNegativePattern && !minimatch(filePath, filePattern)) { // if already selected and negatively matched (rejected)
+						selected = false;
+					}
+					// could use this case to select files that are available against a negative pattern ("some-file.jpg" should be selected by the pattern "!**/**.md")
+					// however user will most likely select some files with a first positive pattern and then add negative patterns to exclude some of them
+					// in this case, negative patterns should not be interpreted in their "positive" dimension
+					// else if (!selected && isNegativePattern && !minimatch(filePath, filePattern)) {
+					// 	selected = true;
+					// }
+				});
+				return selected;
 			});
 			this.createPopin.selectedFilesTree = fileTreeUtils.buildTree(selectedFiles, this.createPopin.availableFilesTree.path);
 		},

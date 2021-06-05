@@ -6,6 +6,11 @@
   /deep/ .md-stepper-text {
     white-space: normal;
   }
+
+  ul.file-tree, ul.patterns-list {
+    list-style-type: none;
+    padding-left: 0;
+  }
 }
 .md-field.auth-type {
   display: block;

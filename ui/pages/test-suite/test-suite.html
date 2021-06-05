@@ -22,23 +22,25 @@
                         <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart"></D3PieChart>
                     </div>
                     <div class="md-layout-item md-size-50">
-                        <p><md-icon>link</md-icon>&nbsp;<span>{{ testSuite.repository.address }}</span></p>
-                        <p>
-                            <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}&nbsp;
-                            <a @click="toggleTestSuiteGitBranch(testSuite._id)">Change current GIT branch</a>
-                        </p>
-                        <p v-if="testSuite.status === 'to_update'">
-                            <md-button class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(testSuite._id)">
-                                <md-icon>warning</md-icon>
-                                <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
-                            </md-button>
-                        </p>
-                        <p v-if="testSuite.status === 'to_toggle_branch'">
-                            <md-button class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(testSuite._id)">
-                                <md-icon>warning</md-icon>
-                                <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
-                            </md-button>
-                        </p>
+                        <div class="test-suite-git-information">
+                            <p><md-icon>link</md-icon>&nbsp;<span>{{ testSuite.repository.address }}</span></p>
+                            <p>
+                                <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}&nbsp;
+                                <a @click="toggleTestSuiteGitBranch(testSuite._id)">Change current GIT branch</a>
+                            </p>
+                            <p v-if="testSuite.status === 'to_update'">
+                                <md-button class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(testSuite._id)">
+                                    <md-icon>warning</md-icon>
+                                    <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
+                                </md-button>
+                            </p>
+                            <p v-if="testSuite.status === 'to_toggle_branch'">
+                                <md-button class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(testSuite._id)">
+                                    <md-icon>warning</md-icon>
+                                    <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
+                                </md-button>
+                            </p>
+                        </div>
                         <ul v-if="testSuiteGitLog" class="test-suite-git-log">
                             <li v-for="gitCommit of testSuiteGitLog">
                                 <md-icon class="md-primary">circle</md-icon>
@@ -64,8 +66,10 @@
                     </div>
                 </div>
                 <div class="md-layout">
-                    <h4>Test suite history</h4>
-                    <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
+                    <div class="md-layout-item md-size-100">
+                        <h4>Test suite history</h4>
+                        <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
+                    </div>
                 </div>
             </div>
             <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" :siblingTestCases="testSuite.tests" @updateTestCase="updateTestCaseDisplay"></test-case>

@@ -237,17 +237,36 @@ class Repository {
         if (!patches.length) {
             return false;
         }
-
-        function fileMatchTest(patch) {
-            return testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
-        }
-        const matchedPatches = patches.filter(fileMatchTest);
+        const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testDirs));
         return matchedPatches.length > 0;
     }
 
     // TODO finish to factorize
     async getRecentCommitOfBranch(branchName) {
         return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
+    }
+
+    static fileMatchTest(patch, testDirs) {
+        let selected = false;
+        testDirs.forEach(filePattern => {
+            const isNegativePattern = filePattern.startsWith('!');
+            if (!selected && !isNegativePattern
+                && (minimatch(patch.oldFile().path(), filePattern) || minimatch(patch.newFile().path(), filePattern))
+            ) { // if unselected anymore and positively matched
+                selected = true;
+            } else if (selected && isNegativePattern
+                && (!minimatch(patch.oldFile().path(), filePattern) && !minimatch(patch.newFile().path(), filePattern))
+            ) { // if already selected and negatively matched (rejected)
+                selected = false;
+            }
+            // could use this case to select files that are available against a negative pattern ("some-file.jpg" should be selected by the pattern "!**/**.md")
+            // however user will most likely select some files with a first positive pattern and then add negative patterns to exclude some of them
+            // in this case, negative patterns should not be interpreted in their "positive" dimension
+            // else if (!selected && isNegativePattern && !minimatch(filePath, filePattern)) {
+            // 	selected = true;
+            // }
+        });
+        return selected;
     }
 
     async getRepositoryDiff(testSuite, commitSha) {
@@ -277,9 +296,7 @@ class Repository {
             });
         }
 
-        function fileMatchTest(patch) {
-            return testSuite.testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
-        }
+
         async function getHunks(patch) {
             const hunks = await patch.hunks();
             if (!hunks.length) {
@@ -303,7 +320,7 @@ class Repository {
             const test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
-        const matchedPatches = patches.filter(fileMatchTest).map(enrichWithTest);
+        const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
         const addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
             .map(patch => ({file: patch.newFile().path(), test: patch.test}));
@@ -361,10 +378,20 @@ class Repository {
     }
 
     async collectTestFilesPaths(testDirs) {
-        const testFilesBatches = await Promise.all(testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir, nodir: true})));
+        let collectedFiles = [];
+        for (let filePattern of testDirs) {
+            const isNegativePattern = filePattern.startsWith('!');
+            if (!isNegativePattern) {
+                collectedFiles = collectedFiles.concat(await utils.glob(filePattern, {cwd: this._repoDir, nodir: true}));
+            } else if (isNegativePattern) {
+                collectedFiles = collectedFiles.filter(fileName => {
+                    return minimatch(fileName, filePattern);
+                });
+            }
+        }
         return {
             basePath: this._repoDir,
-            filePaths: ([].concat(...testFilesBatches))
+            filePaths: collectedFiles
         };
     }
 }

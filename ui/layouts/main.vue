@@ -5,7 +5,7 @@
                 <md-button class="md-icon-button" @click="showNavigation = true">
                     <md-icon>menu</md-icon>
                 </md-button>
-                <h1 class="md-title">Vertest</h1>
+                <h1 class="md-title"><router-link to="/">Vertest</router-link></h1>
                 <div class="md-toolbar-section-end" v-if="currentUser !== null">
                     <md-button @click="showSidepanel = true">{{ currentUser.firstName }} {{ currentUser.lastName }}</md-button>
                 </div>
@@ -14,7 +14,6 @@
                 <md-toolbar class="md-transparent" md-elevation="0">
                     <span class="md-title">Vertest</span>
                 </md-toolbar>
-
                 <md-list>
                     <md-list-item>
                         <md-icon>assignment</md-icon>

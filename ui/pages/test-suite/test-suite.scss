@@ -17,6 +17,12 @@ ul#test-tree {
 .change-git-branch-button {
   cursor: pointer;
 }
+.test-suite-git-information {
+  a:hover {
+    text-decoration: none;
+    cursor: pointer ;
+  }
+}
 ul.test-suite-git-log {
   font-size: 10px;
   margin: 0;
@@ -43,7 +49,7 @@ ul.test-suite-git-log {
       position: relative;
       top: -5px;
       .sha {
-        color: $primary-color;
+        font-weight: 700;
       }
     }
   }

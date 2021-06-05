@@ -104,7 +104,7 @@
                         </md-button>
                     </md-field>
                     <div>
-                        <ul>
+                        <ul class="patterns-list">
                             <li v-for="(filePattern, filePatternIndex) in createPopin.filePatterns" :value="filePattern" :key="filePatternIndex">
                                 <md-button class="md-icon-button md-mini md-accent" @click="deleteFilePattern(filePatternIndex)">
                                     <md-icon>delete</md-icon>
@@ -117,16 +117,21 @@
                     <div class="md-layout md-gutter">
                         <div class="md-layout-item">
                             <strong>Available files</strong>
-                            <file-tree class="item"
-                                       :item="createPopin.availableFilesTree"
-                                       :displayLink="false">
-                            </file-tree>
+                            <ul class="file-tree">
+                                <file-tree class="item"
+                                           :item="createPopin.availableFilesTree"
+                                           :displayLink="false">
+                                </file-tree>
+                            </ul>
                         </div>
                         <div class="md-layout-item">
-                            <file-tree class="item"
-                                       :item="createPopin.selectedFilesTree"
-                                       :displayLink="false">
-                            </file-tree>
+                            <strong>Selected files</strong>
+                            <ul class="file-tree">
+                                <file-tree class="item"
+                                           :item="createPopin.selectedFilesTree"
+                                           :displayLink="false">
+                                </file-tree>
+                            </ul>
                         </div>
                     </div>
                     <md-button class="md-raised md-primary" @click="createTestSuite()">Create test suite</md-button>

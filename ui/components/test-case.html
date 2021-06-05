@@ -1,20 +1,21 @@
 <div v-if="testCaseLocal">
     <h2>{{ testCaseLocal.testFilePath }}</h2>
-    <test-case-state
-            v-if="testCaseLocal.user && testCaseLocal.user._id === currentUser._id"
-            :test-state="testCaseLocal.status"
-            :display-current-state="false"
-            :display-state-switch="true"
-            @change-test-status="changeTestStatus($event)"
-    ></test-case-state>
     <div class="actions">
         <md-button v-if="!currentUser.readOnly" class="md-icon-button md-raised" @click="showAffectUserPopin()">
             <md-icon>person_add</md-icon>
+            <md-tooltip md-direction="top">Affect a user on this test case</md-tooltip>
         </md-button>
-        <p v-if="testCaseLocal.user">
+        <span class="user-name" v-if="testCaseLocal.user">
             <md-icon >person</md-icon>
             <strong>{{ testCaseLocal.user.firstName }} {{ testCaseLocal.user.lastName }}</strong>
-        </p>
+        </span>
+        <test-case-state
+                v-if="testCaseLocal.user && testCaseLocal.user._id === currentUser._id"
+                :test-state="testCaseLocal.status"
+                :display-current-state="false"
+                :display-state-switch="true"
+                @change-test-status="changeTestStatus($event)"
+        ></test-case-state>
     </div>
     <div v-html="testCaseLocal.mdContent"></div>
     <md-dialog :md-active.sync="affectUserPopin.show">
