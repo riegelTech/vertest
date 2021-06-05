@@ -11,8 +11,8 @@ services:
     depends_on:
       - mongo
     volumes:
-      - ./:/home/node/smctest/
-    working_dir: /home/node/smctest/
+      - ./:/home/node/vertest/
+    working_dir: /home/node/vertest/
     ports:
       - "8080:8080"
     environment:
