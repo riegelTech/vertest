@@ -16,7 +16,7 @@ Find the complete documentation here : [./doc/home.md](./doc/home.md)
 
 ## Demo
 
-You can find a demo at <a href="https://vertest.riegel.tech" target="_blank">https://vertest.riegel.tech</a>,
+You can find a demo at [https://vertest.riegel.tech](https://vertest.riegel.tech),
  access it with login "admin" and password "adminadmin".
 Don't worry about the modification you make, even potentially destructive, all the application is restored
  back every night.
