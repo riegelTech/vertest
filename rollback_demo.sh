@@ -24,4 +24,4 @@ cp -R ./backup/repos/* ./cloneDir/
 
 # 5- restart the docker containers to refresh all data
 docker-compose down
-docker-compose -f ./docker-compose.yml up
+docker-compose -f ./docker-compose.yml up > /dev/null 2>&1 &
