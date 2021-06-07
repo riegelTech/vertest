@@ -7,14 +7,14 @@
 #****************************************************
 
 # 1- get the id of the running mongo container
-CONTAINER_NAME=$(docker-compose ps | grep mongod | grep -Eo "^([A-Za-z0-9_-]*)")
+CONTAINER_NAME=$(/usr/local/bin/docker-compose ps | grep mongod | grep -Eo "^([A-Za-z0-9_-]*)")
 
 function restore() {
     echo "Restoring backup..."
     # 2- restore the backups
     cp -R ./backup/mongo/vertest mongoData/
     chmod -R a+r mongoData/vertest
-    docker exec -ti "$CONTAINER_NAME" bash -c "cd /data/db/ && mongorestore -d vertest -c testSuites --drop vertest/testSuites.bson && mongorestore -d vertest -c users --drop vertest/users.bson"
+    docker exec "$CONTAINER_NAME" bash -c "cd /data/db/ && mongorestore -d vertest -c testSuites --drop vertest/testSuites.bson && mongorestore -d vertest -c users --drop vertest/users.bson"
 
     # 3- restore the logs
     rm -rf ./logs/*
@@ -25,15 +25,15 @@ function restore() {
     cp -R ./backup/repos/* ./cloneDir/
 
     # 5- restart the docker containers to refresh all data
-    docker-compose down
-    docker-compose -f ./docker-compose.yml up > /dev/null 2>&1 &
+    /usr/local/bin/docker-compose down
+    /usr/local/bin/docker-compose -f ./docker-compose.yml up > /dev/null 2>&1 &
 }
 
 function backup() {
     echo "Creating backup..."
     # 2- clean data backup and dump
     rm -rf mongoData/vertest
-    docker exec -ti "$CONTAINER_NAME" bash -c "cd /data/db/ && mongodump -d vertest -c users -o ./ && mongodump -d vertest -c testSuites -o ./"
+    docker exec "$CONTAINER_NAME" bash -c "cd /data/db/ && mongodump -d vertest -c users -o ./ && mongodump -d vertest -c testSuites -o ./"
     cp -R mongoData/vertest backup/mongo/
 
     # 3- clean logs and copy them from fresh
