@@ -31,7 +31,7 @@ describe('appConfig', function () {
             return Promise.resolve(configFileContent);
          }
       };
-      configModule = proxyquire('../../appConfig/config', {
+      configModule = proxyquire('../../../app/appConfig/config', {
          '../utils': fsMock
       });
 
@@ -94,7 +94,7 @@ describe('appConfig', function () {
    it('should fail if yaml parsing fails', async function () {
       // given
       const parsingError = 'Some parsing error';
-      configModule = proxyquire('../../appConfig/config', {
+      configModule = proxyquire('../../../app/appConfig/config', {
          'fs': fsMock,
          'yaml': {
             parse() {

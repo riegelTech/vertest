@@ -11,9 +11,9 @@ const uuid = require('uuidv4');
 
 const sshGitServer = require('../testUtils/git/sshGitServer');
 const httpGitServer = require('../testUtils/git/httpGitServer');
-const repoModule = require('../../repositories/repositories');
-const {SshKey} = require('../../sshKeys/ssh-keys');
-const utils = require('../../utils');
+const repoModule = require('../../../app/repositories/repositories');
+const {SshKey} = require('../../../app/sshKeys/ssh-keys');
+const utils = require('../../../app/utils');
 
 chai.should();
 const expect = chai.expect;
