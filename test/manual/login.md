@@ -1,5 +1,7 @@
 # Login
 
+![Door green door red](./assets/door-green-red.jpg)
+
 ## Abstract
 
 Test the login form, the login, logoff procedure and other displays involved.
@@ -40,3 +42,8 @@ Test the login form, the login, logoff procedure and other displays involved.
 5. A panel should appear from right, containing the user's first name and last name, and a logout icon
 6. Click on the logout icon
 7. You should be on the initial state: "When not logged in"
+
+### Logs
+
+1. Open the log info file in the project's log directory
+2. The login / logoff actions and the failed attempts should be properly logged
