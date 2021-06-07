@@ -15,7 +15,7 @@
   }
 }
 /* add a micro class to md-button component */
-.md-icon-button.md-dense.md-micro {
+.md-icon-button.md-micro {
   width: 20px;
   min-width: 20px;
   height: 20px;
@@ -24,5 +24,16 @@
     min-width: 20px;
     height: 20px;
     font-size: 16px!important;
+  }
+}
+.md-icon-button.md-pico {
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
+  .md-icon {
+    width: 15px;
+    min-width: 15px;
+    height: 15px;
+    font-size: 14px!important;
   }
 }

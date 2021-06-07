@@ -114,17 +114,21 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="md-layout md-gutter">
-                        <div class="md-layout-item">
+                    <div class="md-layout md-gutter selected-files">
+                        <div class="md-layout-item md-size-50">
                             <strong>Available files</strong>
                             <ul class="file-tree">
                                 <file-tree class="item"
                                            :item="createPopin.availableFilesTree"
-                                           :displayLink="false">
+                                           :displayLink="false"
+                                           :displaySelectors="true"
+                                           @select-item="selectItemForTestSuiteCreation"
+                                           @unselect-item="unselectItemForTestSuiteCreation"
+                                >
                                 </file-tree>
                             </ul>
                         </div>
-                        <div class="md-layout-item">
+                        <div class="md-layout-item md-size-50">
                             <strong>Selected files</strong>
                             <ul class="file-tree">
                                 <file-tree class="item"

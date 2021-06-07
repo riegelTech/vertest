@@ -245,10 +245,29 @@ export default {
 			}
 		},
 		addFilePattern() {
-			this.createPopin.filePatterns.push(this.createPopin.fieldFilePattern);
+			const filePattern = this.createPopin.fieldFilePattern.replace(/^((?:\/|\.))*/, ''); // minimatch does not support paths that begins with "./" or "/", here the pattern is very extensive
+			this.createPopin.filePatterns.push(filePattern);
 			this.createPopin.fieldFilePattern = '';
 
 			this.updateMatchedFiles();
+		},
+		unselectItemForTestSuiteCreation(item) {
+			this.addPatternFromItem(item, false);
+		},
+		selectItemForTestSuiteCreation(item) {
+			this.addPatternFromItem(item, true);
+		},
+		addPatternFromItem(item, positive = true) {
+			let pattern = positive ? '' : '!';
+			if (item.name === 'root') {
+				pattern = `${pattern}**/**.md`;
+			} else if (item.children === null) { // item is a file
+				pattern = `${pattern}${item.fullPath.replace(/^(root\/)/, '')}`;
+			} else { // item is a directory
+				pattern = `${pattern}${item.fullPath.replace(/^(root\/)/, '')}/**/**.md`;
+			}
+			this.createPopin.fieldFilePattern = pattern;
+			this.addFilePattern();
 		},
 		deleteFilePattern(filePatternIndex) {
 			let firstChunk = [];
@@ -267,8 +286,9 @@ export default {
 				this.createPopin.selectedFilesTree = Object.assign({}, this.createPopin.availableFilesTree);
 				return;
 			}
+
 			const flatFiles = fileTreeUtils.flattenLeafs(this.createPopin.availableFilesTree)
-				.map(leaf => leaf.fullPath);
+				.map(leaf => leaf.fullPath.replace(/^(root\/)/, ''));
 
 			const selectedFiles = flatFiles.filter(filePath => {
 				let selected = false;

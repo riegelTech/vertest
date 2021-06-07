@@ -101,10 +101,12 @@ export default {
 					this.$store.commit('currentTestSuite', this.testSuite);
 					breadCrumbEventBus.$emit('initCurrentTestSuite');
 					const filePaths = this.testSuite.tests.map(testCase => testCase.testFilePath);
-
 					const testFileMapping = {};
 					this.testSuite.tests.forEach(testCase => {
-						testFileMapping[testCase.testFilePath] = testCase;
+						testFileMapping[`root/${testCase.testFilePath}`] = {
+							testFilePath: testCase.testFilePath,
+							basePath: testCase.basePath
+						};
 					});
 					this.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
 					this.testsTree = fileTreeUtils.leafTransformer(this.testsTree, leaf => {

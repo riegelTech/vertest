@@ -11,6 +11,13 @@
     list-style-type: none;
     padding-left: 0;
   }
+  ul.patterns-list li {
+    line-height: 40px;
+  }
+  .selected-files {
+    max-height: 300px;
+    overflow-y: auto;
+  }
 }
 .md-field.auth-type {
   display: block;

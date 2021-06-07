@@ -3,8 +3,8 @@
         <div
                 class="treeLine"
                 :class="{bold: isFolder}"
-                @click="toggle">
-            <span class="folder" v-if="isFolder">
+                >
+            <span class="folder" v-if="isFolder" @click="toggle">
                 {{ item.name }}
             </span>
             <router-link class="file" v-if="!isFolder && displayLink && item.link" :to="item.link">
@@ -21,6 +21,12 @@
                         :user="item.user"
                 ></test-case-state>
             </span>
+            <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('select-item', item)">
+                <md-icon>add</md-icon>
+            </md-button>
+            <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('unselect-item', item)">
+                <md-icon>remove</md-icon>
+            </md-button>
         </div>
         <ul v-show="isOpen" v-if="isFolder && item.children">
             <file-tree
@@ -29,7 +35,9 @@
                     :key="index"
                     :item="child"
                     :display-link="displayLink"
-                    @open-item="$emit('open-item', $event)"
+                    :display-selectors="displaySelectors"
+                    @select-item="$emit('select-item', $event)"
+                    @unselect-item="$emit('unselect-item', $event)"
             ></file-tree>
         </ul>
     </li>
@@ -77,6 +85,9 @@
             }
             .file {
                 cursor: pointer;
+            }
+            .md-icon-button.md-pico{
+                margin: 3px 0 0;
             }
         }
         li.root {
