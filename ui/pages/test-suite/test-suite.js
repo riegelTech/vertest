@@ -234,7 +234,15 @@ export default {
 			const totalSuccess = getTestsStatusPercent(statuses.SUCCESS, total);
 			const totalFailed = getTestsStatusPercent(statuses.FAILED, total);
 
-			this.testSuiteStatusChart = [{
+			this.testSuiteStatusChart = [];
+			function addStatus(statuses, statusChart) {
+				for (let status of statuses) {
+					if (status.total > 0) {
+						statusChart.push(status);
+					}
+				}
+			}
+			addStatus([{
 				name: "Success",
 				total: totalSuccess
 			}, {
@@ -249,7 +257,7 @@ export default {
 			}, {
 				name: "To do",
 				total: totalTodo
-			}];
+			}], this.testSuiteStatusChart);
 
 			this.testSuiteStatusChartConfig = Object.assign({}, DEFAULT_TEST_SUITE_CHART_CONFIG, {
 				key: 'name',

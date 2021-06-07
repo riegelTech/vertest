@@ -54,3 +54,4 @@
 </script>
 <style scoped lang="scss" src="./main.scss"></style>
 <style lang="scss" src="./custom.scss"></style>
+<style lang="scss" src="./global.scss"></style>

@@ -17,8 +17,6 @@
                 </md-table-cell>
                 <md-table-cell md-label="Git branch" md-sort-by="gitBranch">
                     <span class="i-code-git icon-flow-branch"></span>{{ item.gitBranch }}
-                </md-table-cell>
-                <md-table-cell md-label="Action">
                     <router-link v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" :to="`/test-suites/${item._id}`">
                         <md-icon>warning</md-icon>
                         <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
@@ -27,6 +25,8 @@
                         <md-icon>warning</md-icon>
                         <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
                     </router-link>
+                </md-table-cell>
+                <md-table-cell md-label="Action">
                     <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
                         <md-tooltip md-direction="top">Delete test suite</md-tooltip>
@@ -141,17 +141,20 @@
     </md-dialog>
     <md-dialog :md-active.sync="loginPopup.show" :md-click-outside-to-close="false" :md-close-on-esc="false">
         <md-dialog-title>Login</md-dialog-title>
+        <span class="error-msg" v-if="loginPopup.authError">{{ loginPopup.authError }}</span>
         <form @submit="login">
-            <md-field>
+            <md-field :class="loginPopup.loginFieldMessageClass">
                 <label for="login">Login</label>
-                <md-input id="login" name="login" v-model="userLogin" type="text" @keyup.enter.native="login" />
+                <md-input id="login" name="login" v-model="userLogin" type="text" @keyup.enter.native="login" required />
+                <span class="md-error">Required field, please enter a login</span>
             </md-field>
-            <md-field>
+            <md-field :class="loginPopup.passwordFieldMessageClass">
                 <label for="password">Password</label>
-                <md-input id="password" name="password" v-model="userPassword" type="password" @keyup.enter.native="login" />
+                <md-input id="password" name="password" v-model="userPassword" type="password" @keyup.enter.native="login" required />
+                <span class="md-error">Required field, please enter a password</span>
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="login">Send</md-button>
+                <md-button class="md-primary" @click="login">Login</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>

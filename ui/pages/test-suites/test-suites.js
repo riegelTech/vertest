@@ -67,7 +67,10 @@ export default {
 			testSuites: [],
 			sshKeys: [],
 			loginPopup: {
-				show: false
+				show: false,
+				authError: null,
+				loginFieldMessageClass: '',
+				passwordFieldMessageClass: ''
 			},
 			currentUser: defaultCurrentUser,
 			appConfig: null,
@@ -87,6 +90,12 @@ export default {
 			this.currentUser = this.$store.state.currentUser;
 			this.hideLoginPopup();
 			this.initScreen();
+		});
+		userEventBus.$on('userLoginFail', () => {
+			const errorClass = 'md-invalid';
+			this.loginPopup.loginFieldMessageClass = this.userLogin ? '' : errorClass;
+			this.loginPopup.passwordFieldMessageClass = this.userPassword ? '' : errorClass;
+			this.loginPopup.authError = 'Invalid login or password, please retry';
 		});
 	},
 	methods: {

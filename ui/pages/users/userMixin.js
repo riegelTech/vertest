@@ -43,7 +43,7 @@ export const userMixin = {
 					userEventBus.$emit('userLogin');
 				}
 			} catch (e) {
-
+				userEventBus.$emit('userLoginFail');
 			}
 		},
 		async logout() {

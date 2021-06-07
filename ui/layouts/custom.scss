@@ -3,3 +3,26 @@
   background: #fff;
   padding: 1em;
 }
+/* Dialog titles are left shifted */
+.md-dialog-title {
+  padding: 24px 0 0;
+}
+/* fix when use a md-accent icon inside a link */
+.md-theme-default a:not(.md-button).md-accent {
+  text-decoration: none;
+  .md-icon.md-theme-default.md-icon-font {
+    color: inherit;
+  }
+}
+/* add a micro class to md-button component */
+.md-icon-button.md-dense.md-micro {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  .md-icon {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    font-size: 16px!important;
+  }
+}

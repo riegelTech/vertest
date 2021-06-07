@@ -1,7 +1,7 @@
 <main-layout v-if="testSuite">
     <bread-crumb></bread-crumb>
     <div class="md-layout md-gutter">
-        <div class="md-layout-item md-size-30 test-suite-col-left">
+        <div class="md-layout-item md-size-30 md-small-size-100 md-xsmall-size-100 test-suite-col-left">
             <h2 class="test-suite-title">
                 <router-link :to="`/test-suites/${testSuite._id}`">
                     {{ testSuite.name }}
@@ -15,27 +15,23 @@
                 ></file-tree>
             </ul>
         </div>
-        <div class="md-layout-item md-size-65 test-suite-col-right">
+        <div class="md-layout-item md-size-70 md-small-size-100 md-xsmall-size-100 test-suite-col-right">
             <div v-if="!openedTestCase">
                 <div class="md-layout">
-                    <div class="md-layout-item md-size-50">
+                    <div class="md-layout-item md-size-50 md-small-size-100 md-xsmall-size-100">
                         <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart"></D3PieChart>
                     </div>
-                    <div class="md-layout-item md-size-50">
+                    <div class="md-layout-item md-size-50 md-small-size-100 md-xsmall-size-100">
                         <div class="test-suite-git-information">
                             <p><md-icon>link</md-icon>&nbsp;<span>{{ testSuite.repository.address }}</span></p>
                             <p>
                                 <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}&nbsp;
                                 <a @click="toggleTestSuiteGitBranch(testSuite._id)">Change current GIT branch</a>
-                            </p>
-                            <p v-if="testSuite.status === 'to_update'">
-                                <md-button class="md-icon-button md-mini md-accent" @click="solveTestSuiteDiff(testSuite._id)">
+                                <md-button v-if="testSuite.status === 'to_update'" class="md-icon-button md-accent md-dense md-raised md-micro" @click="solveTestSuiteDiff(testSuite._id)">
                                     <md-icon>warning</md-icon>
                                     <md-tooltip md-direction="top">Valid GIT modifications on test suite, as repository has been updated</md-tooltip>
                                 </md-button>
-                            </p>
-                            <p v-if="testSuite.status === 'to_toggle_branch'">
-                                <md-button class="md-icon-button md-mini md-accent" @click="toggleTestSuiteGitBranch(testSuite._id)">
+                                <md-button v-if="testSuite.status === 'to_toggle_branch'" class="md-icon-button md-accent md-dense md-raised md-micro" @click="toggleTestSuiteGitBranch(testSuite._id)">
                                     <md-icon>warning</md-icon>
                                     <md-tooltip md-direction="top">Choose a new branch for test suite, as current branch has been deleted</md-tooltip>
                                 </md-button>
