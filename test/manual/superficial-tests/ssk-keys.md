@@ -1,6 +1,6 @@
 # SSH keys
 
-![keys on desk](./assets/keys-deck.jpg)
+![keys on desk](../assets/keys-deck.jpg)
 
 ## Abstract
 
@@ -8,8 +8,8 @@ Test the ssh keys page, lock and unlock actions.
 
 ## Prerequisites
 
-1. Copy the directory [./prerequisites/ssh-keys/](./prerequisites/ssh-keys/) on the project's root directory with its content
-2. Configure two ssh keys on the config file [../../config.yml](../../config.yml) as explained on [official documentation](../../doc/configure.md).
+1. Copy the directory [./prerequisites/ssh-keys/](../prerequisites/ssh-keys/) on the project's root directory with its content
+2. Configure two ssh keys on the config file [../../../config.yml](../../../config.yml) as explained on [official documentation](../../../doc/configure.md).
    So just replace the section "sshKeys" with the content below:
     ```
     sshKeys:
