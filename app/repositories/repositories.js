@@ -246,16 +246,18 @@ class Repository {
         return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
     }
 
-    static fileMatchTest(patch, testDirs) {
+    static fileMatchTest(patch, testDirs, considerOnlyNewFilePath = false) {
         let selected = false;
+        const newPath = patch.newFile().path();
+        const oldPath = considerOnlyNewFilePath ? patch.newFile().path() : patch.oldFile().path();
         testDirs.forEach(filePattern => {
             const isNegativePattern = filePattern.startsWith('!');
             if (!selected && !isNegativePattern
-                && (minimatch(patch.oldFile().path(), filePattern) || minimatch(patch.newFile().path(), filePattern))
+                && (minimatch(oldPath, filePattern) || minimatch(newPath, filePattern))
             ) { // if unselected anymore and positively matched
                 selected = true;
             } else if (selected && isNegativePattern
-                && (!minimatch(patch.oldFile().path(), filePattern) && !minimatch(patch.newFile().path(), filePattern))
+                && (!minimatch(oldPath, filePattern) && !minimatch(newPath, filePattern))
             ) { // if already selected and negatively matched (rejected)
                 selected = false;
             }
@@ -324,15 +326,24 @@ class Repository {
         const addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
             .map(patch => ({file: patch.newFile().path(), test: patch.test}));
-        const deletedPatches = matchedPatches
+        let deletedPatches = matchedPatches
             .filter(patch => patch.isDeleted())
             .map(patch => ({file: patch.oldFile().path(), test: patch.test}));
+
+        // Some renaming patches make the file to not match the test suite file selector anymore, must considered as deleted patch
+        const movedSoDeletedPatches = (await Promise.all(matchedPatches
+            .filter(patch => patch.isRenamed())
+            .filter(patch => !Repository.fileMatchTest(patch, testSuite.testDirs, true))
+            .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), test: patch.test}))));
+        deletedPatches = deletedPatches.concat(movedSoDeletedPatches);
+
         const modifiedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isModified() || patch.isRenamed())
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
         const renamedPatches = matchedPatches
             .filter(patch => patch.isRenamed())
+            .filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs, true))
             .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
         return Object.assign(result, {
