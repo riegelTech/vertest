@@ -51,12 +51,15 @@ class TestCase extends EventEmitter {
 			|| this.status === TestCase.STATUSES.FAILED;
 	}
 
-	setStatus(newStatus) {
+	setStatus(newStatus, user = null) {
 		const availableStatuses = Object.values(TestCase.STATUSES);
 		if (!availableStatuses.includes(newStatus)) {
 			throw new Error(`Status "${newStatus}" is not a valid status`);
 		}
 		this.status = newStatus;
+		if (user && this.status !== TestCase.STATUSES.TODO) {
+			this.user = user;
+		}
 		this.emit('statusUpdated', newStatus);
 	}
 }
@@ -122,6 +125,7 @@ class TestSuite {
 		});
 		this.tests.push(testCase);
 		testCase.on('statusUpdated', () => this.updateProgress());
+		return testCase;
 	}
 
 	removeTestCase(testFilePath) {

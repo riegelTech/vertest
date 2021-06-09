@@ -162,9 +162,10 @@ export default {
 			try {
 				this.diffPopin.newStatuses = {};
 				this.diffPopin.testSuiteId = testSuiteId;
-				const reqData = {
-					branchName: newGitBranch
-				};
+				const reqData = {};
+				if (newGitBranch) {
+					reqData.branchName = newGitBranch;
+				}
 				if (newTestDirs) {
 					reqData.testDirs = newTestDirs.map(newTestDir => newTestDir.pattern)
 				}
@@ -199,13 +200,17 @@ export default {
 				return;
 			}
 			try {
-				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, {
+				const reqData = {
 					currentCommit: this.diffPopin.diff.currentCommit,
 					targetCommit: this.diffPopin.diff.targetCommit,
 					newStatuses: this.diffPopin.newStatuses,
-					targetBranch: this.diffPopin.diff.targetBranch,
-					testDirs: this.toggleFileSelectorPopin.filePatterns.map(filePattern => filePattern.pattern)
-				});
+					targetBranch: this.diffPopin.diff.targetBranch
+				};
+
+				if (this.toggleFileSelectorPopin.filePatterns.length > 0) {
+					reqData.testDirs = this.toggleFileSelectorPopin.filePatterns.map(filePattern => filePattern.pattern)
+				}
+				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, reqData);
 				if (response.status !== 200) {
 					alert(response.body);
 					return;
@@ -268,6 +273,7 @@ export default {
 					}
 				}
 			}
+			// TODO test case status can be found on test-case component
 			addStatus([{
 				name: "Success",
 				total: totalSuccess

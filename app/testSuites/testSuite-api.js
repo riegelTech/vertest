@@ -128,6 +128,8 @@ async function solveTestSuiteDiff(req, res) {
 			throw new Error(`Unexpected testDirs type, Array expected, got ${typeof testDirs}`);
 		}
 
+		const modificationsToLog = [];
+
 		let addedPatches, deletedPatches, modifiedPatches, renamedPatches;
 		if (testDirs) {
 			const diff = await repository.getRepositoryFilesDiff(testSuite, testDirs);
@@ -135,6 +137,12 @@ async function solveTestSuiteDiff(req, res) {
 			deletedPatches = diff.deletedPatches;
 			modifiedPatches = diff.modifiedPatches;
 			renamedPatches = diff.renamedPatches;
+			const oldTestDir = testSuite.testDirs;
+			testSuite.testDirs = testDirs;
+			modificationsToLog.push({
+				message: `Change file selector for "${testSuite.name}", from "${oldTestDir.join(', ')}", to "${testDirs.join(', ')}"`
+			});
+			await testSuite.init();
 		}
 		if (targetCommit) {
 			const diff = await repository.getRepositoryDiff(testSuite, targetCommit);
@@ -146,19 +154,17 @@ async function solveTestSuiteDiff(req, res) {
 
 		const repositoryUpdated = targetCommit !== currentCommit;
 
-		const modificationsToLog = [];
 		modifiedPatches.forEach(async patch => {
-			const test = testSuite.getTestCaseByFilePath(patch.file);
+			const test = testSuite.getTestCaseByFilePath(patch.file) || testSuite.getTestCaseByFilePath(patch.newFile);
+			if (!testSuite.getTestCaseByFilePath(patch.newFile)) {
+				test.testFilePath = patch.newFile;
+			}
 			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
 				modificationsToLog.push({
 					message: `Test file "${test.testFilePath}" status changed from "${TestCase.STATUS_HR(test.status)}" to "${TestCase.STATUS_HR(newStatuses[test.testFilePath])}"`
 				});
+				test.setStatus(newStatuses[test.testFilePath], curUser);
 			}
-			const newStatus = newStatuses[test.testFilePath] || test.status;
-			if (newStatus === null) {
-				return;
-			}
-			test.status = newStatus;
 		});
 
 		addedPatches.forEach(patch => {
@@ -178,7 +184,7 @@ async function solveTestSuiteDiff(req, res) {
 		});
 
 		renamedPatches.forEach(patch => {
-			const test = testSuite.getTestCaseByFilePath(patch.file);
+			const test = testSuite.getTestCaseByFilePath(patch.file) || testSuite.getTestCaseByFilePath(patch.newFile);
 			test.testFilePath = patch.newFile;
 			modificationsToLog.push({
 				message: `Rename test case into "${testSuite.name}" due to git update, from "${patch.file}" to "${patch.newFile}"`,
@@ -191,8 +197,8 @@ async function solveTestSuiteDiff(req, res) {
 		});
 
 		if (targetBranch) {
-			await repository.checkoutBranch(targetBranch, targetCommit);
 			const oldBranch = testSuite.gitBranch;
+			await testSuite.repository.checkoutBranch(targetBranch);
 			testSuite.gitBranch = targetBranch;
 			testSuite.gitCommitSha = targetCommit;
 			modificationsToLog.push({
@@ -210,14 +216,9 @@ async function solveTestSuiteDiff(req, res) {
 		if (repositoryUpdated) {
 			testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
 		}
-		if (testDirs) {
-			const oldTestDir = testSuite.testDirs;
-			testSuite.testDirs = testDirs;
-			modificationsToLog.push({
-				message: `Change file selector for "${testSuite.name}", from "${oldTestDir.join(', ')}", to "${testDirs.join(', ')}"`
-			});
-		}
-		await testSuite.init();
+
+		await testSuite.collectTests();
+
 		await testSuiteModule.updateTestSuite(testSuite);
 
 		modificationsToLog.forEach(async auditLog => {
@@ -405,7 +406,7 @@ async function updateTestStatus(req, res) {
 		return res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
 
-	if (testCase.user._id !== curUser._id) {
+	if (testCase.user && testCase.user._id !== curUser._id) {
 		const errMessage = `User "${curUser.firstName} ${curUser.lastName}" is not allowed to change ${testCase.testFilePath} status`;
 		logs.error(errMessage);
 		return res.status(utils.RESPONSE_HTTP_CODES.LOCKED)

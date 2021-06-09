@@ -3,7 +3,7 @@
         <div>
             <ul class="patterns-list">
                 <li v-for="(filePattern, filePatternIndex) in filePatterns" :value="filePattern" :key="filePatternIndex">
-                    <md-button class="md-icon-button md-mini md-accent" @click="deleteFilePattern(filePatternIndex)">
+                    <md-button class="md-icon-button md-mini md-primary" @click="deleteFilePattern(filePatternIndex)">
                         <md-icon>delete</md-icon>
                         <md-tooltip md-direction="top">Remove this pattern</md-tooltip>
                     </md-button>

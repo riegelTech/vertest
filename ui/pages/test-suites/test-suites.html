@@ -40,6 +40,10 @@
         <form>
             <md-steppers md-linear :md-active-step.sync="createPopin.activeStep">
                 <md-step id="first" md-label="Main informations" :md-error="createPopin.firstStepError">
+                    <p class="cheer">
+                        First step: where can we find the test files ? In a GIT repository I suppose ?
+                        You can grab a local file repository giving its absolute file path, or a remote one using git or http protocol, as you like !
+                    </p>
                     <md-field>
                         <label for="testSuiteName">Test suite name</label>
                         <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" required />
@@ -87,6 +91,11 @@
                     <md-button class="md-raised md-primary" @click="getRepoBranches()">Next</md-button>
                 </md-step>
                 <md-step id="second" md-label="Repository GIT branch" :md-error="createPopin.secondStepError">
+                    <p class="cheer">
+                        Ok we have cloned the repository, and we found
+                        <span v-if="createPopin.availableGitBranches.length > 1">multiple branches: on which would you extract the tests ?</span>
+                        <span v-if="createPopin.availableGitBranches.length == 1">only one branch, is it correct ?</span>
+                    </p>
                     <md-field>
                         <label for="repositoryBranch">Choose GIT branch</label>
                         <md-select v-model="createPopin.repositoryBranch" name="repositoryBranch">
@@ -96,6 +105,10 @@
                     <md-button class="md-raised md-primary" @click="getRepoFiles()">Next</md-button>
                 </md-step>
                 <md-step id="third" md-label="File selection" :md-error="createPopin.thirdStepError">
+                    <p class="cheer">
+                        We do not want to warn you every time the repository get a new commit, so you can select the test files to monitor,
+                        in order to have warnings only when YOUR test files change. And yes, we assume it is only markdown files !
+                    </p>
                     <file-pattern-form :initial-file-patterns="createPopin.filePatterns" :available-files-tree="createPopin.availableFilesTree" @file-patterns-changed="filePatternsChanged"></file-pattern-form>
                     <md-button class="md-raised md-primary" @click="createTestSuite()">Create test suite</md-button>
                 </md-step>

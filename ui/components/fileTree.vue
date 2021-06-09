@@ -23,9 +23,13 @@
             </span>
             <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('select-item', item)">
                 <md-icon>add</md-icon>
+                <md-tooltip md-direction="top" v-if="isFolder">Select all this directory's content</md-tooltip>
+                <md-tooltip md-direction="top" v-else>Select this file</md-tooltip>
             </md-button>
             <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('unselect-item', item)">
                 <md-icon>remove</md-icon>
+                <md-tooltip md-direction="top" v-if="isFolder">Unselect all this directory's content</md-tooltip>
+                <md-tooltip md-direction="top" v-else>Unselect this file</md-tooltip>
             </md-button>
         </div>
         <ul v-show="isOpen" v-if="isFolder && item.children">

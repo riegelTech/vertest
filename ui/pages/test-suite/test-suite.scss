@@ -29,7 +29,19 @@ $primary-color: #448aff;
     margin: 0;
   }
 }
-
+.diffViewer {
+   .md-dialog-content {
+     padding: 0;
+   }
+  .file-entry {
+    padding: 0 15px;
+    margin: 10px 0;
+    border-left: 3px solid $primary-color;
+    .file-title {
+      color: $primary-color;
+    }
+  }
+ }
 .change-git-branch-button {
   cursor: pointer;
 }

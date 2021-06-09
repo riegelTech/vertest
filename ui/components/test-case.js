@@ -16,6 +16,18 @@ export const TEST_CASE_STATUSES = {
 	SUCCESS: 4,
 	FAILED: 5
 };
+const TEST_CASE_STATUSES_HR = {
+	[TEST_CASE_STATUSES.TODO]: 'To do',
+	[TEST_CASE_STATUSES.IN_PROGRESS]: 'In progress',
+	[TEST_CASE_STATUSES.BLOCKED]: 'Blocked',
+	[TEST_CASE_STATUSES.SUCCESS]: 'Successful',
+	[TEST_CASE_STATUSES.FAILED]: 'Failed',
+
+};
+
+export const getTestStateHR = function(status) {
+	return TEST_CASE_STATUSES_HR[status];
+};
 
 export default {
 	components: {
@@ -65,7 +77,6 @@ export default {
 
 			const defaultImageRender = md.renderer.rules.image;
 			md.renderer.rules.image = function (tokens, idx, options, env, self) {
-				console.log('image');
 				const token = tokens[idx];
 				const src = token.attrs[token.attrIndex('src')][1];
 				const resourceUrl = url.parse(src);

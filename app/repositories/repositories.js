@@ -319,12 +319,12 @@ class Repository {
             }));
         }
         function enrichWithTest(diffObject) {
-            const test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
+            let test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
         const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
 
-        const addedPatches = matchedPatches
+        let addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
             .map(patch => ({file: patch.newFile().path(), test: patch.test}));
         let deletedPatches = matchedPatches
@@ -342,6 +342,10 @@ class Repository {
             .filter(patch => patch.isModified() || patch.isRenamed())
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
+
+        // Some modified patches are newly integrated files that match the test dirs, but are not a test yet : they have no corresponding test object
+        addedPatches = addedPatches.concat(modifiedPatches.filter(patch => !patch.test))
+
         const renamedPatches = matchedPatches
             .filter(patch => patch.isRenamed())
             .filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs, true))
@@ -350,7 +354,7 @@ class Repository {
         return Object.assign(result, {
             addedPatches,
             deletedPatches,
-            modifiedPatches,
+            modifiedPatches: modifiedPatches.filter(patch => patch.test),
             renamedPatches,
             isEmpty: false
         });
