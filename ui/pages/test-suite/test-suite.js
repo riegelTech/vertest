@@ -162,10 +162,13 @@ export default {
 			try {
 				this.diffPopin.newStatuses = {};
 				this.diffPopin.testSuiteId = testSuiteId;
-				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
-					branchName: newGitBranch,
-					testDirs: newTestDirs ? newTestDirs.map(newTestDir => newTestDir.pattern) : this.testSuite.testDirs
-				})).body;
+				const reqData = {
+					branchName: newGitBranch
+				};
+				if (newTestDirs) {
+					reqData.testDirs = newTestDirs.map(newTestDir => newTestDir.pattern)
+				}
+				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, reqData)).body;
 				this.diffPopin.diff.modifiedPatches.forEach(patch => {
 					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
 				});
