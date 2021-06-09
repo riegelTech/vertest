@@ -23,3 +23,8 @@ Don't worry about the modification you make, even potentially destructive, all t
 
 Note that a user named "Ares" is read-only (if it has not been modified by another demo player), login with
  "ares" login and "adminadmin" password.
+ 
+> **_NOTE:_** Please use only public repositories, to avoid data theft or unexpected display.
+
+> **_NOTE:_** THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND. 
+> IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
