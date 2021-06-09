@@ -5,7 +5,7 @@
                 <md-button class="md-icon-button" @click="showNavigation = true">
                     <md-icon>menu</md-icon>
                 </md-button>
-                <h1 class="md-title"><router-link to="/">Vertest</router-link></h1>
+                <h1 class="md-title"><router-link :to="`/${$i18n.locale}/`">Vertest</router-link></h1>
                 <div class="md-toolbar-section-end" v-if="currentUser !== null">
                     <md-button @click="showSidepanel = true">{{ currentUser.firstName }} {{ currentUser.lastName }}</md-button>
                 </div>
@@ -17,15 +17,15 @@
                 <md-list>
                     <md-list-item>
                         <md-icon>assignment</md-icon>
-                        <span class="md-list-item-text"><router-link to="/">Test suites</router-link></span>
+                        <span class="md-list-item-text"><router-link :to="`/${$i18n.locale}/`">Test suites</router-link></span>
                     </md-list-item>
                     <md-list-item>
                         <md-icon>group</md-icon>
-                        <span class="md-list-item-text"><router-link to="/users">Users</router-link></span>
+                        <span class="md-list-item-text"><router-link :to="`/${$i18n.locale}/users`">Users</router-link></span>
                     </md-list-item>
                     <md-list-item>
                         <md-icon>vpn_key</md-icon>
-                        <span class="md-list-item-text"><router-link to="/ssh-keys">SSH keys</router-link></span>
+                        <span class="md-list-item-text"><router-link :to="`/${$i18n.locale}/ssh-keys`">SSH keys</router-link></span>
                     </md-list-item>
                 </md-list>
             </md-drawer>

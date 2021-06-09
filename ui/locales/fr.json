@@ -1,0 +1,19 @@
+{
+  "message": {
+    "Log in": "Connexion",
+    "Login": "Identifiant",
+    "Password": "Mot de passe",
+    "Required field, please enter a login": "Champ obligatoire, veuillez entrer un identifiant",
+    "Required field, please enter a password": "Champ obligatoire, veuillez entrer un mot de passe",
+    "Invalid login or password, please retry": "Identifiant ou mot de passe invalide, veuillez recommencer",
+    "Test suites": "Suites de tests",
+    "Name": "Nom",
+    "Repository": "Repository",
+    "Progress": "Avancement",
+    "Git branch": "Branche GIT",
+    "Action": "Action",
+    "Valid GIT modifications on test suite, as repository has been updated": "Le repository GIT a été mis à jour, Veuillez valider les modifications sur les tests",
+    "Choose a new branch for test suite, as current branch has been deleted": "La branche GIT a été supprimée, veuillez en choisir une nouvelle",
+    "Delete test suite": "Supprimer cette suite de tests"
+  }
+}

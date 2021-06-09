@@ -1,0 +1,19 @@
+{
+  "message": {
+    "Log in": "Log in",
+    "Login": "Login",
+    "Password": "Password",
+    "Required field, please enter a login": "Required field, please enter a login",
+    "Required field, please enter a password": "Required field, please enter a password",
+    "Invalid login or password, please retry": "Invalid login or password, please retry",
+    "Test suites": "Test suites",
+    "Name": "Name",
+    "Repository": "Repository",
+    "Progress": "Progress",
+    "Git branch": "Git branch",
+    "Action": "Action",
+    "Valid GIT modifications on test suite, as repository has been updated": "Valid GIT modifications on test suite, as repository has been updated",
+    "Choose a new branch for test suite, as current branch has been deleted": "Choose a new branch for test suite, as current branch has been deleted",
+    "Delete test suite": "Delete test suite"
+  }
+}

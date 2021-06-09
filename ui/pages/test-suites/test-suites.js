@@ -95,7 +95,7 @@ export default {
 			const errorClass = 'md-invalid';
 			this.loginPopup.loginFieldMessageClass = this.userLogin ? '' : errorClass;
 			this.loginPopup.passwordFieldMessageClass = this.userPassword ? '' : errorClass;
-			this.loginPopup.authError = 'Invalid login or password, please retry';
+			this.loginPopup.authError = this.$t("message.Invalid login or password, please retry");
 		});
 	},
 	methods: {
