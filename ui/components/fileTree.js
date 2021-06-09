@@ -47,10 +47,16 @@ export const fileTreeUtils = {
 			return tree;
 		}
 
+		return Object.assign({}, this.defaultRootTree(baseDir), {
+			children: buildTreeRecursive(shortenedFilePaths)
+		});
+	},
+	defaultRootTree(baseDir = '/') {
 		return {
 			name: TREE_ROOT,
 			path: baseDir,
-			children: buildTreeRecursive(shortenedFilePaths),
+			fullPath: baseDir,
+			children: null,
 			isLastChild: true
 		};
 	},

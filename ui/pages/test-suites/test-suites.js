@@ -5,8 +5,6 @@ import VueMaterial from 'vue-material';
 import VueResource from 'vue-resource';
 import {FormWizard, TabContent} from 'vue-form-wizard';
 
-import minimatch from 'minimatch';
-
 Vue.use(VueMaterial);
 Vue.use(VueResource);
 
@@ -16,6 +14,7 @@ import {userMixin} from '../users/userMixin';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';
+import FilePatternForm from '../../components/filePatternForm.vue';
 
 const defaultCurrentUser = null;
 const TEST_SUITE_PATH = '/api/test-suites/';
@@ -42,12 +41,12 @@ const EMPTY_TEST_SUITE = {
 	repositoryBranch: '',
 	availableGitBranches: [],
 	secondStepError: null,
-	availableFilesTree: {},
-	selectedFilesTree: {},
-	fieldFilePattern: '',
+	availableFilesTree: fileTreeUtils.defaultRootTree(),
+	selectedFilesTree: null,
 	filePatterns: [],
 	thirdStepError: null
 };
+
 function getEmptyTestSuitePopin() {
 	return Object.assign({}, EMPTY_TEST_SUITE);
 }
@@ -57,7 +56,8 @@ export default {
 		MainLayout,
 		FormWizard,
 		TabContent,
-		FileTree
+		FileTree,
+		FilePatternForm
 	},
 	mixins: [userMixin, sshKeysMixin],
 	data() {
@@ -237,85 +237,21 @@ export default {
 				if (response.status === 200) {
 					this.createPopin.availableFilesTree = fileTreeUtils.buildTree(response.body.filePaths, response.body.basePath);
 					this.createPopin.activeStep = 'third';
-					this.updateMatchedFiles();
 					return true;
 				}
 			} catch (resp) {
 				console.error(resp);
 			}
 		},
-		addFilePattern() {
-			const filePattern = this.createPopin.fieldFilePattern.replace(/^((?:\/|\.))*/, ''); // minimatch does not support paths that begins with "./" or "/", here the pattern is very extensive
-			this.createPopin.filePatterns.push(filePattern);
-			this.createPopin.fieldFilePattern = '';
-
-			this.updateMatchedFiles();
-		},
-		unselectItemForTestSuiteCreation(item) {
-			this.addPatternFromItem(item, false);
-		},
-		selectItemForTestSuiteCreation(item) {
-			this.addPatternFromItem(item, true);
-		},
-		addPatternFromItem(item, positive = true) {
-			let pattern = positive ? '' : '!';
-			if (item.name === 'root') {
-				pattern = `${pattern}**/**.md`;
-			} else if (item.children === null) { // item is a file
-				pattern = `${pattern}${item.fullPath.replace(/^(root\/)/, '')}`;
-			} else { // item is a directory
-				pattern = `${pattern}${item.fullPath.replace(/^(root\/)/, '')}/**/**.md`;
-			}
-			this.createPopin.fieldFilePattern = pattern;
-			this.addFilePattern();
-		},
-		deleteFilePattern(filePatternIndex) {
-			let firstChunk = [];
-			if (filePatternIndex > 0) {
-				firstChunk = this.createPopin.filePatterns.slice(0, filePatternIndex);
-			}
-			let lastChunk = [];
-			if (filePatternIndex < this.createPopin.filePatterns.length) {
-				lastChunk = this.createPopin.filePatterns.slice(filePatternIndex + 1);
-			}
-			this.createPopin.filePatterns = firstChunk.concat(lastChunk);
-			this.updateMatchedFiles();
-		},
-		updateMatchedFiles() {
-			if (this.createPopin.filePatterns.length === 0) {
-				this.createPopin.selectedFilesTree = Object.assign({}, this.createPopin.availableFilesTree);
-				return;
-			}
-
-			const flatFiles = fileTreeUtils.flattenLeafs(this.createPopin.availableFilesTree)
-				.map(leaf => leaf.fullPath.replace(/^(root\/)/, ''));
-
-			const selectedFiles = flatFiles.filter(filePath => {
-				let selected = false;
-				this.createPopin.filePatterns.forEach(filePattern => {
-					const isNegativePattern = filePattern.startsWith('!');
-					if (!selected && !isNegativePattern && minimatch(filePath, filePattern)) { // if unselected anymore and positively matched
-						selected = true;
-					} else if (selected && isNegativePattern && !minimatch(filePath, filePattern)) { // if already selected and negatively matched (rejected)
-						selected = false;
-					}
-					// could use this case to select files that are available against a negative pattern ("some-file.jpg" should be selected by the pattern "!**/**.md")
-					// however user will most likely select some files with a first positive pattern and then add negative patterns to exclude some of them
-					// in this case, negative patterns should not be interpreted in their "positive" dimension
-					// else if (!selected && isNegativePattern && !minimatch(filePath, filePattern)) {
-					// 	selected = true;
-					// }
-				});
-				return selected;
-			});
-			this.createPopin.selectedFilesTree = fileTreeUtils.buildTree(selectedFiles, this.createPopin.availableFilesTree.path);
+		filePatternsChanged(newFilePatterns) {
+			this.createPopin.filePatterns = newFilePatterns;
 		},
 		async createTestSuite() {
 			try {
 				const response = await this.$http.post(TEST_SUITE_PATH, {
 					testSuiteName: this.createPopin.testSuiteName,
 					repositoryUuid: this.createPopin.repositoryUuid,
-					filePatterns: this.createPopin.filePatterns
+					filePatterns: this.createPopin.filePatterns.map(fullPattern => fullPattern.pattern)
 				});
 				if (response.status === 200) {
 					await this.initTestSuites();

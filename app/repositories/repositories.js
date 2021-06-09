@@ -323,6 +323,7 @@ class Repository {
             return Object.assign(diffObject, {test});
         }
         const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
+
         const addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
             .map(patch => ({file: patch.newFile().path(), test: patch.test}));
@@ -353,6 +354,35 @@ class Repository {
             renamedPatches,
             isEmpty: false
         });
+    }
+
+    async getRepositoryFilesDiff(testSuite, newFileSelectors) {
+        const oldFiles = (await this.collectTestFilesPaths(testSuite.testDirs)).filePaths;
+        const newFiles = (await this.collectTestFilesPaths(newFileSelectors)).filePaths;
+
+        function getEnrichedFileDiff(filePath) {
+            return {file: filePath, test: testSuite.getTestCaseByFilePath(filePath)};
+        }
+
+        const addedPatches = newFiles.filter(newFile => !oldFiles.find(oldFile => oldFile === newFile))
+            .map(getEnrichedFileDiff);
+        const deletedPatches = oldFiles.filter(oldFile => !newFiles.find(newFile => oldFile === newFile))
+            .map(getEnrichedFileDiff);
+
+
+        const currentCommit = await this.getCurrentCommit(this.gitBranch);
+
+        // TODO diff object should be properly described as a class
+        // TODO diff object should include a "non-tracked-anymore" section, for the files that are not deleted by GIT, but that does not match the test suite file selector anymore
+        return {
+            currentCommit: currentCommit.sha(),
+            targetCommit: currentCommit.sha(),
+            addedPatches,
+            deletedPatches,
+            modifiedPatches: [],
+            renamedPatches: [],
+            isEmpty: addedPatches.length === 0 && deletedPatches.length === 0
+        };
     }
 
     async checkoutBranch(branchName) {

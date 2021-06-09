@@ -62,6 +62,21 @@ async function getTestSuiteRepositoryGitLog(req, res) {
 	}
 }
 
+async function getAllRepositoryFiles(req, res) {
+	try {
+		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
+		const repository = testSuite.repository;
+		const files = await repository.collectTestFilesPaths(['**/**']);
+		res.send(files);
+	} catch(e) {
+		logs.error(e.message);
+		res.send({
+			success: false,
+			msg: e.message
+		});
+	}
+}
+
 async function getTestSuiteHistory(req, res) {
 	try {
 		const from = req.body.from;
@@ -81,9 +96,14 @@ async function getTestSuiteDiff(req, res) {
 	try {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		const repository = testSuite.repository;
+		if (req.body.testDirs) {
+			const repositoryDiff = await repository.getRepositoryFilesDiff(testSuite, req.body.testDirs);
+			return res.send(repositoryDiff);
+		}
 		const mostRecentCommit = await repository.getRecentCommitOfBranch(req.body.branchName || repository.gitBranch);
 		const repositoryDiff = await repository.getRepositoryDiff(testSuite, mostRecentCommit);
-		res.send(repositoryDiff);
+		return res.send(repositoryDiff);
+
 	} catch(e) {
 		logs.error(e.message);
 		res.send({
@@ -97,15 +117,34 @@ async function solveTestSuiteDiff(req, res) {
 	try {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		const repository = testSuite.repository;
-		const {currentCommit, targetCommit, targetBranch, newStatuses} = req.body;
+		const {currentCommit, targetCommit, targetBranch, newStatuses, testDirs} = req.body;
 		const curUser = usersModule.getCurrentUser();
 
 		const effectiveCurrentCommit = await repository.getCurrentCommit(testSuite.gitBranch);
 		if (effectiveCurrentCommit.sha() !== currentCommit) {
 			throw new Error(`Validations are based on start commit ${currentCommit} but current repository commit is ${effectiveCurrentCommit.sha()}`);
 		}
+		if (testDirs && !Array.isArray(testDirs)) {
+			throw new Error(`Unexpected testDirs type, Array expected, got ${typeof testDirs}`);
+		}
 
-		const {addedPatches, deletedPatches, modifiedPatches, renamedPatches} = await repository.getRepositoryDiff(testSuite, targetCommit);
+		let addedPatches, deletedPatches, modifiedPatches, renamedPatches;
+		if (testDirs) {
+			const diff = await repository.getRepositoryFilesDiff(testSuite, testDirs);
+			addedPatches = diff.addedPatches;
+			deletedPatches = diff.deletedPatches;
+			modifiedPatches = diff.modifiedPatches;
+			renamedPatches = diff.renamedPatches;
+		}
+		if (targetCommit) {
+			const diff = await repository.getRepositoryDiff(testSuite, targetCommit);
+			addedPatches = diff.addedPatches;
+			deletedPatches = diff.deletedPatches;
+			modifiedPatches = diff.modifiedPatches;
+			renamedPatches = diff.renamedPatches;
+		}
+
+		const repositoryUpdated = targetCommit !== currentCommit;
 
 		const modificationsToLog = [];
 		modifiedPatches.forEach(async patch => {
@@ -155,19 +194,30 @@ async function solveTestSuiteDiff(req, res) {
 			await repository.checkoutBranch(targetBranch, targetCommit);
 			const oldBranch = testSuite.gitBranch;
 			testSuite.gitBranch = targetBranch;
+			testSuite.gitCommitSha = targetCommit;
 			modificationsToLog.push({
-				message: `Change branch for ${testSuite.name}, from ${oldBranch} to ${targetBranch}`
+				message: `Change branch for "${testSuite.name}", from "${oldBranch}" to "${targetBranch}"`
 			});
 		}
-		await repository.checkoutCommit(targetCommit);
-		modificationsToLog.push({
-			message: `Change HEAD commit for ${testSuite.name}, to ${targetCommit}`
-		});
+		if (targetCommit) {
+			await repository.checkoutCommit(targetCommit);
+			testSuite.gitCommitSha = targetCommit;
 
-		testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
-		testSuite.gitCommitSha = targetCommit;
-		await Promise.all(testSuite.tests.map(test => test.fetchTestContent()));
-
+			modificationsToLog.push({
+				message: `Change HEAD commit for "${testSuite.name}", from "${testSuite.name}", to "${targetCommit}"`
+			});
+		}
+		if (repositoryUpdated) {
+			testSuite.status = TestSuite.STATUSES.UP_TO_DATE;
+		}
+		if (testDirs) {
+			const oldTestDir = testSuite.testDirs;
+			testSuite.testDirs = testDirs;
+			modificationsToLog.push({
+				message: `Change file selector for "${testSuite.name}", from "${oldTestDir.join(', ')}", to "${testDirs.join(', ')}"`
+			});
+		}
+		await testSuite.init();
 		await testSuiteModule.updateTestSuite(testSuite);
 
 		modificationsToLog.forEach(async auditLog => {
@@ -388,6 +438,7 @@ async function updateTestStatus(req, res) {
 
 router.get('/', getTestSuites)
 	.get('/:uuid', getTestSuite)
+	.get('/:uuid/repository/all-files', getAllRepositoryFiles)
 	.get('/:uuid/gitLog/:limit', getTestSuiteRepositoryGitLog)
 	.post('/:uuid/diff', getTestSuiteDiff)
 	.post('/:uuid/history', getTestSuiteHistory)

@@ -99,8 +99,10 @@ class TestSuite {
 	}
 
 	bindTestCasesStates() {
+		const statusUpdatedEvent = 'statusUpdated';
 		this.tests.forEach(testCase => {
-			testCase.on('statusUpdated', () => this.updateProgress());
+			testCase.removeAllListeners(statusUpdatedEvent);
+			testCase.on(statusUpdatedEvent, () => this.updateProgress());
 		});
 	}
 

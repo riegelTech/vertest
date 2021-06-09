@@ -9,7 +9,10 @@ import BreadCrumb from '../../components/breadCrumb.vue';
 import DiffViewer from '../../components/diffViewer.vue';
 import TestCaseState from '../../components/testCaseState.vue';
 import {breadCrumbEventBus} from '../../components/breadCrumb.vue';
-import { D3PieChart } from 'vue-d3-charts';
+import {D3PieChart} from 'vue-d3-charts';
+
+import FilePatternForm from '../../components/filePatternForm.vue';
+import {filePatternSignification} from '../../components/filePatternForm.vue';
 
 const DEFAULT_TEST_SUITE_CHART_CONFIG = {
 	key: false,
@@ -51,13 +54,16 @@ export default {
 		BreadCrumb,
 		D3PieChart,
 		DiffViewer,
-		TestCaseState
+		TestCaseState,
+		FilePatternForm
 	},
 	data() {
 		return {
 			testSuite: null,
 			openedTestCase: null,
+			repositoryFilesTree: fileTreeUtils.defaultRootTree(),
 			testsTree: null,
+			testDirs: [],
 			testSuiteStatusChart: null,
 			testSuiteStatusChartConfig: {},
 			testSuiteGitLog: null,
@@ -75,6 +81,10 @@ export default {
 				testSuiteId: null,
 				availableGitBranches: [],
 				selectedGitBranch: null
+			},
+			toggleFileSelectorPopin: {
+				show: false,
+				filePatterns: []
 			}
 		}
 	},
@@ -119,6 +129,7 @@ export default {
 							})
 						}
 					});
+					this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
 					this.testSuiteStatusChartData();
 					await this.initTestSuiteGitLog();
 				}
@@ -129,6 +140,10 @@ export default {
 				}
 			} catch (resp) {
 				window.location.href = '/';
+			}
+			const allFilesResponse = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/repository/all-files`);
+			if (allFilesResponse.status === 200) { // TODO manage error case
+				this.repositoryFilesTree = fileTreeUtils.buildTree(allFilesResponse.body.filePaths, allFilesResponse.body.basePath);
 			}
 		},
 		async initTestSuiteGitLog() {
@@ -143,12 +158,13 @@ export default {
 				this.testSuiteGitLogError = `Failed to load git log: ${resp.body}`;
 			}
 		},
-		async solveTestSuiteDiff(testSuiteId, newGitBranch) {
+		async solveTestSuiteDiff(testSuiteId, newGitBranch, newTestDirs = null) {
 			try {
 				this.diffPopin.newStatuses = {};
 				this.diffPopin.testSuiteId = testSuiteId;
 				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
-					branchName: newGitBranch
+					branchName: newGitBranch,
+					testDirs: newTestDirs ? newTestDirs.map(newTestDir => newTestDir.pattern) : this.testSuite.testDirs
 				})).body;
 				this.diffPopin.diff.modifiedPatches.forEach(patch => {
 					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
@@ -156,6 +172,7 @@ export default {
 				this.diffPopin.newStatuses = {};
 				this.diffPopin.diff.targetBranch = newGitBranch;
 				this.toggleBranchPopin.show = false;
+				this.toggleFileSelectorPopin.show = false;
 				this.diffPopin.show = true;
 			} catch (e) {
 				alert('Test suite diff failed');
@@ -166,6 +183,9 @@ export default {
 			this.toggleBranchPopin.availableGitBranches = this.testSuite.repository._gitBranches;
 			this.toggleBranchPopin.selectedGitBranch = this.testSuite.repository._curBranch;
 			this.toggleBranchPopin.show = true;
+		},
+		toggleTestSuiteFileSelector() {
+			this.toggleFileSelectorPopin.show = true;
 		},
 		changeTestStatus(testCaseId, newTestStatus) {
 			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
@@ -180,7 +200,8 @@ export default {
 					currentCommit: this.diffPopin.diff.currentCommit,
 					targetCommit: this.diffPopin.diff.targetCommit,
 					newStatuses: this.diffPopin.newStatuses,
-					targetBranch: this.diffPopin.diff.targetBranch
+					targetBranch: this.diffPopin.diff.targetBranch,
+					testDirs: this.toggleFileSelectorPopin.filePatterns.map(filePattern => filePattern.pattern)
 				});
 				if (response.status !== 200) {
 					alert(response.body);
@@ -275,6 +296,9 @@ export default {
 					}
 				}
 			});
+		},
+		filePatternsChanged(newFilePatterns) {
+			this.toggleFileSelectorPopin.filePatterns = newFilePatterns;
 		}
 	}
 };

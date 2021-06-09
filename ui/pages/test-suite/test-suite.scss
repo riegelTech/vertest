@@ -5,12 +5,28 @@ $primary-color: #448aff;
     text-decoration: none;
   }
 }
-ul#test-tree {
+.test-file-tree ul{
   list-style-type: none;
   padding: 0;
   li:first-child:before,
   li:first-child:after {
     display: none;
+  }
+}
+.file-selector{
+  h4 {
+    padding-left: 0;
+    margin-bottom: 5px;
+  }
+  ol {
+    padding-left: 15px;
+    margin-top: 5px;
+    li {
+      padding-left: 0;
+    }
+  }
+  button.md-button.md-theme-default.md-primary {
+    margin: 0;
   }
 }
 
@@ -21,6 +37,12 @@ ul#test-tree {
   a:hover {
     text-decoration: none;
     cursor: pointer ;
+  }
+  button.md-button.md-theme-default.md-primary {
+    margin: -8px 0 0;
+  }
+  button.md-button.md-theme-default.md-raised.md-accent {
+    margin: 0;
   }
 }
 ul.test-suite-git-log {

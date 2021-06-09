@@ -96,48 +96,7 @@
                     <md-button class="md-raised md-primary" @click="getRepoFiles()">Next</md-button>
                 </md-step>
                 <md-step id="third" md-label="File selection" :md-error="createPopin.thirdStepError">
-                    <md-field>
-                        <label for="filePatterns">Configure which files to add to the set of tests with template of type **/**.md</label>
-                        <md-input name="filePatterns" v-model="createPopin.fieldFilePattern" type="text" />
-                        <md-button class="md-raised md-primary md-dense md-icon-button md-small" @click="addFilePattern()">
-                            <md-icon>add</md-icon>
-                        </md-button>
-                    </md-field>
-                    <div>
-                        <ul class="patterns-list">
-                            <li v-for="(filePattern, filePatternIndex) in createPopin.filePatterns" :value="filePattern" :key="filePatternIndex">
-                                <md-button class="md-icon-button md-mini md-accent" @click="deleteFilePattern(filePatternIndex)">
-                                    <md-icon>delete</md-icon>
-                                    <md-tooltip md-direction="top">Remove this pattern</md-tooltip>
-                                </md-button>
-                                {{ filePattern }}
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="md-layout md-gutter selected-files">
-                        <div class="md-layout-item md-size-50">
-                            <strong>Available files</strong>
-                            <ul class="file-tree">
-                                <file-tree class="item"
-                                           :item="createPopin.availableFilesTree"
-                                           :displayLink="false"
-                                           :displaySelectors="true"
-                                           @select-item="selectItemForTestSuiteCreation"
-                                           @unselect-item="unselectItemForTestSuiteCreation"
-                                >
-                                </file-tree>
-                            </ul>
-                        </div>
-                        <div class="md-layout-item md-size-50">
-                            <strong>Selected files</strong>
-                            <ul class="file-tree">
-                                <file-tree class="item"
-                                           :item="createPopin.selectedFilesTree"
-                                           :displayLink="false">
-                                </file-tree>
-                            </ul>
-                        </div>
-                    </div>
+                    <file-pattern-form :initial-file-patterns="createPopin.filePatterns" :available-files-tree="createPopin.availableFilesTree" @file-patterns-changed="filePatternsChanged"></file-pattern-form>
                     <md-button class="md-raised md-primary" @click="createTestSuite()">Create test suite</md-button>
                 </md-step>
             </md-steppers>
