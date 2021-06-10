@@ -104,47 +104,51 @@ export default {
 		async initTestSuite() {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = this.$route.params.testCaseId;
+			let response;
 			try {
-				const response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
-				if (response.status === 200) {
-					this.testSuite = response.body;
-					this.$store.commit('currentTestSuite', this.testSuite);
-					breadCrumbEventBus.$emit('initCurrentTestSuite');
-					const filePaths = this.testSuite.tests.map(testCase => testCase.testFilePath);
-					const testFileMapping = {};
-					this.testSuite.tests.forEach(testCase => {
-						testFileMapping[`root/${testCase.testFilePath}`] = {
-							testFilePath: testCase.testFilePath,
-							basePath: testCase.basePath
-						};
-					});
-					this.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
-					this.testsTree = fileTreeUtils.leafTransformer(this.testsTree, leaf => {
-						if (testFileMapping[leaf.fullPath]) {
-							const testCase = testFileMapping[leaf.fullPath];
-							return Object.assign({}, leaf, {
-								status: testCase.status,
-								link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
-								user: testCase.user
-							})
-						}
-					});
-					this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
-					this.testSuiteStatusChartData();
-					await this.initTestSuiteGitLog();
-				}
-				if (testCaseId) {
-					this.openTest({path: decodeURIComponent(testCaseId)});
-				} else {
-					this.closeTest();
-				}
+				response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			} catch (resp) {
 				window.location.href = '/';
+			}
+			if (response.status === 200) {
+				this.testSuite = response.body;
+				this.$store.commit('currentTestSuite', this.testSuite);
+				breadCrumbEventBus.$emit('initCurrentTestSuite');
+				const filePaths = this.testSuite.tests.map(testCase => testCase.testFilePath);
+				const testFileMapping = {};
+				this.testSuite.tests.forEach(testCase => {
+					testFileMapping[`root/${testCase.testFilePath}`] = {
+						testFilePath: testCase.testFilePath,
+						basePath: testCase.basePath
+					};
+				});
+				this.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
+				this.testsTree = fileTreeUtils.leafTransformer(this.testsTree, leaf => {
+					if (testFileMapping[leaf.fullPath]) {
+						const testCase = testFileMapping[leaf.fullPath];
+						return Object.assign({}, leaf, {
+							status: testCase.status,
+							link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
+							user: testCase.user
+						})
+					}
+				});
+				this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
+				this.testSuiteStatusChartData();
+				await this.initTestSuiteGitLog();
+			}
+			if (testCaseId) {
+				this.openTest({path: decodeURIComponent(testCaseId)});
+			} else {
+				this.closeTest();
 			}
 			const allFilesResponse = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}/repository/all-files`);
 			if (allFilesResponse.status === 200) { // TODO manage error case
 				this.repositoryFilesTree = fileTreeUtils.buildTree(allFilesResponse.body.filePaths, allFilesResponse.body.basePath);
 			}
+			window.app.$on('lang-changed', () => {
+				this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
+			});
 		},
 		async initTestSuiteGitLog() {
 			const logLimit = 5;

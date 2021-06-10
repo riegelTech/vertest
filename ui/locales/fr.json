@@ -1,8 +1,12 @@
 {
-  "message": {
-    "Log in": "Connexion",
+  "common": {
+    "Logout": "Déconnexion",
     "Login": "Identifiant",
     "Password": "Mot de passe",
+    "Next": "Suivant"
+  },
+  "homePage": {
+    "Log in": "Connexion",
     "Required field, please enter a login": "Champ obligatoire, veuillez entrer un identifiant",
     "Required field, please enter a password": "Champ obligatoire, veuillez entrer un mot de passe",
     "Invalid login or password, please retry": "Identifiant ou mot de passe invalide, veuillez recommencer",
@@ -14,6 +18,43 @@
     "Action": "Action",
     "Valid GIT modifications on test suite, as repository has been updated": "Le repository GIT a été mis à jour, Veuillez valider les modifications sur les tests",
     "Choose a new branch for test suite, as current branch has been deleted": "La branche GIT a été supprimée, veuillez en choisir une nouvelle",
-    "Delete test suite": "Supprimer cette suite de tests"
+    "Delete test suite": "Supprimer cette suite de tests",
+    "GIT repository and branch selection": "Sélection du repository GIT et de la branche",
+    "Main information": "Informations principales",
+    "first step creation of test suite help text": "Permière étape : où pouvons-nous trouver les fichiers de test ? Dans un repo GIT je suppose ?\nVous pouvez importer un repository GIT depuis le file system local, ou remote en utilisant le protocole git ou HTTP, au choix !",
+    "Test suite name": "Nom de la suite de tests",
+    "Repository address": "Adresse du repository",
+    "Repository authentication type": "Type d'authentification du repository",
+    "None (public repository)": "Aucune (repository public)",
+    "Login - password": "Identifiant - mot de passe",
+    "SSH key": "Clé SSH",
+    "SSH key file": "Fichier de clé SSH",
+    "Ssh key user": "Utilisateur de la clé",
+    "Key passphrase (leave blank if key has no passphrase)": "Mot de passe de la clé (laisser vide si la clé n'est pas protégée)",
+    "Invalid form": "Formulaire invalide",
+    "Repository creation failed, please check its address and credentials": "Le clonage du repository a échoué, veuillez vérifier les informations de connexion",
+    "Please choose GIT branch": "Veuillez choisir une branche GIT",
+    "Ok we have cloned the repository, and we found": "Ok nous avons bien cloné le repository et nous avons trouvé",
+    "multiple branches: on which would you extract the tests ?": "plusieurs branches : depuis laquelle doit-on extraire les tests ?",
+    "only one branch, is it correct ?": "seulement une branche, c'est correct ?",
+    "Choose GIT branch": "Choix de la branche",
+    "Repository GIT branch": "Choix de la branche GIT",
+    "File selection": "Sélection des fichiers",
+    "third step creation of test suite help text": "Nous ne voulons pas vous notifier à chaque commit sur le repository, vous pouvez donc maintenant selectionner les fichiers de test,\n pour ne vous notifier que lorsque VOS fichiers changent. Et oui, nous assumons que ces fichiers sont au format markdown !",
+    "Create test suite": "Créer la suite de tests"
+  },
+  "filePatternSelector": {
+    "Remove this pattern": "Retirer ce sélecteur",
+    "Available files": "Fichiers disponibles",
+    "Selected files": "Fichiers sélectionnés",
+    "Custom file selection pattern": "Sélecteur de fichier personnalisé",
+    "Include all the markdown files of the repository": "Inclure tous les fichiers markdown du repository",
+    "Exclude all the markdown files of the repository": "Exclure tous les fichiers markdown du repository",
+    "Include all the markdown files in directory {path} and in its descendants": "Inclure tous les fichiers markdown du dossier \"{path}\" et de ses descendants",
+    "Exclude all the markdown files in directory {path} and in its descendants": "Exclure tous les fichiers markdown du dossier \"{path}\" et de ses descendants",
+    "Include all the markdown files in directory {path}": "Inclure tous les fichiers markdown du dossier \"{path}\"",
+    "Exclude all the markdown files in directory {path}": "Exclure tous les fichiers markdown du dossier \"{path}\"",
+    "Include the file {path}": "Inclure le fichier \"{path}\"",
+    "Exclude the file {path}": "Exclure le fichier \"{path}\""
   }
 }

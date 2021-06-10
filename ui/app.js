@@ -23,6 +23,7 @@ import pageNotFoundComponent from './pages/404.vue';
 const router = new VueRouter({
 	mode: 'hash',
 	routes: [
+		{ path: '/', redirect: '/en/'},
 		{ path: '/:lang/', component: testSuitesComponent},
 		{ path: '/:lang/init', component: initComponent },
 		{ path: '/:lang/users', component: usersComponent},
@@ -35,7 +36,7 @@ const router = new VueRouter({
 		},
 		{ path: '/:lang/ssh-keys', component: sshKeysComponent},
 		{ path: '/:lang/mdvisu/:resource', component:markdownVisualizer},
-		{ path: '*', component: pageNotFoundComponent}
+		{ path: '/*', component: pageNotFoundComponent}
 	]
 });
 
@@ -60,10 +61,15 @@ const i18n = new VueI18n({
 
 setFilters();
 
-const app = new Vue({
+window.app = new Vue({
 	store,
 	router,
 	i18n
 }).$mount('#app-wrapper');
 
 i18n.locale = router.currentRoute.params.lang;
+router.beforeEach((to, from, next) => {
+	i18n.locale = to.params.lang;
+	window.app.$emit('lang-changed', i18n.locale);
+	next();
+});

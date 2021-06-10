@@ -2,135 +2,133 @@
     <div>
         <md-table v-model="testSuites" md-sort="name" md-sort-order="asc" md-card>
             <md-table-toolbar>
-                <h1 class="md-title">{{ $t("message.Test suites") }}
+                <h1 class="md-title">{{ $t("homePage.Test suites") }}
                     <md-button class="md-fab md-primary md-dense md-icon-button md-elevation-1" @click="showCreatePopin">
                         <md-icon>add</md-icon>
                     </md-button>
                 </h1>
             </md-table-toolbar>
             <md-table-row slot="md-table-row" slot-scope="{ item }">
-                <md-table-cell :md-label="$t('message.Name')" md-sort-by="name"><strong><router-link :to="`/${$i18n.locale}/test-suites/${item._id}`">{{ item.name }}</router-link></strong></md-table-cell>
-                <md-table-cell :md-label="$t('message.Repository')" md-sort-by="repositoryName">{{ item.repositoryAddress }}</md-table-cell>
-                <md-table-cell :md-label="$t('message.Progress')" md-numeric md-sort-by="progress.percent">
+                <md-table-cell :md-label="$t('homePage.Name')" md-sort-by="name"><strong><router-link :to="`/${$i18n.locale}/test-suites/${item._id}`">{{ item.name }}</router-link></strong></md-table-cell>
+                <md-table-cell :md-label="$t('homePage.Repository')" md-sort-by="repositoryName">{{ item.repositoryAddress }}</md-table-cell>
+                <md-table-cell :md-label="$t('homePage.Progress')" md-numeric md-sort-by="progress.percent">
                     <md-progress-bar md-mode="determinate" :md-value="item.progress.percent"></md-progress-bar>
                     {{ item.progress.percent }}%
                 </md-table-cell>
-                <md-table-cell :md-label="$t('message.Git branch')" md-sort-by="gitBranch">
+                <md-table-cell :md-label="$t('homePage.Git branch')" md-sort-by="gitBranch">
                     <span class="i-code-git icon-flow-branch"></span>{{ item.gitBranch }}
                     <router-link v-if="item.status === 'to_update'" class="md-icon-button md-mini md-accent" :to="`/${$i18n.locale}/test-suites/${item._id}`">
                         <md-icon>warning</md-icon>
-                        <md-tooltip md-direction="top">{{ $t("message.Valid GIT modifications on test suite, as repository has been updated") }}</md-tooltip>
+                        <md-tooltip md-direction="top">{{ $t("homePage.Valid GIT modifications on test suite, as repository has been updated") }}</md-tooltip>
                     </router-link>
                     <router-link v-if="item.status === 'to_toggle_branch'" class="md-icon-button md-mini md-accent" :to="`/${$i18n.locale}/test-suites/${item._id}`">
                         <md-icon>warning</md-icon>
-                        <md-tooltip md-direction="top">{{ $t("message.Choose a new branch for test suite, as current branch has been deleted") }}</md-tooltip>
+                        <md-tooltip md-direction="top">{{ $t("homePage.Choose a new branch for test suite, as current branch has been deleted") }}</md-tooltip>
                     </router-link>
                 </md-table-cell>
-                <md-table-cell :md-label="$t('message.Action')">
+                <md-table-cell :md-label="$t('homePage.Action')">
                     <md-button class="md-icon-button md-mini md-accent" @click="deleteTestSuite(item._id)">
                         <md-icon>delete</md-icon>
-                        <md-tooltip md-direction="top">{{ $t("message.Delete test suite") }}</md-tooltip>
+                        <md-tooltip md-direction="top">{{ $t("homePage.Delete test suite") }}</md-tooltip>
                     </md-button>
                 </md-table-cell>
             </md-table-row>
         </md-table>
     </div>
     <md-dialog :md-active.sync="createPopin.show" class="test-suite-creation-dialog">
-        <md-dialog-title>Please select a repository and a git branch</md-dialog-title>
+        <md-dialog-title>{{ $t("homePage.GIT repository and branch selection") }}</md-dialog-title>
         <form>
             <md-steppers md-linear :md-active-step.sync="createPopin.activeStep">
-                <md-step id="first" md-label="Main informations" :md-error="createPopin.firstStepError">
+                <md-step id="first" :md-label="$t('homePage.Main information')" :md-error="createPopin.firstStepError">
                     <p class="cheer">
-                        First step: where can we find the test files ? In a GIT repository I suppose ?
-                        You can grab a local file repository giving its absolute file path, or a remote one using git or http protocol, as you like !
+                        {{ $t("homePage.first step creation of test suite help text") }}
                     </p>
                     <md-field>
-                        <label for="testSuiteName">Test suite name</label>
+                        <label for="testSuiteName">{{ $t("homePage.Test suite name") }}</label>
                         <md-input name="testSuiteName" v-model="createPopin.testSuiteName" type="text" required />
                     </md-field>
                     <md-field>
-                        <label for="repositoryAddress">Repository address</label>
+                        <label for="repositoryAddress">{{ $t("homePage.Repository address") }}</label>
                         <md-input name="repositoryAddress" v-model="createPopin.repositoryAddress" type="text" required />
                     </md-field>
                     <md-field class="auth-type">
                         <div>
-                            <label for="repositoryAuthType">Repository authentication type</label>
+                            <label for="repositoryAuthType">{{ $t("homePage.Repository authentication type") }}</label>
                         </div>
                         <div>
-                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.NONE">None</md-radio>
-                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.PASS">Login - password</md-radio>
-                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.KEY">SSH key</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.NONE">{{ $t("homePage.None (public repository)") }}</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.PASS">{{ $t("homePage.Login - password") }}</md-radio>
+                            <md-radio class="md-primary" v-model="createPopin.repositoryAuthType" :value="authTypes.KEY">{{ $t("homePage.SSH key") }}</md-radio>
                         </div>
                     </md-field>
                     <div :hidden="createPopin.repositoryAuthType !== authTypes.PASS">
                         <md-field>
-                            <label for="repositoryLogin">Login</label>
+                            <label for="repositoryLogin">{{ $t("common.Login") }}</label>
                             <md-input name="repositoryLogin" v-model="createPopin.repositoryLogin" type="text" />
                         </md-field>
                         <md-field>
-                            <label for="repositoryPass">Password</label>
+                            <label for="repositoryPass">{{ $t("common.Password") }}</label>
                             <md-input name="repositoryPass" v-model="createPopin.repositoryPass" type="password" />
                         </md-field>
                     </div>
                     <div :hidden="createPopin.repositoryAuthType !== authTypes.KEY">
                         <md-field>
-                            <label for="repositorySshKey">SSH key file</label>
+                            <label for="repositorySshKey">{{ $t("homePage.SSH key file") }}</label>
                             <md-select v-model="createPopin.repositorySshKey" name="repositorySshKey">
                                 <md-option v-for="repositorySshKey in createPopin.availableSshKeys" :value="repositorySshKey.name" :key="repositorySshKey.name">{{ repositorySshKey.name }}</md-option>
                             </md-select>
                         </md-field>
                         <md-field>
-                            <label for="repositorySshKeyUser">Ssh key user</label>
+                            <label for="repositorySshKeyUser">{{ $t("homePage.Ssh key user") }}</label>
                             <md-input name="repositorySshKeyUser" v-model="createPopin.repositorySshKeyUser" type="text" />
                         </md-field>
                         <md-field>
-                            <label for="repositorySshKeyPass">Key passphrase (leave blank if key has no passphrase)</label>
+                            <label for="repositorySshKeyPass">{{ $t("homePage.Key passphrase (leave blank if key has no passphrase)") }}</label>
                             <md-input name="repositorySshKeyPass" v-model="createPopin.repositorySshKeyPass" type="password" />
                         </md-field>
                     </div>
-                    <md-button class="md-raised md-primary" @click="getRepoBranches()">Next</md-button>
+                    <md-button class="md-raised md-primary" @click="getRepoBranches()">{{ $t("common.Next") }}</md-button>
                 </md-step>
-                <md-step id="second" md-label="Repository GIT branch" :md-error="createPopin.secondStepError">
+                <md-step id="second" :md-label="$t('homePage.Repository GIT branch')" :md-error="createPopin.secondStepError">
                     <p class="cheer">
-                        Ok we have cloned the repository, and we found
-                        <span v-if="createPopin.availableGitBranches.length > 1">multiple branches: on which would you extract the tests ?</span>
-                        <span v-if="createPopin.availableGitBranches.length == 1">only one branch, is it correct ?</span>
+                        {{ $t("homePage.Ok we have cloned the repository, and we found") }}&nbsp;
+                        <span v-if="createPopin.availableGitBranches.length > 1">{{ $t("homePage.multiple branches: on which would you extract the tests ?") }}</span>
+                        <span v-if="createPopin.availableGitBranches.length == 1">{{ $t("homePage.only one branch, is it correct ?") }}</span>
                     </p>
                     <md-field>
-                        <label for="repositoryBranch">Choose GIT branch</label>
+                        <label for="repositoryBranch">{{ $t("homePage.Choose GIT branch") }}</label>
                         <md-select v-model="createPopin.repositoryBranch" name="repositoryBranch">
                             <md-option v-for="gitBranch in createPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
                         </md-select>
                     </md-field>
-                    <md-button class="md-raised md-primary" @click="getRepoFiles()">Next</md-button>
+                    <md-button class="md-raised md-primary" @click="getRepoFiles()">{{ $t("common.Next") }}</md-button>
                 </md-step>
-                <md-step id="third" md-label="File selection" :md-error="createPopin.thirdStepError">
+                <md-step id="third" :md-label="$t('homePage.File selection')" :md-error="createPopin.thirdStepError">
                     <p class="cheer">
-                        We do not want to warn you every time the repository get a new commit, so you can select the test files to monitor,
-                        in order to have warnings only when YOUR test files change. And yes, we assume it is only markdown files !
+                        {{ $t("homePage.third step creation of test suite help text") }}
                     </p>
                     <file-pattern-form :initial-file-patterns="createPopin.filePatterns" :available-files-tree="createPopin.availableFilesTree" @file-patterns-changed="filePatternsChanged"></file-pattern-form>
-                    <md-button class="md-raised md-primary" @click="createTestSuite()">Create test suite</md-button>
+                    <md-button class="md-raised md-primary" @click="createTestSuite()">{{ $t("homePage.Create test suite") }}</md-button>
                 </md-step>
             </md-steppers>
         </form>
     </md-dialog>
     <md-dialog :md-active.sync="loginPopup.show" :md-click-outside-to-close="false" :md-close-on-esc="false">
-        <md-dialog-title>{{ $t("message.Log in") }}</md-dialog-title>
+        <md-dialog-title>{{ $t("homePage.Log in") }}</md-dialog-title>
         <span class="error-msg" v-if="loginPopup.authError">{{ loginPopup.authError }}</span>
         <form @submit="login">
             <md-field :class="loginPopup.loginFieldMessageClass">
-                <label for="login">{{ $t("message.Login") }}</label>
+                <label for="login">{{ $t("common.Login") }}</label>
                 <md-input id="login" name="login" v-model="userLogin" type="text" @keyup.enter.native="login" required />
-                <span class="md-error">{{ $t("message.Required field, please enter a login") }}</span>
+                <span class="md-error">{{ $t("homePage.Required field, please enter a login") }}</span>
             </md-field>
             <md-field :class="loginPopup.passwordFieldMessageClass">
-                <label for="password">{{ $t("message.Password") }}</label>
+                <label for="password">{{ $t("common.Password") }}</label>
                 <md-input id="password" name="password" v-model="userPassword" type="password" @keyup.enter.native="login" required />
-                <span class="md-error">{{ $t("message.Required field, please enter a password") }}</span>
+                <span class="md-error">{{ $t("homePage.Required field, please enter a password") }}</span>
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="login">{{ $t("message.Log in") }}</md-button>
+                <md-button class="md-primary" @click="login">{{ $t("homePage.Log in") }}</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>

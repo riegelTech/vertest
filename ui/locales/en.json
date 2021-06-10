@@ -1,8 +1,12 @@
 {
-  "message": {
-    "Log in": "Log in",
+  "common": {
+    "Logout": "Logout",
     "Login": "Login",
     "Password": "Password",
+    "Next": "Next"
+  },
+  "homePage": {
+    "Log in": "Log in",
     "Required field, please enter a login": "Required field, please enter a login",
     "Required field, please enter a password": "Required field, please enter a password",
     "Invalid login or password, please retry": "Invalid login or password, please retry",
@@ -14,6 +18,43 @@
     "Action": "Action",
     "Valid GIT modifications on test suite, as repository has been updated": "Valid GIT modifications on test suite, as repository has been updated",
     "Choose a new branch for test suite, as current branch has been deleted": "Choose a new branch for test suite, as current branch has been deleted",
-    "Delete test suite": "Delete test suite"
+    "Delete test suite": "Delete test suite",
+    "GIT repository and branch selection": "GIT repository and branch selection",
+    "Main information": "Main information",
+    "first step creation of test suite help text": "First step: where can we find the test files ? In a GIT repository I suppose ?\nYou can grab a local file repository giving its absolute file path, or a remote one using git or http protocol, as you like !",
+    "Test suite name": "Test suite name",
+    "Repository address": "Repository address",
+    "Repository authentication type": "Repository authentication type",
+    "None (public repository)": "None (public repository)",
+    "Login - password": "Login - password",
+    "SSH key": "SSH key",
+    "SSH key file": "SSH key file",
+    "Ssh key user": "Ssh key user",
+    "Key passphrase (leave blank if key has no passphrase)": "Key passphrase (leave blank if key has no passphrase)",
+    "Invalid form": "Invalid form",
+    "Repository creation failed, please check its address and credentials": "Repository creation failed, please check its address and credentials",
+    "Please choose GIT branch": "Please choose GIT branch",
+    "Ok we have cloned the repository, and we found": "Ok we have cloned the repository, and we found",
+    "multiple branches: on which would you extract the tests ?": "multiple branches: on which would you extract the tests ?",
+    "only one branch, is it correct ?": "only one branch, is it correct ?",
+    "Choose GIT branch": "Choose GIT branch",
+    "Repository GIT branch": "Repository GIT branch",
+    "File selection": "File selection",
+    "third step creation of test suite help text": "We do not want to warn you every time the repository get a new commit, so you can here select the files that are test files,\n in order to have warnings only when YOUR test files change. And yes, we assume it is only markdown files !",
+    "Create test suite": "Create test suite"
+  },
+  "filePatternSelector": {
+    "Remove this pattern": "Remove this pattern",
+    "Available files": "Available files",
+    "Selected files": "Selected files",
+    "Custom file selection pattern": "Custom file selection pattern",
+    "Include all the markdown files of the repository": "Include all the markdown files of the repository",
+    "Exclude all the markdown files of the repository": "Exclude all the markdown files of the repository",
+    "Include all the markdown files in directory {path} and in its descendants": "Include all the markdown files in directory \"{path}\" and in its descendants",
+    "Exclude all the markdown files in directory {path} and in its descendants": "Exclude all the markdown files in directory \"{path}\" and in its descendants",
+    "Include all the markdown files in directory {path}": "Include all the markdown files in directory \"{path}\"",
+    "Exclude all the markdown files in directory {path}": "Exclude all the markdown files in directory \"{path}\"",
+    "Include the file {path}": "Include the file \"{path}\"",
+    "Exclude the file {path}": "Exclude the file \"{path}\""
   }
 }

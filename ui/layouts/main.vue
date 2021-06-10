@@ -37,7 +37,7 @@
                     <md-list-item>
                         <md-button class="md-icon-button" @click="logout">
                             <md-icon class="md-primary">meeting_room</md-icon>
-                            <md-tooltip md-direction="top">Logout</md-tooltip>
+                            <md-tooltip md-direction="top">{{ $t("common.Logout") }}</md-tooltip>
                         </md-button>
                     </md-list-item>
                 </md-list>
