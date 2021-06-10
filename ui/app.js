@@ -4,7 +4,11 @@ import Vue from 'vue';
 import store from './store';
 import VueRouter from 'vue-router';
 import VueI18n from "vue-i18n";
+import VueFlags from '@growthbunker/vueflags';
 
+Vue.use(VueFlags, {
+	iconPath: '/fonts/flags/',
+});
 Vue.use(VueRouter);
 Vue.use(VueI18n);
 
