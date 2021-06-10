@@ -8,6 +8,7 @@ import VueResource from 'vue-resource';
 Vue.use(VueMaterial);
 Vue.use(VueResource);
 
+import {userMixin} from './userMixin';
 import MainLayout from '../../layouts/main.vue';
 
 const EMPTY_USER = {
@@ -21,76 +22,6 @@ const EMPTY_USER = {
 	firstName: '',
 	lastName: '',
 	readOnly: false
-};
-const USER_API_PATH = '/api/users/';
-const AUTH_API_PATH = '/auth/user';
-
-export const userEventBus = new Vue();
-
-export const userMixin = {
-	data() {
-		return {
-			userLogin: '',
-			userPassword: '',
-			currentUser: null
-		};
-	},
-	async mounted() {
-		try {
-			const response = await this.$http.get(AUTH_API_PATH);
-			if (response.status === 200) {
-				this.currentUser = response.body;
-				this.$store.commit('currentUser', response.body);
-			}
-		} catch (resp) {
-			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
-				window.location.href = '#/init';
-				return;
-			}
-		}
-		userEventBus.$emit('initCurrentUser');
-	},
-	methods: {
-		async login() {
-			try {
-				const response = await this.$http.post('/auth/login', {
-					login: this.userLogin,
-					password: this.userPassword
-				});
-				if (response.status === 200) {
-					this.currentUser = response.body;
-					this.$store.commit('currentUser', response.body);
-					userEventBus.$emit('userLogin');
-				}
-			} catch (e) {
-
-			}
-		},
-		async logout() {
-			try {
-				const response = await this.$http.get('/auth/logout');
-				if (response.status === 200) {
-					this.currentUser = null;
-					this.$store.commit('currentUser', this.currentUser);
-					userEventBus.$emit('userLogout');
-					window.location.href = '/';
-				}
-			} catch (e) {
-
-			}
-		},
-		async getUsers(forceRefresh) {
-			if (!forceRefresh && this.$store.state.users.length > 0) {
-				return this.$store.state.users;
-			}
-			const response = await this.$http.get(USER_API_PATH);
-			if (response.status === 200) {
-				this.$store.commit('users', response.body);
-				return response.body;
-			}
-			throw new Error('No user found');
-		}
-	}
 };
 
 export default {
@@ -118,6 +49,7 @@ export default {
 		},
 		reinitUser() {
 			this.userPopin = Object.assign({}, EMPTY_USER);
+			this.error = '';
 		},
 		showEditPopin(user) {
 			this.userPopin = Object.assign({}, this.userPopin, EMPTY_USER, user, {
@@ -126,6 +58,7 @@ export default {
 				show: true,
 				editUser: true
 			});
+			this.error = '';
 		},
 		showCreatePopin() {
 			this.reinitUser();
@@ -134,13 +67,14 @@ export default {
 		},
 		async sendUser() {
 			if (this.userPopin.password.length < 8) {
-				this.error = 'Password is too weak';
+				this.error = this.$t('adminInitForm.Password is too weak');
 				return;
 			}
 			if (this.userPopin.password !== this.userPopin.password2) {
-				this.error = 'Passwords differs';
+				this.error = this.$t('adminInitForm.Passwords differs');
 				return;
 			}
+			this.error = '';
 			// update user
 			if (this.userPopin._id) {
 				return this.updateUser();
@@ -149,7 +83,7 @@ export default {
 		},
 		async addUser() {
 			try {
-				const response = await this.$http.post(USER_API_PATH, {
+				const response = await this.$http.post(this.getUserApiPath(), {
 					login: this.userPopin.login,
 					password: this.userPopin.password,
 					email: this.userPopin.email,
@@ -169,7 +103,7 @@ export default {
 		},
 		async updateUser() {
 			try {
-				const response = await this.$http.put(`${USER_API_PATH}${this.userPopin._id}`, {
+				const response = await this.$http.put(`${this.getUserApiPath()}${this.userPopin._id}`, {
 					login: this.userPopin.login,
 					password: this.userPopin.password,
 					email: this.userPopin.email,
@@ -188,7 +122,7 @@ export default {
 		},
 		async deleteUser(userUuid) {
 			try {
-				const response = await this.$http.delete(`${USER_API_PATH}${userUuid}`);
+				const response = await this.$http.delete(`${this.getUserApiPath()}${userUuid}`);
 				if (response.status !== 200) {
 					alert(response.body);
 					return;

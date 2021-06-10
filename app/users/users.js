@@ -2,12 +2,14 @@
 
 const crypto = require('crypto');
 
+const _ = require('lodash');
 const getNamespace = require('cls-hooked').getNamespace;
 const uuidV4 = require('uuidv4');
 
 const dbConnector = require('../db/db-connector');
 
 const SESSION_EXPIRATION_DELAY_HOURS = 2;
+// TODO handle an inactivity period in addition to max session duration
 const SUPER_ADMIN_LOGIN = 'admin';
 
 const sessions = new Map();
@@ -185,9 +187,9 @@ async function authenticate(login, pass, sessId) {
 	const sessionCls = getNamespace('sessions');
 
 	function augmentUserProps(user) {
-		return Object.assign({}, user, {
+		return _.omit(Object.assign({}, user, {
 			isSuperAdmin: user.isSuperAdmin
-		});
+		}), ['password']);
 	}
 
 	if (sessId && sessions.has(sessId)) {
@@ -231,6 +233,17 @@ function deauthenticate(sessId) {
 	return true;
 }
 
+function getUserBySessId(sessId) {
+	const sessionCls = getNamespace('sessions');
+	if (sessId && sessions.has(sessId)) {
+		const session = sessions.get(sessId);
+		if (session.isValid) {
+			return session.user;
+		}
+	}
+	return null;
+}
+
 function getCurrentUser () {
 	const sessionCls = getNamespace('sessions');
 	return sessionCls.get('user');
@@ -242,6 +255,7 @@ module.exports = {
 	deauthenticate,
 	getUsers,
 	getUser,
+	getUserBySessId,
 	getSuperAdmin,
 	addUser,
 	updateUser,

@@ -6,7 +6,7 @@ const mongoHost = process.env['MONGO_HOST'] || 'localhost';
 const mongoPort = process.env['MONGO_PORT'] || 27017;
 
 const mongoUrl = `mongodb://${mongoHost}:${mongoPort}`;
-const defaultDbName = 'smctest';
+const defaultDbName = 'vertest';
 
 const DB_TABLES = {
 	USERS: 'users',
@@ -14,10 +14,7 @@ const DB_TABLES = {
 };
 
 const client = new MongoClient(mongoUrl, {
-	autoReconnect: true,
-	reconnectTries: 5,
-	reconnectInterval: 2000,
-	useNewUrlParser: true
+	useUnifiedTopology: true
 });
 
 async function connect() {

@@ -7,12 +7,12 @@ services:
       - ./mongoData:/data/db
 
   node:
-    image: node:10.14.2
+    image: node:12.16.2
     depends_on:
       - mongo
     volumes:
-      - ./:/home/node/smctest/
-    working_dir: /home/node/smctest/
+      - ./:/home/node/vertest/
+    working_dir: /home/node/vertest/
     ports:
       - "8080:8080"
     environment:

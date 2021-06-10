@@ -1,0 +1,83 @@
+/* Add here all custom styles to override material theme */
+.md-dialog-container {
+  background: #fff;
+  padding: 1em;
+}
+/* Dialog titles are left shifted */
+.md-dialog-title {
+  padding: 24px 0 0;
+}
+/* fix when use a md-accent icon inside a link */
+.md-theme-default a:not(.md-button).md-accent {
+  text-decoration: none;
+  .md-icon.md-theme-default.md-icon-font {
+    color: inherit;
+  }
+}
+/* steppers navigation are ugly */
+.md-steppers-navigation {
+  box-shadow: none;
+}
+/* add a micro class to md-button component */
+.md-icon-button.md-micro {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  .md-icon {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    font-size: 16px!important;
+  }
+}
+.md-icon-button.md-pico {
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
+  .md-icon {
+    width: 15px;
+    min-width: 15px;
+    height: 15px;
+    font-size: 14px!important;
+  }
+}
+/* add a mini class to md-select component */
+.md-field {
+  &.md-adjustable{
+    width: auto;
+    display: inline-block;
+  }
+  &.md-no-border:after, &.md-no-border:before{
+    content: none;
+  }
+}
+.md-menu.md-select.md-mini {
+  .md-input {
+    font-size: 12px;
+    line-height: 18px;
+    height: auto;
+  }
+  &.md-adjustable {
+    width: auto;
+    flex: none;
+    .md-input {
+      font-size: 12px;
+      width: auto;
+      flex: none;
+    }
+    i.md-icon {
+      margin: 0
+    }
+  }
+}
+.md-list-item.md-mini {
+  .md-list-item-container {
+    font-size: 14px;
+    .md-list-item-content{
+      min-height: 0;
+      .md-list-item-text{
+        line-height: 21px;
+      }
+    }
+  }
+}

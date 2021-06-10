@@ -43,6 +43,7 @@ module.exports = {
     mkdir: util.promisify(fs.mkdir),
     exists: util.promisify(fs.exists),
     stat: util.promisify(fs.stat),
+    writeFile: util.promisify(fs.writeFile),
     // glob
     glob: util.promisify(glob),
     // http responses codes

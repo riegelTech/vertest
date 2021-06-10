@@ -1,13 +1,13 @@
 <template>
-    <li>
+    <li :class="{root: item.name == 'root', lastchild : item.isLastChild}" >
         <div
                 class="treeLine"
                 :class="{bold: isFolder}"
-                @click="toggle">
-            <span class="folder" v-if="isFolder">
+                >
+            <span class="folder" v-if="isFolder" @click="toggle">
                 {{ item.name }}
             </span>
-            <router-link class="file" v-if="!isFolder && displayLink && item.link" :to="item.link">
+            <router-link class="file" v-if="!isFolder && displayLink && item.link" :to="`/${$i18n.locale}${item.link}`">
                 {{ item.name }}
             </router-link>
             <span class="file" v-else-if="!isFolder" @click="$emit('open-item', item)">
@@ -21,6 +21,16 @@
                         :user="item.user"
                 ></test-case-state>
             </span>
+            <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('select-item', item)">
+                <md-icon>add</md-icon>
+                <md-tooltip md-direction="top" v-if="isFolder">{{ $t("fileTree.Select all this directorys content") }}</md-tooltip>
+                <md-tooltip md-direction="top" v-else>{{ $t("fileTree.Select this file") }}</md-tooltip>
+            </md-button>
+            <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('unselect-item', item)">
+                <md-icon>remove</md-icon>
+                <md-tooltip md-direction="top" v-if="isFolder">{{ $t("fileTree.Unselect all this directorys content") }}</md-tooltip>
+                <md-tooltip md-direction="top" v-else>{{ $t("fileTree.Unselect this file") }}</md-tooltip>
+            </md-button>
         </div>
         <ul v-show="isOpen" v-if="isFolder && item.children">
             <file-tree
@@ -29,7 +39,9 @@
                     :key="index"
                     :item="child"
                     :display-link="displayLink"
-                    @open-item="$emit('open-item', $event)"
+                    :display-selectors="displaySelectors"
+                    @select-item="$emit('select-item', $event)"
+                    @unselect-item="$emit('unselect-item', $event)"
             ></file-tree>
         </ul>
     </li>
@@ -38,28 +50,35 @@
 <script src="./fileTree.js"></script>
 
 <style scoped lang="scss">
+    $grey-light: #999;
     ul {
         list-style-type: none;
-        padding-left: 2em;
+        padding-left: 0;
         li {
             position: relative;
-            &:before,
-            &:after {
-                font-family: Material Icons;
-                -webkit-font-feature-settings: "liga";
-                font-feature-settings: "liga";
-                position: absolute;
+            border-left: 1px solid #999;
+            padding-left: 14px;
+            left: 1px;
+            &.lastchild {
+                border-left: none;
+                &:after {
+                    position: absolute;
+                    content: " ";
+                    top: -1px;
+                    left: 0;
+                    width: 0px;
+                    height: 11px;
+                    border-left: 1px solid $grey-light;
+                }
             }
             &:before {
-
-                content: "more_horiz";
-                top: 0.2em;
-                left: -1em;
-            }
-            &:after {
-                content: "more_vert";
-                top: -0.4em;
-                left: -1.3em;
+                position: absolute;
+                content: " ";
+                top: 10px;
+                left: 0;
+                width: 13px;
+                height: 0px;
+                border-top: 1px solid $grey-light  ;
             }
             .treeLine {
                 white-space: nowrap;
@@ -71,6 +90,12 @@
             .file {
                 cursor: pointer;
             }
+            .md-icon-button.md-pico{
+                margin: 3px 0 0;
+            }
+        }
+        li.root {
+            border-left: none;
         }
     }
 </style>

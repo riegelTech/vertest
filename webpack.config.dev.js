@@ -20,13 +20,16 @@ module.exports = {
 	resolve: {
 		alias: {
 			vue: 'vue/dist/vue.js'
+		},
+		fallback: {
+			path: require.resolve('path-browserify')
 		}
 	},
 	module: {
 		rules: [
 			{
 				test: /\.vue$/,
-				loader: 'vue-loader'
+				use: 'vue-loader'
 			},
 			{
 				test: /\.scss$/,

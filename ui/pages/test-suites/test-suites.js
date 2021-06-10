@@ -5,18 +5,16 @@ import VueMaterial from 'vue-material';
 import VueResource from 'vue-resource';
 import {FormWizard, TabContent} from 'vue-form-wizard';
 
-import minimatch from 'minimatch';
-
 Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
-import {userEventBus, userMixin} from '../users/users';
+import {userEventBus} from '../users/userMixin';
+import {userMixin} from '../users/userMixin';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
 import sshKeysMixin from '../ssh-keys/ssh-keys';
-import DiffViewer from '../../components/diffViewer.vue';
-import TestCaseState from '../../components/testCaseState.vue';
+import FilePatternForm from '../../components/filePatternForm.vue';
 
 const defaultCurrentUser = null;
 const TEST_SUITE_PATH = '/api/test-suites/';
@@ -43,12 +41,12 @@ const EMPTY_TEST_SUITE = {
 	repositoryBranch: '',
 	availableGitBranches: [],
 	secondStepError: null,
-	availableFilesTree: {},
-	selectedFilesTree: {},
-	fieldFilePattern: '',
+	availableFilesTree: fileTreeUtils.defaultRootTree(),
+	selectedFilesTree: null,
 	filePatterns: [],
 	thirdStepError: null
 };
+
 function getEmptyTestSuitePopin() {
 	return Object.assign({}, EMPTY_TEST_SUITE);
 }
@@ -56,11 +54,10 @@ function getEmptyTestSuitePopin() {
 export default {
 	components: {
 		MainLayout,
-		DiffViewer,
-		TestCaseState,
 		FormWizard,
 		TabContent,
-		FileTree
+		FileTree,
+		FilePatternForm
 	},
 	mixins: [userMixin, sshKeysMixin],
 	data() {
@@ -70,23 +67,13 @@ export default {
 			testSuites: [],
 			sshKeys: [],
 			loginPopup: {
-				show: false
+				show: false,
+				authError: null,
+				loginFieldMessageClass: '',
+				passwordFieldMessageClass: ''
 			},
 			currentUser: defaultCurrentUser,
-			diffPopin: {
-				show : false,
-				testSuiteId: null,
-				diff: {
-					isEmpty: true
-				},
-				newStatuses: {}
-			},
-			toggleBranchPopin: {
-				show: false,
-				testSuiteId: null,
-				availableGitBranches: [],
-				selectedGitBranch: null
-			},
+			appConfig: null,
 			waitSpinner: false
 		};
 	},
@@ -104,11 +91,20 @@ export default {
 			this.hideLoginPopup();
 			this.initScreen();
 		});
+		userEventBus.$on('userLoginFail', () => {
+			const errorClass = 'md-invalid';
+			this.loginPopup.loginFieldMessageClass = this.userLogin ? '' : errorClass;
+			this.loginPopup.passwordFieldMessageClass = this.userPassword ? '' : errorClass;
+			this.loginPopup.authError = this.$t("homePage.Invalid login or password, please retry");
+		});
 	},
 	methods: {
 		async initScreen() {
 			await this.initTestSuites();
 			this.createPopin.availableSshKeys = await this.getSshKeys();
+			if (this.createPopin.availableSshKeys.length > 0) {
+				this.createPopin.repositorySshKey = this.createPopin.availableSshKeys[0].name;
+			}
 		},
 		async initTestSuites() {
 			try {
@@ -165,65 +161,12 @@ export default {
 				alert('Test suite deletion failed');
 			}
 		},
-		async solveTestSuiteDiff(testSuiteId, newGitBranch) {
-			try {
-				this.diffPopin.newStatuses = {};
-				this.diffPopin.testSuiteId = testSuiteId;
-				this.diffPopin.diff = (await this.$http.post(`${TEST_SUITE_PATH}${testSuiteId}/diff`, {
-					branchName: newGitBranch
-				})).body;
-				this.diffPopin.diff.modifiedPatches.forEach(patch => {
-					this.diffPopin.newStatuses[patch.test.testFilePath] = null;
-				});
-				this.diffPopin.newStatuses = {};
-				this.diffPopin.diff.targetBranch = newGitBranch;
-				this.toggleBranchPopin.show = false;
-				this.diffPopin.show = true;
-			} catch (e) {
-				alert('Test suite diff failed');
-			}
-		},
-		async toggleTestSuiteGitBranch(testSuiteId) {
-			const testSuite = this.testSuites.find(testSuite => testSuite._id === testSuiteId);
-			this.toggleBranchPopin.testSuiteId = testSuiteId;
-			this.toggleBranchPopin.availableGitBranches = testSuite.repository._gitBranches;
-			this.toggleBranchPopin.selectedGitBranch = testSuite.repository._curBranch;
-			this.toggleBranchPopin.show = true;
-		},
-		changeTestStatus(testCaseId, newTestStatus) {
-			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
-		},
-		async submitNewTestsStatuses() {
-			const nullStatus = Object.values(this.diffPopin.newStatuses).find(newStatus => newStatus === null);
-			if (nullStatus !== undefined && !confirm('At least one modified test has not been validated, continue ?')) {
-				return;
-			}
-			try {
-				const response = await this.$http.put(`${TEST_SUITE_PATH}${this.diffPopin.testSuiteId}/solve`, {
-					currentCommit: this.diffPopin.diff.currentCommit,
-					targetCommit: this.diffPopin.diff.targetCommit,
-					newStatuses: this.diffPopin.newStatuses,
-					targetBranch: this.diffPopin.diff.targetBranch
-				});
-				if (response.status !== 200) {
-					alert(response.body);
-					return;
-				}
-				await this.initTestSuites();
-				this.hideDiffPopin();
-			} catch (e) {
-				alert('Test suite solving failed');
-			}
-		},
 		showCreatePopin() {
 			this.createPopin.show = true;
 		},
 		hideCreatePopin() {
 			this.createPopin.show = false;
 			return this.resetCreatePopin();
-		},
-		hideDiffPopin() {
-			this.diffPopin.show = false;
 		},
 		async resetCreatePopin() {
 			this.createPopin = getEmptyTestSuitePopin();
@@ -250,7 +193,7 @@ export default {
 			}
 
 			if (error === true) {
-				this.createPopin.firstStepError = 'Invalid form';
+				this.createPopin.firstStepError = this.$t("homePage.Invalid form");
 				return;
 			} else {
 				this.createPopin.firstStepError = null;
@@ -271,17 +214,20 @@ export default {
 					this.createPopin.availableGitBranches = response.body.branches;
 					this.createPopin.repositoryUuid = response.body.repoUuid;
 					this.createPopin.activeStep = 'second';
+					if (this.createPopin.availableGitBranches.length > 0 && this.createPopin.availableGitBranches.find(branch => branch === 'master')) {
+						this.createPopin.repositoryBranch = 'master';
+					}
 					return true;
 				}
 			} catch (resp) {
 				this.hideSpinner();
-				this.createPopin.firstStepError = 'Repository creation failed, please check its address and credentials';
+				this.createPopin.firstStepError = this.$t("homePage.Repository creation failed, please check its address and credentials");
 			}
 			return false;
 		},
 		async getRepoFiles() {
 			if (!this.createPopin.repositoryBranch) {
-				this.createPopin.secondStepError = 'Please choose GIT branch';
+				this.createPopin.secondStepError = this.$t("homePage.Please choose GIT branch");
 				return;
 			}
 			try {
@@ -291,49 +237,21 @@ export default {
 				if (response.status === 200) {
 					this.createPopin.availableFilesTree = fileTreeUtils.buildTree(response.body.filePaths, response.body.basePath);
 					this.createPopin.activeStep = 'third';
-					this.updateMatchedFiles();
 					return true;
 				}
 			} catch (resp) {
 				console.error(resp);
 			}
 		},
-		addFilePattern() {
-			this.createPopin.filePatterns.push(this.createPopin.fieldFilePattern);
-			this.createPopin.fieldFilePattern = '';
-
-			this.updateMatchedFiles();
-		},
-		deleteFilePattern(filePatternIndex) {
-			let firstChunk = [];
-			if (filePatternIndex > 0) {
-				firstChunk = this.createPopin.filePatterns.slice(0, filePatternIndex);
-			}
-			let lastChunk = [];
-			if (filePatternIndex < this.createPopin.filePatterns.length) {
-				lastChunk = this.createPopin.filePatterns.slice(filePatternIndex + 1);
-			}
-			this.createPopin.filePatterns = firstChunk.concat(lastChunk);
-			this.updateMatchedFiles();
-		},
-		updateMatchedFiles() {
-			if (this.createPopin.filePatterns.length === 0) {
-				this.createPopin.selectedFilesTree = Object.assign({}, this.createPopin.availableFilesTree);
-				return;
-			}
-			const flatFiles = fileTreeUtils.flattenLeafs(this.createPopin.availableFilesTree)
-				.map(leaf => leaf.fullPath);
-			const selectedFiles = flatFiles.filter(filePath => {
-				return this.createPopin.filePatterns.some(filePattern => minimatch(filePath, filePattern));
-			});
-			this.createPopin.selectedFilesTree = fileTreeUtils.buildTree(selectedFiles, this.createPopin.availableFilesTree.path);
+		filePatternsChanged(newFilePatterns) {
+			this.createPopin.filePatterns = newFilePatterns;
 		},
 		async createTestSuite() {
 			try {
 				const response = await this.$http.post(TEST_SUITE_PATH, {
 					testSuiteName: this.createPopin.testSuiteName,
 					repositoryUuid: this.createPopin.repositoryUuid,
-					filePatterns: this.createPopin.filePatterns
+					filePatterns: this.createPopin.filePatterns.map(fullPattern => fullPattern.pattern)
 				});
 				if (response.status === 200) {
 					await this.initTestSuites();

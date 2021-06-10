@@ -21,14 +21,17 @@ const LOCAL_REF_PATH = 'refs/heads/';
 class Repository {
     constructor({name = '', address = '', sshKey = null,  user = '', pass = '', repoPath = ''}) {
         if (!name) {
-            throw new Error(`Repository name is mandatory : "${name}" given, please check your configuration.`);
+            throw new Error(`Repository name is mandatory : "${name}" given.`);
         }
+        if (!repoPath) {
+            throw new Error(`Repository path is mandatory : "${repoPath}" given.`)
+        }
+        if (sshKey && pass) {
+            throw new Error('Cannot use both ssh and http authentication.')
+        }
+
         this.name = name;
         this.address = address;
-
-        if (sshKey && pass) {
-            throw new Error('Cannot use both ssh and http authentication, please check your configuration.')
-        }
 
         this.setSshKey(sshKey);
 
@@ -40,11 +43,7 @@ class Repository {
         this._curCommit = null;
         this._curBranch = null;
 
-        if (!repoPath) {
-            this._repoDir = Path.join(appConfig.workspace.repositoriesDir, this.name);
-        } else {
-            this._repoDir = repoPath;
-        }
+        this._repoDir = repoPath;
     }
 
     static get authMethods() {
@@ -63,11 +62,25 @@ class Repository {
     }
 
     get commit() {
+        return this._curCommit ? this._curCommit : null;
+    }
+
+    get commitSha() {
         return this._curCommit ? this._curCommit.sha() : null;
     }
 
     get gitBranch() {
         return this._curBranch;
+    }
+
+    static getfullCommit(commit) {
+        return {
+            sha: commit.sha(),
+            date: commit.date().getTime(),
+            author: commit.author().toString(false),
+            committer: commit.committer().toString(false),
+            message: commit.message()
+        };
     }
 
     setSshKey(newSshKey) {
@@ -168,11 +181,22 @@ class Repository {
         try {
             this._gitRepository = await Clone(this.address, this._repoDir, this._getRepoConnectionOptions());
         } catch (e) {
-            const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
+            if (e.code === 'EPRIVKEYENCRYPTED') {
+                throw e;
+            }
+            if (e.message.match(/credentials|authentication/)) {
+                const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
+                err.code = 'EREPOSITORYCLONEERROR';
+                throw err;
+            }
+            const err = new Error(`Failed to clone repository ${this.address}: ${e.message}`);
             err.code = 'EREPOSITORYCLONEERROR';
             throw err;
         }
 
+        if (this._gitRepository.isEmpty()) {
+            return;
+        }
         return this.refreshAvailableGitBranches();
     }
 
@@ -184,7 +208,7 @@ class Repository {
             .map(fullBranchName => fullBranchName.replace(FULL_REF_PATH, ''))
     }
 
-    fetchRepository() {
+    async fetchRepository() {
         return this._gitRepository.fetch(DEFAULT_REMOTE_NAME, Object.assign({prune: 1}, this._getRepoConnectionOptions(true)));
     }
 
@@ -213,17 +237,38 @@ class Repository {
         if (!patches.length) {
             return false;
         }
-
-        function fileMatchTest(patch) {
-            return testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
-        }
-        const matchedPatches = patches.filter(fileMatchTest);
+        const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testDirs));
         return matchedPatches.length > 0;
     }
 
     // TODO finish to factorize
     async getRecentCommitOfBranch(branchName) {
         return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
+    }
+
+    static fileMatchTest(patch, testDirs, considerOnlyNewFilePath = false) {
+        let selected = false;
+        const newPath = patch.newFile().path();
+        const oldPath = considerOnlyNewFilePath ? patch.newFile().path() : patch.oldFile().path();
+        testDirs.forEach(filePattern => {
+            const isNegativePattern = filePattern.startsWith('!');
+            if (!selected && !isNegativePattern
+                && (minimatch(oldPath, filePattern) || minimatch(newPath, filePattern))
+            ) { // if unselected anymore and positively matched
+                selected = true;
+            } else if (selected && isNegativePattern
+                && (!minimatch(oldPath, filePattern) && !minimatch(newPath, filePattern))
+            ) { // if already selected and negatively matched (rejected)
+                selected = false;
+            }
+            // could use this case to select files that are available against a negative pattern ("some-file.jpg" should be selected by the pattern "!**/**.md")
+            // however user will most likely select some files with a first positive pattern and then add negative patterns to exclude some of them
+            // in this case, negative patterns should not be interpreted in their "positive" dimension
+            // else if (!selected && isNegativePattern && !minimatch(filePath, filePattern)) {
+            // 	selected = true;
+            // }
+        });
+        return selected;
     }
 
     async getRepositoryDiff(testSuite, commitSha) {
@@ -253,9 +298,7 @@ class Repository {
             });
         }
 
-        function fileMatchTest(patch) {
-            return testSuite.testDirs.some(testDir => minimatch(patch.oldFile().path(), testDir) || minimatch(patch.newFile().path(), testDir));
-        }
+
         async function getHunks(patch) {
             const hunks = await patch.hunks();
             if (!hunks.length) {
@@ -276,31 +319,74 @@ class Repository {
             }));
         }
         function enrichWithTest(diffObject) {
-            const test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
+            let test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
-        const matchedPatches = patches.filter(fileMatchTest).map(enrichWithTest);
-        const addedPatches = matchedPatches
+        const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
+
+        let addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
             .map(patch => ({file: patch.newFile().path(), test: patch.test}));
-        const deletedPatches = matchedPatches
+        let deletedPatches = matchedPatches
             .filter(patch => patch.isDeleted())
             .map(patch => ({file: patch.oldFile().path(), test: patch.test}));
+
+        // Some renaming patches make the file to not match the test suite file selector anymore, must considered as deleted patch
+        const movedSoDeletedPatches = (await Promise.all(matchedPatches
+            .filter(patch => patch.isRenamed())
+            .filter(patch => !Repository.fileMatchTest(patch, testSuite.testDirs, true))
+            .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), test: patch.test}))));
+        deletedPatches = deletedPatches.concat(movedSoDeletedPatches);
+
         const modifiedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isModified() || patch.isRenamed())
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
+
+        // Some modified patches are newly integrated files that match the test dirs, but are not a test yet : they have no corresponding test object
+        addedPatches = addedPatches.concat(modifiedPatches.filter(patch => !patch.test))
+
         const renamedPatches = matchedPatches
             .filter(patch => patch.isRenamed())
+            .filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs, true))
             .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
         return Object.assign(result, {
             addedPatches,
             deletedPatches,
-            modifiedPatches,
+            modifiedPatches: modifiedPatches.filter(patch => patch.test),
             renamedPatches,
             isEmpty: false
         });
+    }
+
+    async getRepositoryFilesDiff(testSuite, newFileSelectors) {
+        const oldFiles = (await this.collectTestFilesPaths(testSuite.testDirs)).filePaths;
+        const newFiles = (await this.collectTestFilesPaths(newFileSelectors)).filePaths;
+
+        function getEnrichedFileDiff(filePath) {
+            return {file: filePath, test: testSuite.getTestCaseByFilePath(filePath)};
+        }
+
+        const addedPatches = newFiles.filter(newFile => !oldFiles.find(oldFile => oldFile === newFile))
+            .map(getEnrichedFileDiff);
+        const deletedPatches = oldFiles.filter(oldFile => !newFiles.find(newFile => oldFile === newFile))
+            .map(getEnrichedFileDiff);
+
+
+        const currentCommit = await this.getCurrentCommit(this.gitBranch);
+
+        // TODO diff object should be properly described as a class
+        // TODO diff object should include a "non-tracked-anymore" section, for the files that are not deleted by GIT, but that does not match the test suite file selector anymore
+        return {
+            currentCommit: currentCommit.sha(),
+            targetCommit: currentCommit.sha(),
+            addedPatches,
+            deletedPatches,
+            modifiedPatches: [],
+            renamedPatches: [],
+            isEmpty: addedPatches.length === 0 && deletedPatches.length === 0
+        };
     }
 
     async checkoutBranch(branchName) {
@@ -324,11 +410,33 @@ class Repository {
         await Reset.reset(this._gitRepository, commit, Reset.TYPE.HARD);
     }
 
+    async getGitLog(limit) {
+        const ancestors = [];
+        for (let i = 1; i <= limit; i++) {
+            const ancestor = await this._curCommit.nthGenAncestor(i);
+            if (ancestor) {
+                ancestors.push(ancestor);
+            }
+        }
+
+        return ancestors;
+    }
+
     async collectTestFilesPaths(testDirs) {
-        const testFilesBatches = await Promise.all(testDirs.map(testDirGlob => utils.glob(testDirGlob, {cwd: this._repoDir, nodir: true})));
+        let collectedFiles = [];
+        for (let filePattern of testDirs) {
+            const isNegativePattern = filePattern.startsWith('!');
+            if (!isNegativePattern) {
+                collectedFiles = collectedFiles.concat(await utils.glob(filePattern, {cwd: this._repoDir, nodir: true}));
+            } else if (isNegativePattern) {
+                collectedFiles = collectedFiles.filter(fileName => {
+                    return minimatch(fileName, filePattern);
+                });
+            }
+        }
         return {
             basePath: this._repoDir,
-            filePaths: ([].concat(...testFilesBatches))
+            filePaths: collectedFiles
         };
     }
 }

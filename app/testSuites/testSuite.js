@@ -3,6 +3,7 @@
 const EventEmitter = require('events');
 const Path = require('path');
 
+const _ = require('lodash');
 const fsExtra = require('fs-extra');
 const {lowestCommonAncestor} = require('lowest-common-ancestor');
 const uuid = require('uuidv4');
@@ -12,6 +13,8 @@ const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
 const utils = require('../utils');
+const logsModule = require('../logsModule/logsModule');
+const defaultLogger = logsModule.getDefaultLoggerSync();
 
 const TEST_SUITE_COLL_NAME = 'testSuites';
 
@@ -35,6 +38,10 @@ class TestCase extends EventEmitter {
 		}
 	}
 
+	static STATUS_HR(statusNum) {
+		return _.invert(TestCase.STATUSES)[statusNum];
+	}
+
 	async fetchTestContent() {
 		this.content = await utils.readFile(Path.resolve(this.basePath, this.testFilePath), 'utf8');
 	}
@@ -44,12 +51,15 @@ class TestCase extends EventEmitter {
 			|| this.status === TestCase.STATUSES.FAILED;
 	}
 
-	setStatus(newStatus) {
+	setStatus(newStatus, user = null) {
 		const availableStatuses = Object.values(TestCase.STATUSES);
 		if (!availableStatuses.includes(newStatus)) {
 			throw new Error(`Status "${newStatus}" is not a valid status`);
 		}
 		this.status = newStatus;
+		if (user && this.status !== TestCase.STATUSES.TODO) {
+			this.user = user;
+		}
 		this.emit('statusUpdated', newStatus);
 	}
 }
@@ -61,6 +71,8 @@ class TestSuite {
 		this.status = status;
 		this.tests = tests.map(rawTestCase => new TestCase(rawTestCase));
 		this.baseDir = lowestCommonAncestor(...this.tests.map(testCase => testCase.testFilePath));
+
+		this.history = [];
 
 		this.updateProgress();
 
@@ -90,8 +102,10 @@ class TestSuite {
 	}
 
 	bindTestCasesStates() {
+		const statusUpdatedEvent = 'statusUpdated';
 		this.tests.forEach(testCase => {
-			testCase.on('statusUpdated', () => this.updateProgress());
+			testCase.removeAllListeners(statusUpdatedEvent);
+			testCase.on(statusUpdatedEvent, () => this.updateProgress());
 		});
 	}
 
@@ -107,10 +121,11 @@ class TestSuite {
 		const testCase = new TestCase({
 			testFilePath,
 			basePath,
-			status: TEST_CASE_STATUSES.TODO
+			status: TestCase.STATUSES.TODO
 		});
 		this.tests.push(testCase);
 		testCase.on('statusUpdated', () => this.updateProgress());
+		return testCase;
 	}
 
 	removeTestCase(testFilePath) {
@@ -241,7 +256,7 @@ async function watchTestSuitesChanges() {
 					dirPath
 				};
 			})))
-			.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
+				.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
 
 		await Promise.all(unusedDirs.map(unusedDir => {
 			return fsExtra.remove(unusedDir.dirPath);
@@ -252,23 +267,26 @@ async function watchTestSuitesChanges() {
 			if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && !testSuite.repository.sshKey.isDecrypted) {
 				return;
 			}
+			const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 			try {
 				await testSuite.repository.fetchRepository();
 				await testSuite.repository.refreshAvailableGitBranches();
 				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testSuite.testDirs)
 					|| await testSuite.repository.lookupForChanges(testSuite.testDirs, true);
 				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
+					testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Repository change detected for test suite ${testSuite.name}`);
 					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
 					await updateTestSuite(testSuite);
 				}
 			} catch (e) {
-				console.error(e)
 				if (e.code === 'EDELETEDBRANCH') {
+					testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Git branch deleted, please change destination branch for test suite ${testSuite.name}`);
 					testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
 					await updateTestSuite(testSuite);
 					await testSuite.repository.refreshAvailableGitBranches();
 					return;
 				}
+				defaultLogger.error({message: e.message});
 			}
 		}));
 	}, 5000);

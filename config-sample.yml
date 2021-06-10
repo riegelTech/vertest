@@ -13,3 +13,4 @@ sshKeys:
 workspace:
   repositoriesDir: ./cloneDir # can be also absolute
   temporaryRepositoriesDir: ./tempDir # can be also absolute
+  logsDir: ./logs # can be also absolute

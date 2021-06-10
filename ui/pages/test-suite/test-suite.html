@@ -1,26 +1,155 @@
 <main-layout v-if="testSuite">
+    <bread-crumb></bread-crumb>
     <div class="md-layout md-gutter">
-        <div class="md-layout-item md-size-30 test-suite-col-left">
-            <h2>
-                <router-link :to="'/#/test-suites/'">
-                    <md-icon>arrow_back_ios</md-icon>
-                    <md-tooltip md-direction="top">Back to test suites</md-tooltip>
+        <div class="md-layout-item md-size-30 md-small-size-100 md-xsmall-size-100 test-suite-col-left">
+            <h2 class="test-suite-title">
+                <router-link :to="`/${$i18n.locale}/test-suites/${testSuite._id}`">
+                    {{ testSuite.name }}
                 </router-link>
-                {{ testSuite.name }}
             </h2>
-            <p><strong>{{ testSuite.repository.address }}</strong> : <em>{{ testSuite.gitBranch }}</em></p>
-            <md-progress-bar md-mode="determinate" :md-value="testSuite.progress.percent"></md-progress-bar>
-            {{ testSuite.progress.percent }}%
-            <ul id="test-tree">
-                <file-tree
-                        class="item"
-                        :item="testsTree"
-                        :display-link="true"
-                ></file-tree>
-            </ul>
+            <div class="test-file-tree">
+                <ul>
+                    <file-tree
+                            class="item"
+                            :item="testsTree"
+                            :display-link="true"
+                    ></file-tree>
+                </ul>
+            </div>
         </div>
-        <div class="md-layout-item md-size-65 test-suite-col-right">
-            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" @updateTestCase="updateTestCase"></test-case>
+        <div class="md-layout-item md-size-70 md-small-size-100 md-xsmall-size-100 test-suite-col-right">
+            <div v-if="!openedTestCase">
+                <div class="md-layout">
+                    <div class="md-layout-item md-size-50 md-small-size-100 md-xsmall-size-100">
+                        <D3PieChart v-if="testSuiteStatusChart && testSuiteStatusChartConfig" :config="testSuiteStatusChartConfig" :datum="testSuiteStatusChart"></D3PieChart>
+                    </div>
+                    <div class="md-layout-item md-size-50 md-small-size-100 md-xsmall-size-100">
+                        <div class="test-suite-git-information">
+                            <p><md-icon>link</md-icon>&nbsp;<span>{{ testSuite.repository.address }}</span></p>
+                            <p>
+                                <md-button v-if="testSuite.status === 'to_update'" class="md-icon-button md-accent md-dense md-raised md-micro" @click="solveTestSuiteDiff(testSuite._id)">
+                                    <md-icon>warning</md-icon>
+                                    <md-tooltip md-direction="top">{{ $t("testSuitePage.Valid GIT modifications on test suite, as repository has been updated") }}</md-tooltip>
+                                </md-button>
+                                <md-button v-if="testSuite.status === 'to_toggle_branch'" class="md-icon-button md-accent md-dense md-raised md-micro" @click="toggleTestSuiteGitBranch(testSuite._id)">
+                                    <md-icon>warning</md-icon>
+                                    <md-tooltip md-direction="top">{{ $t("testSuitePage.Choose a new branch for test suite, as current branch has been deleted") }}</md-tooltip>
+                                </md-button>
+                                <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}&nbsp;
+                                <md-button class="md-primary md-dense md-elevation-1" @click="toggleTestSuiteGitBranch(testSuite._id)">{{ $t("testSuitePage.Change current GIT branch") }}</md-button>
+                            </p>
+                        </div>
+                        <ul v-if="testSuiteGitLog" class="test-suite-git-log">
+                            <li v-for="gitCommit of testSuiteGitLog">
+                                <md-icon class="md-primary">circle</md-icon>
+                                <p>
+                                    <span class="sha">
+                                        {{ gitCommit.sha | shortenGitSha }}
+                                        <md-tooltip md-direction="top">{{ gitCommit.sha }}</md-tooltip>
+                                    </span>
+                                    <span class="date">{{ gitCommit.date | moment("DD-MM-YYYY HH:mm:ss") }}</span>
+                                    <span class="author">
+                                        {{ gitCommit.author | gitAuthorName }}
+                                        <md-tooltip md-direction="top">{{ gitCommit.author | gitAuthorEmail }}</md-tooltip>
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="message">
+                                        {{ gitCommit.message | shortenGitMessage }}
+                                    </span>
+                                </p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="file-selector md-layout-item md-size-100">
+                        <h4>{{ $t("testSuitePage.Current rules of file selection") }}</h4>
+                        <ol>
+                            <li v-for="testDir in testDirs">{{ testDir.signification }}</li>
+                        </ol>
+                        <md-button class="md-primary md-dense md-elevation-1" @click="toggleTestSuiteFileSelector()">{{ $t("testSuitePage.Change current file selection") }}</md-button>
+                    </div>
+                </div>
+                <div class="md-layout">
+                    <div class="md-layout-item md-size-100">
+                        <h4>{{ $t("testSuitePage.Test suite history") }}</h4>
+                        <test-suite-history :testSuiteId="testSuite._id"></test-suite-history>
+                    </div>
+                </div>
+            </div>
+            <test-case :testCase="openedTestCase" :testSuiteId="testSuite._id" :siblingTestCases="testSuite.tests" @updateTestCase="updateTestCaseDisplay"></test-case>
         </div>
     </div>
+    <md-dialog :md-active.sync="toggleBranchPopin.show">
+        <md-dialog-title>{{ $t("testSuitePage.Please select a new git branch") }}</md-dialog-title>
+        <form>
+            <md-field>
+                <label for="newGitBranch">{{ $t("testSuitePage.New git branch") }}</label>
+                <md-select v-model="toggleBranchPopin.selectedGitBranch" name="gitBranch">
+                    <md-option v-for="gitBranch in toggleBranchPopin.availableGitBranches" :value="gitBranch" :key="gitBranch">{{ gitBranch }}</md-option>
+                </md-select>
+            </md-field>
+            <md-dialog-actions>
+                <md-button @click="toggleBranchPopin.show = false">{{ $t("common.Cancel") }}</md-button>
+                <md-button class="md-primary" @click="solveTestSuiteDiff(toggleBranchPopin.testSuiteId, toggleBranchPopin.selectedGitBranch)">{{ $t("common.Next") }}</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
+    <md-dialog :md-active.sync="toggleFileSelectorPopin.show">
+        <md-dialog-title>{{ $t("testSuitePage.Change your file selectors") }}</md-dialog-title>
+        <form>
+            <file-pattern-form :initial-file-patterns="testSuite.testDirs" :available-files-tree="repositoryFilesTree" @file-patterns-changed="filePatternsChanged"></file-pattern-form>
+            <md-dialog-actions>
+                <md-button @click="toggleFileSelectorPopin.show = false">{{ $t("common.Cancel") }}</md-button>
+                <md-button class="md-primary" @click="solveTestSuiteDiff(testSuite._id, testSuite.repository._curBranch, toggleFileSelectorPopin.filePatterns)">{{ $t("common.Next") }}</md-button>
+            </md-dialog-actions>
+        </form>
+    </md-dialog>
+    <md-dialog class="diffViewer" :md-active.sync="diffPopin.show">
+        <md-dialog-title>{{ $t("testSuitePage.Differences to validate") }}</md-dialog-title>
+        <p class="cheer">
+            {{ $t("testSuitePage.diff validation step of test suite modification") }}
+        </p>
+        <md-dialog-content>
+            <md-tabs v-if="!diffPopin.diff.isEmpty" md-dynamic-height>
+                <md-tab :md-label="$t('testSuitePage.Modified tests')" v-if="diffPopin.diff.modifiedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.modifiedPatches" class="file-entry">
+                        <strong v-if="patch.file === patch.newFile" class="file-title">{{ patch.file }}</strong>
+                        <strong v-if="patch.file !== patch.newFile" class="file-title">{{ $t("testSuitePage.File has been moved to new File and modified", {file: patch.file, newFile: patch.newFile}) }}</strong>
+                        <test-case-state
+                                :testState="patch.test.status"
+                                :displayCurrentState="true"
+                                :displayStateSwitch="true"
+                                :user="patch.test.user"
+                                v-on:change-test-status="changeTestStatus(patch.newFile, $event)"
+                        >
+                        </test-case-state>
+                        <diff-viewer :hunks="patch.hunks"></diff-viewer>
+                    </div>
+                </md-tab>
+                <md-tab :md-label="$t('testSuitePage.Deleted tests')" v-if="diffPopin.diff.deletedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.deletedPatches" class="file-entry">
+                        <strong class="file-title">{{ patch.file }}</strong>
+                        <test-case-state :testState="patch.test.status" :displayCurrentState="true"></test-case-state>
+                    </div>
+                </md-tab>
+                <md-tab :md-label="$t('testSuitePage.Added tests')" v-if="diffPopin.diff.addedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.addedPatches" class="file-entry">
+                        <strong class="file-title">{{ patch.file }}</strong>
+                    </div>
+                </md-tab>
+                <md-tab :md-label="$t('testSuitePage.Renamed tests')" v-if="diffPopin.diff.renamedPatches.length > 0">
+                    <div v-for="patch in diffPopin.diff.renamedPatches" class="file-entry">
+                        <strong class="file-title">{{ $t("testSuitePage.File has been moved to new File", {file: patch.file, newFile: patch.newFile}) }}</strong>
+                    </div>
+                </md-tab>
+            </md-tabs>
+            <md-content v-if="diffPopin.diff.isEmpty">
+                {{ $t("testSuitePage.There is no differences between current local and target tests suite state.") }}
+            </md-content>
+        </md-dialog-content>
+        <md-dialog-actions>
+            <md-button @click="hideDiffPopin">{{ $t("common.Cancel") }}</md-button>
+            <md-button class="md-primary" @click="submitNewTestsStatuses">{{ $t("common.Finish") }}</md-button>
+        </md-dialog-actions>
+    </md-dialog>
 </main-layout>

@@ -1,0 +1,90 @@
+$primary-color: #448aff;
+.test-suite-title {
+  padding-left: 14px;
+  a {
+    text-decoration: none;
+  }
+}
+.test-file-tree ul{
+  list-style-type: none;
+  padding: 0;
+  li:first-child:before,
+  li:first-child:after {
+    display: none;
+  }
+}
+.file-selector{
+  h4 {
+    padding-left: 0;
+    margin-bottom: 5px;
+  }
+  ol {
+    padding-left: 15px;
+    margin-top: 5px;
+    li {
+      padding-left: 0;
+    }
+  }
+  button.md-button.md-theme-default.md-primary {
+    margin: 0;
+  }
+}
+.diffViewer {
+   .md-dialog-content {
+     padding: 0;
+   }
+  .file-entry {
+    padding: 0 15px;
+    margin: 10px 0;
+    border-left: 3px solid $primary-color;
+    .file-title {
+      color: $primary-color;
+    }
+  }
+ }
+.change-git-branch-button {
+  cursor: pointer;
+}
+.test-suite-git-information {
+  a:hover {
+    text-decoration: none;
+    cursor: pointer ;
+  }
+  button.md-button.md-theme-default.md-primary {
+    margin: -8px 0 0;
+  }
+  button.md-button.md-theme-default.md-raised.md-accent {
+    margin: 0;
+  }
+}
+ul.test-suite-git-log {
+  font-size: 10px;
+  margin: 0;
+  margin-left: 6px;
+  padding: 0;
+  p {
+    margin: 0
+  }
+
+  li {
+    list-style-type: none;
+    border-left: 2px solid $primary-color;
+    padding-left: 12px;
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: -5px;
+    i.md-icon {
+      position: absolute;
+      top: -8px;
+      left: -13px;
+      font-size: 14px !important;
+    }
+    p {
+      position: relative;
+      top: -5px;
+      .sha {
+        font-weight: 700;
+      }
+    }
+  }
+}

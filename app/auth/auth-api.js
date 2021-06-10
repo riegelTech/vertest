@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 
 const usersModule = require('../users/users');
+const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
 
 async function login(req, res) {
 	const login = req.body.login;
@@ -16,9 +17,11 @@ async function login(req, res) {
 
 	try {
 		if (await usersModule.authenticate(login, password, eventuallySessId)) {
+			logs.info({message: `Login successful for user ${login}`});
 			res.cookie('sessId', usersModule.getSessId());
 			return res.status(200).send(usersModule.getCurrentUser());
 		}
+		logs.error({message: `Login fail for login ${login}`});
 		return sendUnauthorized(res);
 	} catch (e) {
 		return sendUnauthorized(res);
@@ -28,10 +31,16 @@ async function login(req, res) {
 async function logout(req, res) {
 	try {
 		const eventuallySessId = usersModule.getSessId();
+		const currentUser = usersModule.getUserBySessId(req.cookies.sessId);
 		usersModule.deauthenticate(eventuallySessId);
 		res.cookie('sessId', '');
+		if (eventuallySessId) {
+
+		}
+		logs.info({message: `Logout for user ${currentUser.login}`});
 		return res.status(200).send('OK');
 	} catch (e) {
+		logs.error({message: e.message});
 		return sendUnauthorized(res);
 	}
 }
@@ -45,9 +54,11 @@ async function initSuperAdmin(req, res) {
 	try {
 		suAdmin = await usersModule.getSuperAdmin();
 	} catch (e) {
+		logs.error({message: e.message});
 		return res.status(500).send(e.message);
 	}
 	if (suAdmin) {
+		logs.error({message: `Init super admin failed, super admin already initialized`});
 		return res.status(403).send('Super user already exists');
 	}
 	try {
@@ -60,8 +71,10 @@ async function initSuperAdmin(req, res) {
 			readOnly: false,
 			hashPass: true
 		});
+		logs.info({message: `Super admin successfully initialized`});
 		return res.status(200).send('OK');
 	} catch (e) {
+		logs.error({message: e.message});
 		return res.status(500).send(e.message);
 	}
 }

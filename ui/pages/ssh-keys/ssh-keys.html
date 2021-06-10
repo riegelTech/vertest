@@ -2,15 +2,15 @@
     <div>
         <md-table v-model="sshKeys" md-sort="name" md-sort-order="asc" md-card>
             <md-table-toolbar>
-                <h1 class="md-title">SSH keys</h1>
+                <h1 class="md-title">{{ $t("sshKeyPage.SSH keys") }}</h1>
             </md-table-toolbar>
             <md-table-row slot="md-table-row" slot-scope="{ item }">
-                <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
-                <md-table-cell md-label="Actions">
+                <md-table-cell :md-label="$t('sshKeyPage.Name')" md-sort-by="name">{{ item.name }}</md-table-cell>
+                <md-table-cell :md-label="$t('sshKeyPage.Actions')">
                     <template v-if="item.decryptedPrivKey === false">
                         <md-button class="md-icon-button md-accent" @click="unlockPrivKey(item.name)">
                             <md-icon>lock</md-icon>
-                            <md-tooltip md-direction="top">Enter passphrase to decrypt private key</md-tooltip>
+                            <md-tooltip md-direction="top">{{ $t("sshKeyPage.Enter passphrase to decrypt private key") }}</md-tooltip>
                         </md-button>
                     </template>
                     <template v-else>
@@ -21,17 +21,17 @@
         </md-table>
     </div>
     <md-dialog :md-active.sync="keyPopin.show">
-        <md-dialog-title>Key pass</md-dialog-title>
+        <md-dialog-title>{{ $t("sshKeyPage.Key pass") }}</md-dialog-title>
         <form @submit="sendKeyPass">
             <md-field>
                 <md-input name="repoAddress" v-model="keyPopin.keyName" type="hidden" />
             </md-field>
             <md-field>
-                <label for="keyPass">Private key password</label>
+                <label for="keyPass">{{ $t("sshKeyPage.Private key password") }}</label>
                 <md-input name="keyPass" v-model="keyPopin.keyPass" type="password" />
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="sendKeyPass">Send</md-button>
+                <md-button class="md-primary" @click="sendKeyPass">{{ $t("sshKeyPage.Send") }}</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>

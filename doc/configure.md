@@ -39,9 +39,11 @@ sshKeys:
 
 Each test suite is linked to a full GIT repository, potentially very large, so you can choose where application will
 store the GIT repositories in disk.
+In addition, you can choose the logs directory.
 
 ```yaml
 workspace:
   repositoriesDir: ./cloneDir # can be also absolute
   temporaryRepositoriesDir: ./tempDir # can be also absolute
+  logsDir: ./logs # can be also absolute
 ```
