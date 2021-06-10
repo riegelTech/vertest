@@ -95,7 +95,7 @@ export default {
 			const errorClass = 'md-invalid';
 			this.loginPopup.loginFieldMessageClass = this.userLogin ? '' : errorClass;
 			this.loginPopup.passwordFieldMessageClass = this.userPassword ? '' : errorClass;
-			this.loginPopup.authError = 'Invalid login or password, please retry';
+			this.loginPopup.authError = this.$t("homePage.Invalid login or password, please retry");
 		});
 	},
 	methods: {
@@ -193,7 +193,7 @@ export default {
 			}
 
 			if (error === true) {
-				this.createPopin.firstStepError = 'Invalid form';
+				this.createPopin.firstStepError = this.$t("homePage.Invalid form");
 				return;
 			} else {
 				this.createPopin.firstStepError = null;
@@ -221,13 +221,13 @@ export default {
 				}
 			} catch (resp) {
 				this.hideSpinner();
-				this.createPopin.firstStepError = 'Repository creation failed, please check its address and credentials';
+				this.createPopin.firstStepError = this.$t("homePage.Repository creation failed, please check its address and credentials");
 			}
 			return false;
 		},
 		async getRepoFiles() {
 			if (!this.createPopin.repositoryBranch) {
-				this.createPopin.secondStepError = 'Please choose GIT branch';
+				this.createPopin.secondStepError = this.$t("homePage.Please choose GIT branch");
 				return;
 			}
 			try {

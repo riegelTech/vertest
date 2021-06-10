@@ -49,6 +49,7 @@ export default {
 		},
 		reinitUser() {
 			this.userPopin = Object.assign({}, EMPTY_USER);
+			this.error = '';
 		},
 		showEditPopin(user) {
 			this.userPopin = Object.assign({}, this.userPopin, EMPTY_USER, user, {
@@ -57,6 +58,7 @@ export default {
 				show: true,
 				editUser: true
 			});
+			this.error = '';
 		},
 		showCreatePopin() {
 			this.reinitUser();
@@ -65,13 +67,14 @@ export default {
 		},
 		async sendUser() {
 			if (this.userPopin.password.length < 8) {
-				this.error = 'Password is too weak';
+				this.error = this.$t('adminInitForm.Password is too weak');
 				return;
 			}
 			if (this.userPopin.password !== this.userPopin.password2) {
-				this.error = 'Passwords differs';
+				this.error = this.$t('adminInitForm.Passwords differs');
 				return;
 			}
+			this.error = '';
 			// update user
 			if (this.userPopin._id) {
 				return this.updateUser();

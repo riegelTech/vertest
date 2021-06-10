@@ -1,28 +1,28 @@
 <main-layout>
     <form novalidate>
         <md-field>
-            <label for="password">Administrator password</label>
+            <label for="password">{{ $t("adminInitForm.Administrator password") }}</label>
             <md-input name="password" v-model="password" type="password" />
         </md-field>
         <md-field>
-            <label for="password_2">Please confirm</label>
+            <label for="password_2">{{ $t("adminInitForm.Please confirm") }}</label>
             <md-input name="password_2" v-model="password_2" type="password" />
         </md-field>
         <md-field>
-            <label for="email">E-mail</label>
+            <label for="email">{{ $t("adminInitForm.Email") }}</label>
             <md-input name="email" v-model="email" type="text" />
         </md-field>
         <md-field>
-            <label for="firstName">First name</label>
+            <label for="firstName">{{ $t("adminInitForm.First name") }}</label>
             <md-input name="firstName" v-model="firstName" type="text" />
         </md-field>
         <md-field>
-            <label for="lastName">Last name</label>
+            <label for="lastName">{{ $t("adminInitForm.Last name") }}</label>
             <md-input name="lastName" v-model="lastName" type="text" />
         </md-field>
         <span class="md-error" v-if="error">{{ error }}</span>
         <md-card-actions>
-            <md-button type="button" @click="send">Send</md-button>
+            <md-button type="button" @click="send">{{ $t("adminInitForm.Send") }}</md-button>
         </md-card-actions>
     </form>
 </main-layout>

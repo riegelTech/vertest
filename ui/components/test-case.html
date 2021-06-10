@@ -3,7 +3,7 @@
     <div class="actions">
         <md-button v-if="!currentUser.readOnly" class="md-icon-button md-raised" @click="showAffectUserPopin()">
             <md-icon>person_add</md-icon>
-            <md-tooltip md-direction="top">Affect a user on this test case</md-tooltip>
+            <md-tooltip md-direction="top">{{ $t("testCaseState.Affect a user on this test case") }}</md-tooltip>
         </md-button>
         <span class="user-name" v-if="testCaseLocal.user">
             <md-icon >person</md-icon>
@@ -19,16 +19,16 @@
     </div>
     <div v-html="testCaseLocal.mdContent"></div>
     <md-dialog :md-active.sync="affectUserPopin.show">
-        <md-dialog-title>Please select an user</md-dialog-title>
+        <md-dialog-title>{{ $t("testCaseState.Please select an user") }}</md-dialog-title>
         <form>
             <md-field>
-                <label for="user">User</label>
+                <label for="user">{{ $t("testCaseState.User") }}</label>
                 <md-select v-model="affectUserPopin.selectedUser" name="user">
                     <md-option v-for="user in affectUserPopin.users" :value="user._id" :key="user._id">{{ user.firstName }} {{ user.lastName }}</md-option>
                 </md-select>
             </md-field>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="sendAffectUser()">Affect</md-button>
+                <md-button class="md-primary" @click="sendAffectUser()">{{ $t("testCaseState.Affect") }}</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>

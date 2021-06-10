@@ -5,7 +5,7 @@
                 <li v-for="(filePattern, filePatternIndex) in filePatterns" :value="filePattern" :key="filePatternIndex">
                     <md-button class="md-icon-button md-mini md-primary" @click="deleteFilePattern(filePatternIndex)">
                         <md-icon>delete</md-icon>
-                        <md-tooltip md-direction="top">Remove this pattern</md-tooltip>
+                        <md-tooltip md-direction="top">{{ $t("filePatternSelector.Remove this pattern") }}</md-tooltip>
                     </md-button>
                     {{ filePattern.signification }}
                 </li>
@@ -13,7 +13,7 @@
         </div>
         <div class="md-layout md-gutter selected-files">
             <div class="md-layout-item md-size-50">
-                <strong>Available files</strong>
+                <strong>{{ $t("filePatternSelector.Available files") }}</strong>
                 <ul class="file-tree">
                     <file-tree class="item"
                                :item="availableFilesTree"
@@ -26,7 +26,7 @@
                 </ul>
             </div>
             <div class="md-layout-item md-size-50">
-                <strong>Selected files</strong>
+                <strong>{{ $t("filePatternSelector.Selected files") }}</strong>
                 <ul class="file-tree">
                     <file-tree class="item"
                                v-if="selectedFilesTree"
@@ -53,37 +53,39 @@
 		signification: 'Exclude all the markdown files of the repository'
 	}, {
 		pattern: /^([^*!]*?)\/\*\*\/\*\*\.md$/,
-		signification: 'Include all the markdown files in directory "$1" and in its descendants'
+		signification: 'Include all the markdown files in directory {path} and in its descendants'
 	}, {
 		pattern: /^!([^*!]*?)\/\*\*\/\*\*\.md$/,
-		signification: 'Exclude all the markdown files in directory "$1" and in its descendants'
+		signification: 'Exclude all the markdown files in directory {path} and in its descendants'
 	}, {
 		pattern: /^([^*!]*?)\/\*\*\.md$/,
-		signification: 'Include all the markdown files in directory "$1"'
+		signification: 'Include all the markdown files in directory {path}'
 	}, {
 		pattern: /^!([^*!]*?)\/\*\*\.md$/,
-		signification: 'Exclude all the markdown files in directory "$1"'
+		signification: 'Exclude all the markdown files in directory {path}'
 	}, {
 		pattern: /^([^*!]*?\.[a-zA-Z]{1,5})$/,
-		signification: 'Include the file "$1"'
+		signification: 'Include the file {path}'
 	}, {
 		pattern: /^!([^*!]*?\.[a-zA-Z]{1,5})$/,
-		signification: 'Exclude the file "$1"'
+		signification: 'Exclude the file {path}'
 	}];
 
 	function getPatternSignification(rawFilePattern) {
+
 		const matchingPattern = filePatterns.find(filePattern => {
 			return rawFilePattern.match(filePattern.pattern);
 		});
 		if (!matchingPattern) {
 			return {
 				pattern: rawFilePattern,
-				signification: 'Custom file selection pattern'
+				signification: window.app.$t('filePatternSelector.Custom file selection pattern')
 			};
 		}
+		const path = rawFilePattern.replace(matchingPattern.pattern, '$1');
 		return {
 			pattern: rawFilePattern,
-			signification: rawFilePattern.replace(matchingPattern.pattern, matchingPattern.signification)
+			signification: window.app.$t(`filePatternSelector.${matchingPattern.signification}`, {path})
 		};
 	}
 

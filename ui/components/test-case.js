@@ -26,7 +26,11 @@ const TEST_CASE_STATUSES_HR = {
 };
 
 export const getTestStateHR = function(status) {
-	return TEST_CASE_STATUSES_HR[status];
+	const statusHr = TEST_CASE_STATUSES_HR[status];
+	if (statusHr) {
+		return window.app.$t(`testStatuses.${statusHr}`);
+	}
+	return window.app.$t('testStatuses.unknown');
 };
 
 export default {

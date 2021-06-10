@@ -3,9 +3,18 @@
 import Vue from 'vue';
 import store from './store';
 import VueRouter from 'vue-router';
+import VueI18n from "vue-i18n";
+import VueFlags from '@growthbunker/vueflags';
 
+Vue.use(VueFlags, {
+	iconPath: '/fonts/flags/',
+});
 Vue.use(VueRouter);
+Vue.use(VueI18n);
 
+import en from './locales/en';
+
+import setFilters from './filters';
 import initComponent from './pages/init/init.vue';
 import usersComponent from './pages/users/users.vue';
 import testSuitesComponent from './pages/test-suites/test-suites.vue';
@@ -18,54 +27,53 @@ import pageNotFoundComponent from './pages/404.vue';
 const router = new VueRouter({
 	mode: 'hash',
 	routes: [
-		{ path: '/', component: testSuitesComponent },
-		{ path: '/init', component: initComponent },
-		{ path: '/users', component: usersComponent},
+		{ path: '/', redirect: '/en/'},
+		{ path: '/:lang/', component: testSuitesComponent},
+		{ path: '/:lang/init', component: initComponent },
+		{ path: '/:lang/users', component: usersComponent},
 		{
-			path: '/test-suites/:testSuiteId',
+			path: '/:lang/test-suites/:testSuiteId',
 			component: oneTestSuiteComponent,
 			children: [
-				{ path: '/test-suites/:testSuiteId/test-case/:testCaseId', component: oneTestSuiteComponent}
+				{ path: '/:lang/test-suites/:testSuiteId/test-case/:testCaseId', component: oneTestSuiteComponent}
 			]
 		},
-		{ path: '/ssh-keys', component: sshKeysComponent},
-		{ path: '/mdvisu/:resource', component:markdownVisualizer},
-		{ path: '*', component: pageNotFoundComponent}
+		{ path: '/:lang/ssh-keys', component: sshKeysComponent},
+		{ path: '/:lang/mdvisu/:resource', component:markdownVisualizer},
+		{ path: '/*', component: pageNotFoundComponent}
 	]
 });
 
-Vue.filter('shortenGitSha', function (value) {
-	const defaultLength = 5;
-	if (!value) return '';
-	value = value.toString();
-	if (value.length <= defaultLength) {
-		return value;
+const messages = {};
+const locales = require.context(
+	"./locales",
+	true,
+	/[A-Za-z0-9-_,\s]+\.json$/i
+);
+locales.keys().forEach(key => {
+	const matched = key.match(/([A-Za-z0-9-_]+)\./i);
+	if (matched && matched.length > 1) {
+		const locale = matched[1];
+		messages[locale] = locales(key);
 	}
-	return value.substring(0, defaultLength);
 });
-Vue.filter('shortenGitMessage', function (value) {
-	const defaultLength = 30;
-	if (!value) return '';
-	value = value.toString();
-	if (value.length <= defaultLength) {
-		return value;
-	}
-	return `${value.substring(0, defaultLength)} ...`;
-});
-const authorNameRe = /(.*?)\s<.*/g;
-const authorEmailRe = /.*?\s<(.*)>/g;
-Vue.filter('gitAuthorName', function (value) {
-	if (!value) return '';
-	value = value.toString();
-	return value.replace(authorNameRe, '$1');
-});
-Vue.filter('gitAuthorEmail', function (value) {
-	if (!value) return '';
-	value = value.toString();
-	return value.replace(authorEmailRe, '$1');
+const i18n = new VueI18n({
+	locale: "en",
+	fallbackLocale: "en",
+	messages
 });
 
-new Vue({
+setFilters();
+
+window.app = new Vue({
 	store,
-	router
+	router,
+	i18n
 }).$mount('#app-wrapper');
+
+i18n.locale = router.currentRoute.params.lang;
+router.beforeEach((to, from, next) => {
+	i18n.locale = to.params.lang;
+	window.app.$emit('lang-changed', i18n.locale);
+	next();
+});

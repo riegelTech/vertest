@@ -7,7 +7,7 @@
             <span class="folder" v-if="isFolder" @click="toggle">
                 {{ item.name }}
             </span>
-            <router-link class="file" v-if="!isFolder && displayLink && item.link" :to="item.link">
+            <router-link class="file" v-if="!isFolder && displayLink && item.link" :to="`/${$i18n.locale}${item.link}`">
                 {{ item.name }}
             </router-link>
             <span class="file" v-else-if="!isFolder" @click="$emit('open-item', item)">
@@ -23,13 +23,13 @@
             </span>
             <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('select-item', item)">
                 <md-icon>add</md-icon>
-                <md-tooltip md-direction="top" v-if="isFolder">Select all this directory's content</md-tooltip>
-                <md-tooltip md-direction="top" v-else>Select this file</md-tooltip>
+                <md-tooltip md-direction="top" v-if="isFolder">{{ $t("fileTree.Select all this directorys content") }}</md-tooltip>
+                <md-tooltip md-direction="top" v-else>{{ $t("fileTree.Select this file") }}</md-tooltip>
             </md-button>
             <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('unselect-item', item)">
                 <md-icon>remove</md-icon>
-                <md-tooltip md-direction="top" v-if="isFolder">Unselect all this directory's content</md-tooltip>
-                <md-tooltip md-direction="top" v-else>Unselect this file</md-tooltip>
+                <md-tooltip md-direction="top" v-if="isFolder">{{ $t("fileTree.Unselect all this directorys content") }}</md-tooltip>
+                <md-tooltip md-direction="top" v-else>{{ $t("fileTree.Unselect this file") }}</md-tooltip>
             </md-button>
         </div>
         <ul v-show="isOpen" v-if="isFolder && item.children">
