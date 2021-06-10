@@ -16,6 +16,7 @@
     "Failed":  "Failed"
   },
   "homePage": {
+    "Home page": "Home page",
     "Log in": "Log in",
     "Required field, please enter a login": "Required field, please enter a login",
     "Required field, please enter a password": "Required field, please enter a password",
@@ -73,6 +74,36 @@
     "File has been moved to new File": "{file} has been moved to {newFile}",
     "There is no differences between current local and target tests suite state.": "There is no differences between current local and target repository state."
   },
+  "usersPage": {
+    "Users": "Users",
+    "User": "User",
+    "Email": "Email",
+    "First name": "First name",
+    "Last name": "Last name",
+    "Action": "Action",
+    "Please confirm": "Please confirm",
+    "Read only": "Read only",
+    "Validate": "Validate"
+  },
+  "sshKeyPage": {
+    "SSH keys": "SSH keys",
+    "Enter passphrase to decrypt private key": "Enter passphrase to decrypt private key",
+    "Key pass": "Key pass",
+    "Private key password": "Private key password",
+    "Send": "Send",
+    "Name": "Name",
+    "Actions": "Actions"
+  },
+  "adminInitForm": {
+    "Administrator password": "Administrator password",
+    "Please confirm": "Please confirm",
+    "Email": "Email",
+    "First name": "First name",
+    "Last name": "Last name",
+    "Send": "Send",
+    "Password is too weak": "Password is too weak",
+    "Passwords differs": "Passwords differs"
+  },
   "fileTree": {
     "Select all this directorys content": "Select all this directory's content",
     "Select this file": "Select this file",
@@ -102,6 +133,10 @@
   },
   "testCaseState": {
     "Current test status": "Current test status:",
-    "New test status": "New test status:"
+    "New test status": "New test status:",
+    "Please select an user": "Please select an user",
+    "User": "User",
+    "Affect a user on this test case": "Affect a user on this test case",
+    "Affect": "Affect"
   }
 }

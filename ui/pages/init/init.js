@@ -25,11 +25,11 @@ export default {
 	methods: {
 		async send() {
 			if (this.password.length < 8) {
-				this.error = 'Password is too weak';
+				this.error = this.$t('adminInitForm.Password is too weak');
 				return;
 			}
 			if (this.password !== this.password_2) {
-				this.error = 'Passwords differs';
+				this.error = this.$t('adminInitForm.Passwords differs');
 				return;
 			}
 			this.error = '';

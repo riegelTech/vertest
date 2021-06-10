@@ -2,7 +2,7 @@
     <div v-if="display" class="breadcrumb">
         <router-link :to="`/${$i18n.locale}/`" class="home">
             <md-icon>home</md-icon>
-            <md-tooltip md-direction="top">Home page</md-tooltip>
+            <md-tooltip md-direction="top">{{ $t("homePage.Home page") }}</md-tooltip>
         </router-link>
         <span v-for="relatedRoute in relatedRoutes" :key="relatedRoute.path">
             &gt;

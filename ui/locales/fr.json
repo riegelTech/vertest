@@ -16,6 +16,7 @@
     "Failed":  "En échec"
   },
   "homePage": {
+    "Home page": "Page d'accueil",
     "Log in": "Connexion",
     "Required field, please enter a login": "Champ obligatoire, veuillez entrer un identifiant",
     "Required field, please enter a password": "Champ obligatoire, veuillez entrer un mot de passe",
@@ -73,6 +74,36 @@
     "File has been moved to new File": "{file} a été déplaçé à {newFile}",
     "There is no differences between current local and target tests suite state.": "Il n'y a pas de différence entre l'état courant et l'état cible de la suite de tests"
   },
+  "usersPage": {
+    "Users": "Utilisateurs",
+    "User": "Utilisateur",
+    "Email": "Email",
+    "First name": "Prénom",
+    "Last name": "Nom",
+    "Action": "Action",
+    "Please confirm": "Veuillez confirmer",
+    "Read only": "Lecture seule",
+    "Validate": "Valider"
+  },
+  "sshKeyPage": {
+    "SSH keys": "Clés SSH",
+    "Enter passphrase to decrypt private key": "Entrer le mot de passe de protection de la clé privée",
+    "Key pass": "Déverrouillage de la clé",
+    "Private key password": "Mot de passe de la clé privée",
+    "Send": "Envoyer",
+    "Name": "Nom",
+    "Actions": "Actions"
+  },
+  "adminInitForm": {
+    "Administrator password": "Mot de passe du super administrateur",
+    "Please confirm": "Veuillez confirmer",
+    "Email": "Email",
+    "First name": "Prénom",
+    "Last name": "Nom",
+    "Send": "Envoyer",
+    "Password is too weak": "Le mot de passe est trop faible",
+    "Passwords differs": "Les mots de passe ne correspondent pas"
+  },
   "fileTree": {
     "Select all this directorys content": "Sélectionner tout le contenu de ce dossier",
     "Select this file": "Sélectionner ce fichier",
@@ -102,6 +133,10 @@
   },
   "testCaseState": {
     "Current test status": "Statut actuel du test :",
-    "New test status": "Nouveau statut du test :"
+    "New test status": "Nouveau statut du test :",
+    "Please select an user": "Sélectionnez un utilisateur",
+    "User": "Utilisateur",
+    "Affect a user on this test case": "Affecter un utilisateur sur ce test",
+    "Affect": "Affecter"
   }
 }

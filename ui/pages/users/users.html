@@ -2,7 +2,7 @@
     <div>
         <md-table v-model="users" md-sort="name" md-sort-order="asc" md-card>
             <md-table-toolbar>
-                <h1 class="md-title">Users
+                <h1 class="md-title">{{ $t("usersPage.Users") }}
                     <md-button class="md-fab md-primary md-dense md-icon-button md-elevation-1" @click="showCreatePopin">
                         <md-icon>add</md-icon>
                     </md-button>
@@ -10,11 +10,11 @@
             </md-table-toolbar>
 
             <md-table-row slot="md-table-row" slot-scope="{ item }">
-                <md-table-cell md-label="Login" md-sort-by="login">{{ item.login }}</md-table-cell>
-                <md-table-cell md-label="Email" md-sort-by="email">{{ item.email }}</md-table-cell>
-                <md-table-cell md-label="First name" md-sort-by="firstName">{{ item.firstName }}</md-table-cell>
-                <md-table-cell md-label="Last name" md-sort-by="lastName">{{ item.lastName }}</md-table-cell>
-                <md-table-cell md-label="Action">
+                <md-table-cell :md-label="$t('common.Login')" md-sort-by="login">{{ item.login }}</md-table-cell>
+                <md-table-cell :md-label="$t('usersPage.Email')" md-sort-by="email">{{ item.email }}</md-table-cell>
+                <md-table-cell :md-label="$t('usersPage.First name')" md-sort-by="firstName">{{ item.firstName }}</md-table-cell>
+                <md-table-cell :md-label="$t('usersPage.Last name')" md-sort-by="lastName">{{ item.lastName }}</md-table-cell>
+                <md-table-cell :md-label="$t('usersPage.Action')">
                     <md-button  v-if="currentUser && (item.login === currentUser.login || currentUser.isSuperAdmin === true)" class="md-icon-button md-mini md-primary" @click="showEditPopin(item)">
                         <md-icon>edit</md-icon>
                     </md-button>
@@ -26,38 +26,41 @@
         </md-table>
     </div>
     <md-dialog :md-active.sync="userPopin.show">
-        <md-dialog-title>User</md-dialog-title>
+        <md-dialog-title>{{ $t("usersPage.User") }}</md-dialog-title>
         <form>
+            <p v-if="error.length > 0" class="md-accent">
+                {{ error }}
+            </p>
             <md-field>
                 <md-input name="id" v-model="userPopin._id" type="hidden" />
             </md-field>
             <md-field>
-                <label for="login">Login</label>
+                <label for="login">{{ $t('common.Login') }}</label>
                 <md-input name="login" v-model="userPopin.login" type="text" :readonly="userPopin.editUser" />
             </md-field>
             <md-field>
-                <label for="password">Password</label>
+                <label for="password">{{ $t('common.Password') }}</label>
                 <md-input name="password" v-model="userPopin.password" type="password" />
             </md-field>
             <md-field>
-                <label for="password2">Please confirm</label>
+                <label for="password2">{{ $t("usersPage.Please confirm") }}</label>
                 <md-input name="password2" v-model="userPopin.password2" type="password" />
             </md-field>
             <md-field>
-                <label for="email">Email</label>
+                <label for="email">{{ $t('usersPage.Email') }}</label>
                 <md-input name="email" v-model="userPopin.email" type="text" />
             </md-field>
             <md-field>
-                <label for="firstName">First name</label>
+                <label for="firstName">{{ $t('usersPage.First name') }}</label>
                 <md-input name="firstName" v-model="userPopin.firstName" type="text" />
             </md-field>
             <md-field>
-                <label for="lastName">Last name</label>
+                <label for="lastName">{{ $t('usersPage.Last name') }}</label>
                 <md-input name="lastName" v-model="userPopin.lastName" type="text" />
             </md-field>
-                <md-checkbox v-model="userPopin.readOnly">Read only</md-checkbox>
+                <md-checkbox v-model="userPopin.readOnly">{{ $t('usersPage.Read only') }}</md-checkbox>
             <md-dialog-actions>
-                <md-button class="md-primary" @click="sendUser">Edit</md-button>
+                <md-button class="md-primary" @click="sendUser">{{ $t('usersPage.Validate') }}</md-button>
             </md-dialog-actions>
         </form>
     </md-dialog>
