@@ -3,7 +3,17 @@
     "Logout": "Logout",
     "Login": "Login",
     "Password": "Password",
-    "Next": "Next"
+    "Next": "Next",
+    "Cancel": "Cancel",
+    "Finish": "Finish"
+  },
+  "testStatuses": {
+    "unknown": "unknown",
+    "To do": "To do",
+    "In progress": "In progress",
+    "Blocked":  "Blocked",
+    "Successful": "Successful",
+    "Failed":  "Failed"
   },
   "homePage": {
     "Log in": "Log in",
@@ -43,6 +53,39 @@
     "third step creation of test suite help text": "We do not want to warn you every time the repository get a new commit, so you can here select the files that are test files,\n in order to have warnings only when YOUR test files change. And yes, we assume it is only markdown files !",
     "Create test suite": "Create test suite"
   },
+  "testSuitePage": {
+    "Valid GIT modifications on test suite, as repository has been updated": "Valid GIT modifications on test suite, as repository has been updated",
+    "Choose a new branch for test suite, as current branch has been deleted": "Choose a new branch for test suite, as current branch has been deleted",
+    "Change current GIT branch": "Change current GIT branch",
+    "Current rules of file selection": "Current rules of file selection",
+    "Change current file selection": "Change current file selection",
+    "Test suite history": "Test suite history",
+    "Please select a new git branch": "Please select a new git branch",
+    "New git branch": "New git branch",
+    "Change your file selectors": "Change your file selectors",
+    "Differences to validate": "Differences to validate",
+    "diff validation step of test suite modification": "Now you see all the resulting changes. You can change the status of the modified tests if the differences are too important.",
+    "Modified tests": "Modified tests",
+    "Deleted tests": "Deleted tests",
+    "Added tests": "Added tests",
+    "Renamed tests": "Renamed tests",
+    "File has been moved to new File and modified": "{file} has been moved to {newFile} and modified",
+    "File has been moved to new File": "{file} has been moved to {newFile}",
+    "There is no differences between current local and target tests suite state.": "There is no differences between current local and target repository state."
+  },
+  "fileTree": {
+    "Select all this directorys content": "Select all this directory's content",
+    "Select this file": "Select this file",
+    "Unselect all this directorys content": "Unselect all this directory's content",
+    "Unselect this file": "Unselect this file"
+  },
+  "testSuiteHistory": {
+    "Load more logs": "Load more logs",
+    "Date": "Date",
+    "Test Case": "Test Case",
+    "Message": "Message",
+    "User": "User"
+  },
   "filePatternSelector": {
     "Remove this pattern": "Remove this pattern",
     "Available files": "Available files",
@@ -56,5 +99,9 @@
     "Exclude all the markdown files in directory {path}": "Exclude all the markdown files in directory \"{path}\"",
     "Include the file {path}": "Include the file \"{path}\"",
     "Exclude the file {path}": "Exclude the file \"{path}\""
+  },
+  "testCaseState": {
+    "Current test status": "Current test status:",
+    "New test status": "New test status:"
   }
 }

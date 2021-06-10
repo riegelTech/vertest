@@ -3,7 +3,17 @@
     "Logout": "Déconnexion",
     "Login": "Identifiant",
     "Password": "Mot de passe",
-    "Next": "Suivant"
+    "Next": "Suivant",
+    "Cancel": "Annuler",
+    "Finish": "Terminer"
+  },
+  "testStatuses": {
+    "unknown": "inconnu",
+    "To do": "A faire",
+    "In progress": "En cours",
+    "Blocked":  "Bloqué",
+    "Successful": "Réussi",
+    "Failed":  "En échec"
   },
   "homePage": {
     "Log in": "Connexion",
@@ -43,6 +53,39 @@
     "third step creation of test suite help text": "Nous ne voulons pas vous notifier à chaque commit sur le repository, vous pouvez donc maintenant selectionner les fichiers de test,\n pour ne vous notifier que lorsque VOS fichiers changent. Et oui, nous assumons que ces fichiers sont au format markdown !",
     "Create test suite": "Créer la suite de tests"
   },
+  "testSuitePage": {
+    "Valid GIT modifications on test suite, as repository has been updated": "Le repository GIT a évolué, veuillez valider les changements sur la suite de tests",
+    "Choose a new branch for test suite, as current branch has been deleted": "La branche du repository a été supprimée, veuillez en choisir une nouvelle",
+    "Change current GIT branch": "Changer de branche GIT",
+    "Current rules of file selection": "Règles de selection des fichiers de tests",
+    "Change current file selection": "Changer les sélecteurs de fichiers de tests",
+    "Test suite history": "Historique de la suite de tests",
+    "Please select a new git branch": "Veuillez sélectionner une nouvelle branche GIT",
+    "New git branch": "Nouvelle branche GIT",
+    "Change your file selectors": "Changer les sélecteurs de fichiers",
+    "Differences to validate": "Différences à valider",
+    "diff validation step of test suite modification": "Vous voyez les changements qui seront appliqués. Vous pouvez changer le statut des tests qui seront modifiés en fonction des changements prévus.",
+    "Modified tests": "Tests modifiés",
+    "Deleted tests": "Tests supprimés",
+    "Added tests": "Tests ajoutés",
+    "Renamed tests": "Tests déplaçés",
+    "File has been moved to new File and modified": "{file} a été déplacé à {newFile} et modifié",
+    "File has been moved to new File": "{file} a été déplaçé à {newFile}",
+    "There is no differences between current local and target tests suite state.": "Il n'y a pas de différence entre l'état courant et l'état cible de la suite de tests"
+  },
+  "fileTree": {
+    "Select all this directorys content": "Sélectionner tout le contenu de ce dossier",
+    "Select this file": "Sélectionner ce fichier",
+    "Unselect all this directorys content": "Désélectionner tout le contenu de ce dossier",
+    "Unselect this file": "Désélectionner de fichier"
+  },
+  "testSuiteHistory": {
+    "Load more logs": "Charger plus d'historique",
+    "Date": "Date",
+    "Test Case": "Test",
+    "Message": "Message",
+    "User": "Utilisateur"
+  },
   "filePatternSelector": {
     "Remove this pattern": "Retirer ce sélecteur",
     "Available files": "Fichiers disponibles",
@@ -56,5 +99,9 @@
     "Exclude all the markdown files in directory {path}": "Exclure tous les fichiers markdown du dossier \"{path}\"",
     "Include the file {path}": "Inclure le fichier \"{path}\"",
     "Exclude the file {path}": "Exclure le fichier \"{path}\""
+  },
+  "testCaseState": {
+    "Current test status": "Statut actuel du test :",
+    "New test status": "Nouveau statut du test :"
   }
 }

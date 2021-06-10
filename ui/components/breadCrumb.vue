@@ -1,6 +1,6 @@
 <template>
     <div v-if="display" class="breadcrumb">
-        <router-link :to="'/#/test-suites/'" class="home">
+        <router-link :to="`/${$i18n.locale}/`" class="home">
             <md-icon>home</md-icon>
             <md-tooltip md-direction="top">Home page</md-tooltip>
         </router-link>
@@ -55,7 +55,7 @@
 					return;
                 }
 				this.relatedRoutes[0] = {
-					path: `/test-suites/${this.$route.params.testSuiteId}`,
+					path: `/${this.$route.params.lang}/test-suites/${this.$route.params.testSuiteId}`,
 					label: testSuite.name
 				};
 				this.$forceUpdate();
@@ -66,7 +66,7 @@
 					return;
                 }
                 this.relatedRoutes[1] = {
-                    path: `/test-suites/${this.$route.params.testSuiteId}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
+                    path: `/${this.$route.params.lang}/test-suites/${this.$route.params.testSuiteId}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
                     label: path.basename(testCase.testFilePath)
                 };
 

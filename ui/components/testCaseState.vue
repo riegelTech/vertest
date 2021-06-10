@@ -1,18 +1,18 @@
 <template>
     <div class="test-case-state">
         <div v-if="displayCurrentState" class="current-state">
-            <label>Current test status:</label><br />
+            <label>{{ $t("testCaseState.Current test status") }}</label><br />
             <span class="current-status-label">{{ statusHR(testState) }}</span>
         </div>
         <div v-if="displayStateSwitch" class="change-state">
             <md-field class="md-adjustable md-no-border">
-                <label>New test status:</label>
+                <label>{{ $t("testCaseState.New test status") }}</label>
                 <md-select v-model="curState" name="testStateSel" id="testStateSel" class="test-state-selector md-mini md-adjustable" @md-selected="changeTestStatus">
-                    <md-option :value="statuses.TODO" class="md-mini">To do</md-option>
-                    <md-option :value="statuses.IN_PROGRESS" class="md-mini">In progress</md-option>
-                    <md-option :value="statuses.FAILED" class="md-mini">Failed</md-option>
-                    <md-option :value="statuses.BLOCKED" class="md-mini">Blocked</md-option>
-                    <md-option :value="statuses.SUCCESS" class="md-mini">Success</md-option>
+                    <md-option :value="statuses.TODO" class="md-mini">{{ $t("testStatuses.To do") }}</md-option>
+                    <md-option :value="statuses.IN_PROGRESS" class="md-mini">{{ $t("testStatuses.In progress") }}</md-option>
+                    <md-option :value="statuses.FAILED" class="md-mini">{{ $t("testStatuses.Failed") }}</md-option>
+                    <md-option :value="statuses.BLOCKED" class="md-mini">{{ $t("testStatuses.Blocked") }}</md-option>
+                    <md-option :value="statuses.SUCCESS" class="md-mini">{{ $t("testStatuses.Successful") }}</md-option>
                 </md-select>
             </md-field>
         </div>
