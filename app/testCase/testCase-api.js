@@ -80,6 +80,7 @@ function assertUserIsNotReadOnly() {
 
 async function getTestCase(req, res) {
 	try {
+		const lang = req.cookies.lang;
 		const {testCase} = getTestFromUrlParam(req);
 		testCase.htmlContent = md.render(testCase.content);
 		res.status(200).send(testCase);
