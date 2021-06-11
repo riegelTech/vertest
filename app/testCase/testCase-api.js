@@ -3,6 +3,8 @@
 const _ = require('lodash');
 const express = require('express');
 const router = express.Router();
+const url = require('url');
+const Path = require('path');
 
 const logsModule = require('../logsModule/logsModule');
 const logs = logsModule.getDefaultLoggerSync();
@@ -11,24 +13,24 @@ const usersModule = require('../users/users');
 const utils = require('../utils');
 
 const md = require('markdown-it')();
+const defaultImageRender = md.renderer.rules.image;
+const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
+	return self.renderToken(tokens, idx, options);
+};
 
-function overrideDefaultMdRenderers(testSuite, testCase) {
-	const defaultImageRender = md.renderer.rules.image;
+function overrideDefaultMdRenderers(testSuite, testCase, lang) {
 	md.renderer.rules.image = function (tokens, idx, options, env, self) {
 		const token = tokens[idx];
 		const src = token.attrs[token.attrIndex('src')][1];
 		const resourceUrl = url.parse(src);
 
 		if (!resourceUrl.protocol && !resourceUrl.host) {
-			token.attrs[token.attrIndex('src')][1] = `/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${src}`;
+			token.attrs[token.attrIndex('src')][1] = `/#/${lang}/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${src}`;
 		}
 		// pass token to default renderer.
 		return defaultImageRender(tokens, idx, options, env, self);
 	};
 
-	const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
-		return self.renderToken(tokens, idx, options);
-	};
 	md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
 		const token = tokens[idx];
 		const href = token.attrs[token.attrIndex('href')][1];
@@ -36,15 +38,15 @@ function overrideDefaultMdRenderers(testSuite, testCase) {
 
 		if (!resourceUrl.protocol && !resourceUrl.host) {
 			const resourceRelativePath = Path.join(Path.dirname(testCase.testFilePath), href);
-			const isASibling = testSuite.tests.find(testCase => testCase.testFilePath === resourceRelativePath); // siblingTestCases.find(testCase => testCase.testFilePath === resourceRelativePath);
-			if (isASibling) { // document also included in the test suite's regular and tracked tests
-				token.attrs[token.attrIndex('href')][1] = `/#/en/test-suites/${testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`;
+			const siblingTest = testSuite.tests.find(testCase => testCase.testFilePath === resourceRelativePath);
+			if (siblingTest) { // document also included in the test suite's regular and tracked tests
+				token.attrs[token.attrIndex('href')][1] = `/#/${lang}/test-suites/${testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(siblingTest.testFilePath))}`;
 			} else {
 				if (Path.extname(href) === '.md') {
 					const resourceIdentifier = encodeURIComponent(encodeURIComponent(`${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${href}`));
-					token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/#/mdvisu/${resourceIdentifier}`;
+					token.attrs[token.attrIndex('href')][1] = `/#/${lang}/mdvisu/${resourceIdentifier}`;
 				} else {
-					token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${href}`;
+					token.attrs[token.attrIndex('href')][1] = `/#/${lang}/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${href}`;
 				}
 			}
 		}
@@ -81,10 +83,12 @@ function assertUserIsNotReadOnly() {
 async function getTestCase(req, res) {
 	try {
 		const lang = req.cookies.lang;
-		const {testCase} = getTestFromUrlParam(req);
+		const {testSuite, testCase} = getTestFromUrlParam(req);
+		overrideDefaultMdRenderers(testSuite, testCase, lang);
 		testCase.htmlContent = md.render(testCase.content);
 		res.status(200).send(testCase);
 	} catch (e) {
+		console.error(e);
 		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
 }
