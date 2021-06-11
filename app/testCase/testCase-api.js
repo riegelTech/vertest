@@ -12,7 +12,18 @@ const testSuiteModule = require('../testSuites/testSuite');
 const usersModule = require('../users/users');
 const utils = require('../utils');
 
-const md = require('markdown-it')();
+
+const mdOptions = {
+	root: '',
+	getRootDir: (options, state, startLine, endLine) => {
+		return state.env.getIncludeRootDir(options, state, startLine, endLine);
+	},
+	bracesAreOptional: true
+};
+
+const markdownItInclude = require('markdown-it-include');
+const md = require('markdown-it')().use(markdownItInclude, mdOptions);
+
 const defaultImageRender = md.renderer.rules.image;
 const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
 	return self.renderToken(tokens, idx, options);
@@ -84,11 +95,24 @@ async function getTestCase(req, res) {
 	try {
 		const lang = req.cookies.lang;
 		const {testSuite, testCase} = getTestFromUrlParam(req);
+
+		// relatives paths to external resources
 		overrideDefaultMdRenderers(testSuite, testCase, lang);
-		testCase.htmlContent = md.render(testCase.content);
+
+		// markdown inclusions management
+		let mdPath = Path.join(testCase.basePath, testCase.testFilePath);
+		const env = {
+			getIncludeRootDir: function () {
+				return Path.dirname(mdPath);
+			}
+		};
+		let state = new md.core.State(testCase.content, md, env);
+		md.core.process(state);
+		let tokens = state.tokens;
+		testCase.htmlContent = md.renderer.render(tokens, md.options, env);
+
 		res.status(200).send(testCase);
 	} catch (e) {
-		console.error(e);
 		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
 }
