@@ -25,7 +25,7 @@ function overrideDefaultMdRenderers(testSuite, testCase, lang) {
 		const resourceUrl = url.parse(src);
 
 		if (!resourceUrl.protocol && !resourceUrl.host) {
-			token.attrs[token.attrIndex('src')][1] = `/#/${lang}/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${src}`;
+			token.attrs[token.attrIndex('src')][1] = `/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${src}`;
 		}
 		// pass token to default renderer.
 		return defaultImageRender(tokens, idx, options, env, self);
