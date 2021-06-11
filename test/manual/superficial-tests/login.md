@@ -19,9 +19,9 @@ Test the login form, the login, logoff procedure and other displays involved.
 1. Go to http://[serverName]/
 2. You should be redirected to http://[serverName]/#/
 3. Some xhr requests should have been returned with code 401 (unauthorised)
-   ![Network panel](./screen-captures/login-network-panel.png)
+   ![Network panel](../screen-captures/login-network-panel.png)
 4. The login popin is displayed over a transparent grey layout mask
-   ![login popin](./screen-captures/login-popin.png)
+   ![login popin](../screen-captures/login-popin.png)
 5. No data is displayed under this layout
 
 ### Login errors
@@ -29,7 +29,7 @@ Test the login form, the login, logoff procedure and other displays involved.
 1. Submit the form as is
 2. An error message should appear with a clear explanation about what goes wrong
 3. Each field turned to red color with an explicit error message
-   ![login failed](./screen-captures/login-failed.png)
+   ![login failed](../screen-captures/login-failed.png)
 4. Fill the login field
 5. Submit the form as is
 6. All error messages remains except the login field one

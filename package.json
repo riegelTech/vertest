@@ -53,6 +53,7 @@
     "data-driven": "1.4.0",
     "git-pkt-line": "0.1.0",
     "markdown-it": "12.0.6",
+    "markdown-it-include": "^2.0.0",
     "mocha": "8.4.0",
     "node-sass": "6.0.0",
     "nyc": "15.1.0",

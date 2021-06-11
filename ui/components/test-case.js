@@ -3,7 +3,17 @@
 import {userMixin} from '../pages/users/userMixin';
 import TestCaseState from './testCaseState.vue';
 
-const md = require('markdown-it')();
+const mdIncludeOptions = {
+	//root: '/bogus/',
+	includeRe: /#include(.+)/,
+	// show the
+	// getRootDir: (options, state, startLine, endLine) =>
+	// 	state.env.getIncludeRootDir(options, state, startLine, endLine),
+	bracesAreOptional: true
+};
+
+const md = require('markdown-it')()
+	.use(require('markdown-it-include'), mdIncludeOptions);
 const url = require('url');
 const Path = require('path-browserify');
 

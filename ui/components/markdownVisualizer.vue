@@ -8,7 +8,18 @@
     const RESOURCE_PATH = 'repositoriesStatics';
 
 	import MainLayout from '../layouts/main.vue';
-	const md = require('markdown-it')();
+
+	const mdIncludeOptions = {
+		//root: '/bogus/',
+		includeRe: /#include(.+)/,
+		// show the
+		// getRootDir: (options, state, startLine, endLine) =>
+		// 	state.env.getIncludeRootDir(options, state, startLine, endLine),
+		bracesAreOptional: true
+	};
+
+	const md = require('markdown-it')()
+		.use(require('markdown-it-include'), mdIncludeOptions);
 	export default {
 		name: 'markdown-visualizer',
         components: {
