@@ -57,7 +57,12 @@ const startApp = async () => {
 
 		try {
 			if (await usersModule.authenticate(undefined, undefined, sessIdCookie)) {
+				const curUser = usersModule.getCurrentUser();
 				res.cookie('sessId', usersModule.getSessId());
+				const isPathForUserMod = req.path.startsWith('/api/users/') && req.method === 'PUT';
+				if (req.method !== 'GET' && curUser && curUser.readOnly && !isPathForUserMod) { // general protection against read only users
+					return sendUnauthorized(res);
+				}
 				return next();
 			}
 			return sendUnauthorized(res);
