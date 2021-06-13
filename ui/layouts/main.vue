@@ -6,10 +6,10 @@
                     <md-icon>menu</md-icon>
                 </md-button>
                 <h1 class="md-title"><router-link :to="`/${$i18n.locale}/`">Vertest</router-link></h1>
-                <div class="md-toolbar-section-end" v-if="currentUser !== null">
+                <div class="md-toolbar-section-end">
                     <router-link to="/fr/" class="country-flag"><gb-flag code="fr" size="small" /></router-link>
                     <router-link to="/en/" class="country-flag"><gb-flag code="us" size="small" /></router-link>
-                    <md-button @click="showSidepanel = true">{{ currentUser.firstName }} {{ currentUser.lastName }}</md-button>
+                    <md-button v-if="currentUser !== null" @click="showSidepanel = true">{{ currentUser.firstName }} {{ currentUser.lastName }}</md-button>
                 </div>
             </md-toolbar>
             <md-drawer :md-active.sync="showNavigation" md-swipeable>
