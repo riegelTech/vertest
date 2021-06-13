@@ -102,7 +102,8 @@
     "Last name": "Last name",
     "Send": "Send",
     "Password is too weak": "Password is too weak",
-    "Passwords differs": "Passwords differs"
+    "Passwords differs": "Passwords differs",
+    "Super admin initialization": "Super admin initialization"
   },
   "fileTree": {
     "Select all this directorys content": "Select all this directory's content",

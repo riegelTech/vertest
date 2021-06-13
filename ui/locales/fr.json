@@ -102,7 +102,8 @@
     "Last name": "Nom",
     "Send": "Envoyer",
     "Password is too weak": "Le mot de passe est trop faible",
-    "Passwords differs": "Les mots de passe ne correspondent pas"
+    "Passwords differs": "Les mots de passe ne correspondent pas",
+    "Super admin initialization": "Initialisation du super-admin"
   },
   "fileTree": {
     "Select all this directorys content": "Sélectionner tout le contenu de ce dossier",

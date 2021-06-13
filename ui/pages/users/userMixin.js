@@ -24,7 +24,7 @@ export const userMixin = {
 			}
 		} catch (resp) {
 			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
-				window.location.href = '#/init';
+				window.location.href = `#/${this.$i18n.locale}/init`;
 				return;
 			}
 		}
