@@ -12,7 +12,7 @@ Welcome into the Vertest user guide !
 $ docker-compose up
 ```
 
-You ca now open URL `http://localhost:[CONFIGURED_PORT]` in your browser.
+You can now open URL `http://localhost:[CONFIGURED_PORT]` in your browser.
 
 As users database is empty, you will be redirected to URL `http://localhost:[CONFIGURED_PORT]/init/`, so you can define
 super-user password.
