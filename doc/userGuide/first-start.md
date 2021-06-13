@@ -19,3 +19,5 @@ Super-user login is **admin**. There is only one super-user, and it is the only 
 or delete all other users.
 
 > Note that once super admin is initialized, you can edit but not delete it.
+
+Once initialized, the application will redirect you to login page.
