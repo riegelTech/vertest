@@ -8,17 +8,7 @@ Welcome into the Vertest user guide !
 
 ### First start of the application
 
-```bash
-$ docker-compose up
-```
-
-You can now open URL `http://localhost:[CONFIGURED_PORT]` in your browser.
-
-As users database is empty, you will be redirected to URL `http://localhost:[CONFIGURED_PORT]/init/`, so you can define
-super-user password.
-
-Super-user login is **admin**. There is only one super-user, and it is the only user allowed to create, edit
-or delete all other users.
+[First start of Vertest](./first-start.md)
 
 ## Manage users
 
