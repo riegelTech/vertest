@@ -128,6 +128,8 @@
                 <span class="md-error">{{ $t("homePage.Required field, please enter a password") }}</span>
             </md-field>
             <md-dialog-actions>
+                <router-link to="/fr/" class="country-flag"><gb-flag code="fr" size="small" /></router-link>
+                <router-link to="/en/" class="country-flag"><gb-flag code="us" size="small" /></router-link>
                 <md-button class="md-primary" @click="login">{{ $t("homePage.Log in") }}</md-button>
             </md-dialog-actions>
         </form>
