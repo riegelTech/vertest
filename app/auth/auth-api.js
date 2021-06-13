@@ -41,7 +41,7 @@ async function logout(req, res) {
 		return res.status(200).send('OK');
 	} catch (e) {
 		logs.error({message: e.message});
-		return sendUnauthorized(res);
+		return res.status(401).send('Unauthorized');
 	}
 }
 

@@ -7,6 +7,14 @@ const router = express.Router();
 const usersModule = require('./users');
 const {getHttpCode} = require('../utils');
 
+async function checkUserRights(req, res, next) {
+	const curUser = usersModule.getCurrentUser();
+	if (!curUser.isSuperAdmin) {
+		return res.status(401).send('Unauthorized');
+	}
+	next();
+}
+
 async function createUser(req, res) {
 	try {
 		const newUser = await usersModule.addUser(_.pick(req.body, ['login', 'password', 'email', 'firstName', 'lastName', 'readOnly']));
@@ -43,8 +51,8 @@ async function deleteUser(req, res) {
 }
 
 router.get('/', async (req, res) => res.send(await usersModule.getUsers()))
-	.post('/', createUser)
+	.post('/', checkUserRights, createUser)
 	.put('/:uuid', updateUser)
-	.delete('/:uuid', deleteUser);
+	.delete('/:uuid', checkUserRights, deleteUser);
 
 module.exports = router;
