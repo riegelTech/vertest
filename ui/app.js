@@ -21,6 +21,8 @@ import testSuitesComponent from './pages/test-suites/test-suites.vue';
 import oneTestSuiteComponent from './pages/test-suite/test-suite.vue';
 import sshKeysComponent from './pages/ssh-keys/ssh-keys.vue';
 import markdownVisualizer from './components/markdownVisualizer.vue';
+import VueGtag from "vue-gtag";
+
 
 import pageNotFoundComponent from './pages/404.vue';
 
@@ -43,6 +45,14 @@ const router = new VueRouter({
 		{ path: '/*', component: pageNotFoundComponent}
 	]
 });
+
+if (window.location.hostname !== '127.0.0.1' && window.location.hostname !== 'localhost') {
+	Vue.use(VueGtag, {
+		config: {
+			id: 'G-89YT9J6057',
+		}
+	}, router);
+}
 
 const messages = {};
 const locales = require.context(
