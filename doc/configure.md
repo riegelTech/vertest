@@ -43,7 +43,12 @@ In addition, you can choose the logs directory.
 
 ```yaml
 workspace:
+  xssConfigFile: ./config/xss-white-list.json # can be also absolute, be aware that this entry is mandatory, and file MUST exist
   repositoriesDir: ./cloneDir # can be also absolute
   temporaryRepositoriesDir: ./tempDir # can be also absolute
   logsDir: ./logs # can be also absolute
 ```
+
+> :warning:
+> The key `xssConfigFile` is mandatory, and the corresponding file MUST exist, for security reasons.
+> If not, test case contents will not be displayed.

@@ -194,7 +194,9 @@ async function getTestSuites() {
 
 function getTestSuiteByUuid(testSuiteUuid) {
 	if (!testSuites.has(testSuiteUuid)) {
-		throw new Error(`No test suite found for UUID ${testSuiteUuid}`);
+		const err = new Error(`No test suite found for UUID ${testSuiteUuid}`);
+		err.code = 'ENOTFOUND';
+		throw err;
 	}
 	return testSuites.get(testSuiteUuid);
 }

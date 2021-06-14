@@ -1,28 +1,35 @@
 'use strict';
 
-const _ = require('lodash');
-const express = require('express');
-const router = express.Router();
 const url = require('url');
 const Path = require('path');
 
+const _ = require('lodash');
+const express = require('express');
+const router = express.Router();
+const xss = require('xss');
+
+const appConfig = require('../appConfig/config');
 const logsModule = require('../logsModule/logsModule');
 const logs = logsModule.getDefaultLoggerSync();
 const testSuiteModule = require('../testSuites/testSuite');
 const usersModule = require('../users/users');
 const utils = require('../utils');
 
+let xssProtection = null;
 
+const md = require('markdown-it')({
+	html: true,
+	xhtmlOut: true
+});
 const mdOptions = {
-	root: '',
+	root: '.',
 	getRootDir: (options, state, startLine, endLine) => {
 		return state.env.getIncludeRootDir(options, state, startLine, endLine);
 	},
 	bracesAreOptional: true
 };
-
 const markdownItInclude = require('markdown-it-include');
-const md = require('markdown-it')().use(markdownItInclude, mdOptions);
+md.use(markdownItInclude, mdOptions);
 
 const defaultImageRender = md.renderer.rules.image;
 const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
@@ -73,7 +80,9 @@ function getTestFromUrlParam(req) {
 	const testSuite = testSuiteModule.getTestSuiteByUuid(testSuiteUuid);
 	const testCase = testSuite.tests.find(testCase => testCase.testFilePath === testCasePath);
 	if (!testCase) {
-		throw new Error(`Test case not found for path ${testCasePath}`);
+		const err = new Error(`Test case not found for path ${testCasePath}`);
+		err.code = 'ENOTFOUND';
+		throw err;
 	}
 	return {
 		testSuite,
@@ -81,13 +90,19 @@ function getTestFromUrlParam(req) {
 	}
 }
 
+async function loadXssProtectionConf() {
+	const conf = await appConfig.getAppConfig();
+	const xssFileConf = conf.workspace.xssConfigFile;
 
-function assertUserIsNotReadOnly() {
-	const curUser = usersModule.getCurrentUser();
-	if (curUser.readOnly) {
-		const err =  new Error(`User "${curUser.login}" (${curUser._id}) is readonly`);
-		err.code =  RESPONSE_HTTP_CODES.LOCKED;
-		throw err;
+	if (!xssFileConf) {
+		throw new Error(`XSS configuration file is missing, please add it to the configuration file`);
+	}
+	try {
+		await utils.access(xssFileConf);
+		const xssFileContent = await utils.readFile(xssFileConf);
+		return JSON.parse(xssFileContent);
+	} catch (e) {
+		throw new Error(`Error decoding XSS protection file: ${e.message}`);
 	}
 }
 
@@ -96,39 +111,36 @@ async function getTestCase(req, res) {
 		const lang = req.cookies.lang;
 		const {testSuite, testCase} = getTestFromUrlParam(req);
 
+		if (!xssProtection) {
+			const xssConf = await loadXssProtectionConf();
+			xssProtection = new xss.FilterXSS(xssConf);
+		}
+
 		// relatives paths to external resources
 		overrideDefaultMdRenderers(testSuite, testCase, lang);
 
-		// markdown inclusions management
 		let mdPath = Path.join(testCase.basePath, testCase.testFilePath);
 		const env = {
-			getIncludeRootDir: function () {
+			getIncludeRootDir: function (options, state, startLine, endLine) {
 				return Path.dirname(mdPath);
 			}
 		};
+
 		let state = new md.core.State(testCase.content, md, env);
 		md.core.process(state);
 		let tokens = state.tokens;
-		testCase.htmlContent = md.renderer.render(tokens, md.options, env);
+		testCase.htmlContent = xssProtection.process(md.renderer.render(tokens, md.options, env));
+
 
 		res.status(200).send(testCase);
 	} catch (e) {
-		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
+		logs.error(e.message);
+		return res.status(utils.getHttpCode(e.code)).send(e.message);
 	}
 }
 
 
 async function affectUser(req, res) {
-	try {
-		assertUserIsNotReadOnly();
-	} catch (e) {
-		logs.error(e.message);
-		res.status(utils.getHttpCode(e.code));
-		return res.send({
-			success: false,
-			msg: e.message
-		});
-	}
 	const curUser = usersModule.getCurrentUser();
 	const userId = req.body.userId;
 
@@ -173,17 +185,6 @@ async function affectUser(req, res) {
 }
 
 async function updateTestStatus(req, res) {
-	try {
-		assertUserIsNotReadOnly();
-	} catch (e) {
-		logs.error(e.message);
-		res.status(utils.getHttpCode(e.code));
-		return res.send({
-			success: false,
-			msg: e.message
-		});
-	}
-
 	const curUser = usersModule.getCurrentUser();
 	let newTestStatus;
 	switch (req.body.newStatus) {
