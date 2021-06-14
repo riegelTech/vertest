@@ -11,10 +11,10 @@ sshKeys:
     privKey: /home/myOtherUser/.ssh/id_rsa
 
 workspace:
-  xssConfigFile: ./config/xss-white-list.json # can be also absolute, be aware that this entry is mandatory, and file MUST exist
   repositoriesDir: ./cloneDir # can be also absolute
   temporaryRepositoriesDir: ./tempDir # can be also absolute
   logsDir: ./logs # can be also absolute
+  xssConfigFile: ./xss-white-list-sample.json # can be also absolute
 
 testCaseStatuses:
   defaultStatus: todo # The default status of a test case

@@ -16,6 +16,37 @@ const usersModule = require('../users/users');
 const utils = require('../utils');
 
 let xssProtection = null;
+const DEFAULT_XSS_PROTECTION_CONF = {
+	whiteList: {
+		a: [
+			'href',
+			'title',
+			'target'
+		],
+		img: [
+			'src',
+			'width',
+			'height',
+			'style'
+		],
+		div: [],
+		p: [],
+		ul: [],
+		ol: [],
+		li: [],
+		em: [],
+		strong: [],
+		h1: [],
+		h2: [],
+		h3: [],
+		h4: [],
+		h5: [],
+		h6: [],
+		blockquote: [],
+		code: [],
+		pre: []
+	}
+};
 
 const md = require('markdown-it')({
 	html: true,
@@ -26,6 +57,10 @@ const mdOptions = {
 	getRootDir: (options, state, startLine, endLine) => {
 		return state.env.getIncludeRootDir(options, state, startLine, endLine);
 	},
+	getRootScope: (options, state, startLine, endLine) => {
+		return state.env.getIncludeRootScope(options, state, startLine, endLine);
+	},
+	rootScopeProtection: true,
 	bracesAreOptional: true
 };
 const markdownItInclude = require('markdown-it-include');
@@ -95,7 +130,7 @@ async function loadXssProtectionConf() {
 	const xssFileConf = conf.workspace.xssConfigFile;
 
 	if (!xssFileConf) {
-		throw new Error(`XSS configuration file is missing, please add it to the configuration file`);
+		return DEFAULT_XSS_PROTECTION_CONF;
 	}
 	try {
 		await utils.access(xssFileConf);
@@ -110,12 +145,21 @@ async function getTestCase(req, res) {
 	try {
 		const lang = req.cookies.lang;
 		const {testSuite, testCase} = getTestFromUrlParam(req);
+	} catch (e) {
+		logs.error(e.message);
+		return res.status(utils.getHttpCode(e.code)).send(e.message);
+	}
 
+	try {
 		if (!xssProtection) {
 			const xssConf = await loadXssProtectionConf();
 			xssProtection = new xss.FilterXSS(xssConf);
 		}
-
+	} catch (e) {
+		logs.error(e.message);
+		return res.status(utils.getHttpCode(e.code)).send(e.message);
+	}
+	try {
 		// relatives paths to external resources
 		overrideDefaultMdRenderers(testSuite, testCase, lang);
 
@@ -123,6 +167,9 @@ async function getTestCase(req, res) {
 		const env = {
 			getIncludeRootDir: function (options, state, startLine, endLine) {
 				return Path.dirname(mdPath);
+			},
+			getIncludeRootScope: function (options, state, startLine, endLine) {
+				return testCase.basePath;
 			}
 		};
 
@@ -130,7 +177,6 @@ async function getTestCase(req, res) {
 		md.core.process(state);
 		let tokens = state.tokens;
 		testCase.htmlContent = xssProtection.process(md.renderer.render(tokens, md.options, env));
-
 
 		res.status(200).send(testCase);
 	} catch (e) {

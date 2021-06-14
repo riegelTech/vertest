@@ -34,7 +34,7 @@
     "lodash": "4.17.21",
     "lowest-common-ancestor": "2.0.1",
     "markdown-it": "12.0.6",
-    "markdown-it-include": "2.0.0",
+    "markdown-it-include": "github:riegelTech/markdown-it-include#feature/addRootScopeProtectionOption",
     "minimatch": "3.0.4",
     "mongodb": "3.6.7",
     "nodegit": "0.27.0",
