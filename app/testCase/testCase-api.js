@@ -176,11 +176,11 @@ async function getTestCase(req, res) {
 		}
 	};
 
-	let state = new md.core.State(testCase.content, md, env);
-	md.core.process(state);
-	let tokens = state.tokens;
 	let htmlContent;
 	try {
+		let state = new md.core.State(testCase.content, md, env);
+		md.core.process(state);
+		let tokens = state.tokens;
 		htmlContent = md.renderer.render(tokens, md.options, env);
 	} catch (e) {
 		logs.error(e.message);
@@ -188,7 +188,7 @@ async function getTestCase(req, res) {
 	}
 	try {
 		testCase.htmlContent = xssProtection.process(htmlContent);
-		res.status(200).send(testCase);
+		return res.status(200).send(testCase);
 	} catch (e) {
 		logs.error(e.message);
 		return res.status(utils.getHttpCode(e.code)).send('XSS protection failed');
