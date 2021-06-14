@@ -142,9 +142,12 @@ async function loadXssProtectionConf() {
 }
 
 async function getTestCase(req, res) {
+	const lang = req.cookies.lang;
+	let testSuite, testCase;
 	try {
-		const lang = req.cookies.lang;
-		const {testSuite, testCase} = getTestFromUrlParam(req);
+		const testItems = getTestFromUrlParam(req);
+		testSuite = testItems.testSuite;
+		testCase = testItems.testCase;
 	} catch (e) {
 		logs.error(e.message);
 		return res.status(utils.getHttpCode(e.code)).send(e.message);
@@ -159,29 +162,36 @@ async function getTestCase(req, res) {
 		logs.error(e.message);
 		return res.status(utils.getHttpCode(e.code)).send(e.message);
 	}
+
+	// relatives paths to external resources
+	overrideDefaultMdRenderers(testSuite, testCase, lang);
+
+	let mdPath = Path.join(testCase.basePath, testCase.testFilePath);
+	const env = {
+		getIncludeRootDir: function (options, state, startLine, endLine) {
+			return Path.dirname(mdPath);
+		},
+		getIncludeRootScope: function (options, state, startLine, endLine) {
+			return testCase.basePath;
+		}
+	};
+
+	let state = new md.core.State(testCase.content, md, env);
+	md.core.process(state);
+	let tokens = state.tokens;
+	let htmlContent;
 	try {
-		// relatives paths to external resources
-		overrideDefaultMdRenderers(testSuite, testCase, lang);
-
-		let mdPath = Path.join(testCase.basePath, testCase.testFilePath);
-		const env = {
-			getIncludeRootDir: function (options, state, startLine, endLine) {
-				return Path.dirname(mdPath);
-			},
-			getIncludeRootScope: function (options, state, startLine, endLine) {
-				return testCase.basePath;
-			}
-		};
-
-		let state = new md.core.State(testCase.content, md, env);
-		md.core.process(state);
-		let tokens = state.tokens;
-		testCase.htmlContent = xssProtection.process(md.renderer.render(tokens, md.options, env));
-
+		htmlContent = md.renderer.render(tokens, md.options, env);
+	} catch (e) {
+		logs.error(e.message);
+		return res.status(utils.getHttpCode(e.code)).send('Markdown parsing failed');
+	}
+	try {
+		testCase.htmlContent = xssProtection.process(htmlContent);
 		res.status(200).send(testCase);
 	} catch (e) {
 		logs.error(e.message);
-		return res.status(utils.getHttpCode(e.code)).send(e.message);
+		return res.status(utils.getHttpCode(e.code)).send('XSS protection failed');
 	}
 }
 
