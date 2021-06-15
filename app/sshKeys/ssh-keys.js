@@ -1,6 +1,7 @@
 'use strict';
 
 const EventEmitter = require('events');
+const fs = require('fs');
 const Path = require('path');
 
 const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
@@ -36,8 +37,7 @@ class SshKey {
 		this.pubKey = pubKey;
 		this.privKey = privKey;
 
-		this[privKeyPassSymbol] = privKeyPass;
-		this.decryptedPrivKey = false;
+		this.setPrivKeyPass(privKeyPass);
 	}
 
 	async testFilesAccess() {
@@ -57,9 +57,9 @@ class SshKey {
 		return true;
 	}
 
-	async setPrivKeyPass(passPhrase) {
+	setPrivKeyPass(passPhrase) {
 		const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
-		const keyData = await utils.readFile(keyPath, 'utf8');
+		const keyData = fs.readFileSync(keyPath, 'utf8');
 
 		const result = ssh2Utils.parseKey(keyData, passPhrase);
 		if (result instanceof  Error) {
@@ -115,7 +115,7 @@ async function initSshKeys() {
 
 async function setPrivKeyPass(sshKeyName, passPhrase) {
 	const sshKey = getSshKeyByName(sshKeyName);
-	const success = await sshKey.setPrivKeyPass(passPhrase);
+	const success = sshKey.setPrivKeyPass(passPhrase);
 	if (success) {
 		sshKeyCollectionEventEmitter.emit('sshKeyDecrypted', sshKey);
 	}

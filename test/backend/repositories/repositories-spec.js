@@ -60,6 +60,39 @@ describe('Repository module', function () {
 			});
 		});
 
+		describe('Should raise an error at instantiation', function () {
+			it('When repository name is missing', function () {
+				expect(() => new repoModule.Repository({
+					address: repositoryPath,
+					repoPath: repositoryPath
+				})).to.throw('Repository name is mandatory : "" given.');
+			});
+
+			it('When repository path is missing', function () {
+				expect(() => new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath
+				})).to.throw('Repository path is mandatory : "" given.');
+			});
+
+			it('When repository ssh key and pass are both defined', async function () {
+				const decryptedSshKey = new SshKey({
+					name: 'foo',
+					pubKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey.pub'),
+					privKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey')
+				});
+				decryptedSshKey.setPrivKeyPass('');
+				expect(() => new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repositoryPath,
+					sshKey: decryptedSshKey,
+					user: 'foo',
+					pass: 'bar'
+				})).to.throw('Cannot use both ssh and http authentication.');
+			});
+		});
+
 		describe('Repository initialization', function () {
 
 			let repoTestPath;
@@ -80,6 +113,7 @@ describe('Repository module', function () {
 				});
 				await newRepo.init({forceInit: true, waitForClone: true});
 				expect(newRepo.commitSha).to.be.null;
+				expect(newRepo.commit).to.be.null;
 				expect(newRepo.gitBranch).to.be.null;
 			});
 
@@ -97,6 +131,14 @@ describe('Repository module', function () {
 				newRepo.commitSha.should.not.be.null;
 				newRepo.gitBranch.should.eql('master');
 				newRepo.gitBranches.should.eql(['master']);
+				const currentCommit = newRepo.commit;
+				repoModule.Repository.getfullCommit(currentCommit).should.deep.eql({
+					sha: currentCommit.sha(),
+					date: currentCommit.date().getTime(),
+					author: currentCommit.author().toString(false),
+					committer: currentCommit.committer().toString(false),
+					message: currentCommit.message()
+				});
 			});
 
 			describe('Authentication', function () {
@@ -128,7 +170,7 @@ describe('Repository module', function () {
 							pubKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey')
 						});
-						await decryptedSshKey.setPrivKeyPass('');
+						decryptedSshKey.setPrivKeyPass('');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
@@ -149,7 +191,7 @@ describe('Repository module', function () {
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
 						});
-						await decryptedSshKey.setPrivKeyPass('foobar');
+						decryptedSshKey.setPrivKeyPass('foobar');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
@@ -184,22 +226,31 @@ describe('Repository module', function () {
 						// given
 						await addContentToTestRepository();
 						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
-						const decryptedSshKey = new SshKey({
+						const notDecryptedSshKey = new SshKey({
 							name: 'foo',
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
 						});
-						await decryptedSshKey.setPrivKeyPass('bad pass phrase');
+						notDecryptedSshKey.setPrivKeyPass('bad pass phrase');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
 							address: gitRespositorySshAddress,
 							repoPath: repoTestPath,
-							sshKey: decryptedSshKey,
+							sshKey: notDecryptedSshKey,
 							user: 'foo'
 						});
-
-						return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Private key is encrypted for repository "some name", please decrypt it`);
+						// then
+						await newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Private key is encrypted for repository "some name", please decrypt it`);
+						// when
+						newRepo.setSshKey({
+							name: 'foo',
+							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
+							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey'),
+							privKeyPass: 'foobar'
+						});
+						// then
+						return newRepo.cloneRepository();
 					});
 
 					it('should clone remote GIT repository with SSH keyring that have a protected and decrypted private key', async function () {
@@ -211,7 +262,7 @@ describe('Repository module', function () {
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
 						});
-						await decryptedSshKey.setPrivKeyPass('foobar');
+						decryptedSshKey.setPrivKeyPass('foobar');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
@@ -348,6 +399,68 @@ describe('Repository module', function () {
 					});
 					return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Failed to resolve repository address ${gitRespositoryHttpAddress}, please check the repository address`);
 				});
+			});
+		});
+
+		describe('move and remove repository', function () {
+			let repoTestPath;
+			beforeEach(async function () {
+				repoTestPath = Path.join(tmpSpace.path, 'repoTests', uuid.uuid());
+				await fsExtra.mkdirp(repoTestPath);
+			});
+
+			afterEach(async function () {
+				await fsExtra.remove(repoTestPath);
+			});
+
+			it('should move a GIT repository from a directory to another', async function () {
+				// given
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repoTestPath
+				});
+				await newRepo.init({forceInit: true, waitForClone: true});
+				const newRepoTestPath = Path.join(tmpSpace.path, 'repoTests', uuid.uuid());
+				await fsExtra.mkdirp(newRepoTestPath);
+
+				// when
+				await newRepo.moveRepository(newRepoTestPath);
+				// then
+				(await fsExtra.pathExists(repoTestPath)).should.be.false;
+				(await fsExtra.pathExists(newRepoTestPath)).should.be.true;
+
+				// finally
+				await fsExtra.remove(newRepoTestPath);
+			});
+
+			it('should throw error when destination directory doe not exist', async function () {
+				// given
+				const nonExistingDest = '/dev/null/does/not/exist';
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repoTestPath
+				});
+				await newRepo.init({forceInit: true, waitForClone: true});
+
+				// expect
+				return newRepo.moveRepository(nonExistingDest).should.eventually.be.rejectedWith(`Directory ${nonExistingDest} does not exist`);
+			});
+
+			it('should remove a GIT repository', async function () {
+				// given
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repoTestPath
+				});
+				await newRepo.init({forceInit: true, waitForClone: true});
+
+				// when
+				await newRepo.remove();
+				// then
+				(await fsExtra.pathExists(repoTestPath)).should.be.false;
 			});
 		});
 
