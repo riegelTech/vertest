@@ -7,7 +7,7 @@ import VueI18n from "vue-i18n";
 import VueFlags from '@growthbunker/vueflags';
 
 Vue.use(VueFlags, {
-	iconPath: '/fonts/flags/',
+	iconPath: '/assets/fonts/flags/',
 });
 Vue.use(VueRouter);
 Vue.use(VueI18n);
