@@ -105,4 +105,25 @@ describe('appConfig', function () {
 
       return configModule.getAppConfig().should.be.rejectedWith(`Config file is not well formatted : ${parsingError}`);
    });
+
+   it('should transform all paths that are included in workspace from relative to absolute paths', async function () {
+      // given
+      configFileContent = `workspace:
+  some-absolute-path: /some/absolute/path
+  some-relative-path: ./some/relative/path`;
+      configModule = proxyquire('../../../app/appConfig/config', {
+         '../utils': fsMock
+      });
+      const conf = await configModule.getAppConfig();
+      const expectedConfPath = Path.join(__dirname, '../', '../', '../', 'config.yml');
+      const expectedParsedContent = {
+         'workspace': {
+            'some-absolute-path': '/some/absolute/path',
+            'some-relative-path': Path.join(Path.dirname(expectedConfPath), './some/relative/path')
+         }
+      };
+
+      // expect
+      conf.should.eql(expectedParsedContent);
+   });
 });

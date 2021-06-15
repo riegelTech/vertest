@@ -46,6 +46,8 @@ class Repository {
         this._repoDir = repoPath;
     }
 
+    static CATCH_ALL_FILES_PATTERN = '**/**';
+
     static get authMethods() {
         return {
             SSH: 'ssh',
@@ -184,13 +186,24 @@ class Repository {
             if (e.code === 'EPRIVKEYENCRYPTED') {
                 throw e;
             }
+            const errCode = 'EREPOSITORYCLONEERROR';
             if (e.message.match(/credentials|authentication/)) {
                 const err = new Error(`Failed to clone repository ${this.address}, please check your credentials`);
-                err.code = 'EREPOSITORYCLONEERROR';
+                err.code = errCode;
+                throw err;
+            }
+            if (e.message.match(/Connection refused/)) {
+                const err = new Error(`Failed to clone repository, as ${this.address} seems unreachable, please check the repository address`);
+                err.code = errCode;
+                throw err;
+            }
+            if (e.message.match(/failed to resolve address/)) {
+                const err = new Error(`Failed to resolve repository address ${this.address}, please check the repository address`);
+                err.code = errCode;
                 throw err;
             }
             const err = new Error(`Failed to clone repository ${this.address}: ${e.message}`);
-            err.code = 'EREPOSITORYCLONEERROR';
+            err.code = errCode;
             throw err;
         }
 
@@ -237,7 +250,7 @@ class Repository {
         if (!patches.length) {
             return false;
         }
-        const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testDirs));
+        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testDirs));
         return matchedPatches.length > 0;
     }
 
@@ -246,7 +259,7 @@ class Repository {
         return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
     }
 
-    static fileMatchTest(patch, testDirs, considerOnlyNewFilePath = false) {
+    static patchMatchTest(patch, testDirs, considerOnlyNewFilePath = false) {
         let selected = false;
         const newPath = patch.newFile().path();
         const oldPath = considerOnlyNewFilePath ? patch.newFile().path() : patch.oldFile().path();
@@ -322,7 +335,7 @@ class Repository {
             let test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
-        const matchedPatches = patches.filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
+        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
 
         let addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
@@ -334,7 +347,7 @@ class Repository {
         // Some renaming patches make the file to not match the test suite file selector anymore, must considered as deleted patch
         const movedSoDeletedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isRenamed())
-            .filter(patch => !Repository.fileMatchTest(patch, testSuite.testDirs, true))
+            .filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs, true))
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), test: patch.test}))));
         deletedPatches = deletedPatches.concat(movedSoDeletedPatches);
 
@@ -348,7 +361,7 @@ class Repository {
 
         const renamedPatches = matchedPatches
             .filter(patch => patch.isRenamed())
-            .filter(patch => Repository.fileMatchTest(patch, testSuite.testDirs, true))
+            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs, true))
             .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
         return Object.assign(result, {

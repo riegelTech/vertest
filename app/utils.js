@@ -44,6 +44,7 @@ module.exports = {
     exists: util.promisify(fs.exists),
     stat: util.promisify(fs.stat),
     writeFile: util.promisify(fs.writeFile),
+    renameFile: util.promisify(fs.rename),
     // glob
     glob: util.promisify(glob),
     // http responses codes

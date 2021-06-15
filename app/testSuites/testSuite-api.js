@@ -66,7 +66,7 @@ async function getAllRepositoryFiles(req, res) {
 	try {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
 		const repository = testSuite.repository;
-		const files = await repository.collectTestFilesPaths(['**/**']);
+		const files = await repository.collectTestFilesPaths([repoModule.Repository.CATCH_ALL_FILES_PATTERN]);
 		res.send(files);
 	} catch(e) {
 		logs.error(e.message);

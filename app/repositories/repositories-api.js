@@ -52,7 +52,7 @@ async function getRepositoryFiles(req, res) {
     const branchName = req.body.gitBranch;
 
     await repository.checkoutBranch(branchName);
-    const filesAndBasePath = await repository.collectTestFilesPaths(['**/**']);
+    const filesAndBasePath = await repository.collectTestFilesPaths([repositoriesModule.Repository.CATCH_ALL_FILES_PATTERN]);
 
     res.status(200).send(filesAndBasePath);
 }

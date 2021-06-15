@@ -2,6 +2,7 @@
 
 const Path = require('path');
 
+const _ = require('lodash');
 const chai = require('chai');
 const dataDriven = require('data-driven');
 const fsExtra = require('fs-extra');
@@ -307,8 +308,46 @@ describe('Repository module', function () {
 
 			});
 
-			it('should throw error with bad GIT repository address', function () {
+			describe('should throw explicit errors', function () {
 
+				let serverPort;
+
+				beforeEach(async function () {
+					serverPort = (await httpGitServer.createHttpServer({
+						gitRepository
+					})).port;
+				});
+
+				afterEach(async function () {
+					return httpGitServer.tearDownHttpServer();
+				});
+
+				it('with GIT repository unreachable', async function () {
+					// given
+					await addContentToTestRepository();
+					const gitRespositoryHttpAddress = `http://localhost:${serverPort + 1}/test.git`; // bad port
+					// when
+					const newRepo = new repoModule.Repository({
+						name: 'some name',
+						address: gitRespositoryHttpAddress,
+						repoPath: repoTestPath
+					});
+					return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Failed to clone repository, as ${gitRespositoryHttpAddress} seems unreachable, please check the repository address`);
+				});
+
+				it('with bad GIT repository address', async function () {
+					// given
+					const unknownProtocol = 'unknownProtocol';
+					await addContentToTestRepository();
+					const gitRespositoryHttpAddress = `${unknownProtocol}://localhost:${serverPort}/test.git`; // missing protocol
+					// when
+					const newRepo = new repoModule.Repository({
+						name: 'some name',
+						address: gitRespositoryHttpAddress,
+						repoPath: repoTestPath
+					});
+					return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Failed to resolve repository address ${gitRespositoryHttpAddress}, please check the repository address`);
+				});
 			});
 		});
 
@@ -347,6 +386,38 @@ describe('Repository module', function () {
 
 			describe('should detect or not changes in repository', function () {
 
+				async function commitFilesManually(gitRepository, filesToDelete = [], filesToAdd = []) {
+					const signatures = await gitRepository.defaultSignature();
+					const curRepoIndex = await gitRepository.refreshIndex();
+					for (let fileToDelete of filesToDelete) {
+						await curRepoIndex.removeByPath(fileToDelete);
+					}
+					for (let fileToAdd of filesToAdd) {
+						await curRepoIndex.addByPath(fileToAdd);
+					}
+
+					await curRepoIndex.write();
+					const oid = await curRepoIndex.writeTree();
+					const head = await NodeGit.Reference.nameToId(gitRepository, "HEAD");
+					const parent = await gitRepository.getCommit(head);
+					await gitRepository.createCommit("HEAD", signatures, signatures, 'Some commit', oid, [parent]);
+				}
+
+				function cleanDiffFromUnpredictableKeys(diff) {
+					const cleanedDiff = Object.assign({}, diff);
+					function cleanPatch(patch) {
+						return _.pick(patch, ['file', 'newFile']);
+					}
+
+					cleanedDiff.modifiedPatches = diff.modifiedPatches.map(cleanPatch);
+					cleanedDiff.addedPatches = diff.addedPatches.map(cleanPatch);
+					cleanedDiff.deletedPatches = diff.deletedPatches.map(cleanPatch);
+					cleanedDiff.renamedPatches = diff.renamedPatches.map(cleanPatch);
+					return _.omit(cleanedDiff, ['currentCommit', 'targetCommit']);
+				}
+
+				const mockedTestCase = {someTestKey: 'some test value'};
+
 				dataDriven([{
 					msg: 'successfully with file addition',
 					initialCommit: {
@@ -356,11 +427,15 @@ describe('Repository module', function () {
 						file: 'someDirectory/someNewFile.test',
 						fileContent: 'Some new file content'
 					},
-					deletion: {
-						file: null
-					},
-					detectionFilter: '**/someDirectory/**.test',
-					detection: true
+					detectionFilter: ['**/someDirectory/**.test'],
+					detection: true,
+					expectedDiff: {
+						isEmpty: false,
+						addedPatches: [{ file: 'someDirectory/someNewFile.test' }],
+						deletedPatches: [],
+						modifiedPatches: [],
+						renamedPatches: []
+					}
 				}, {
 					msg: 'successfully with file deletion',
 					initialCommit: {
@@ -368,12 +443,18 @@ describe('Repository module', function () {
 						file: 'someNewFile.test',
 						fileContent: 'Some file content'
 					},
-					addition: {},
 					deletion: {
 						file: 'someDirectory/someNewFile.test'
 					},
-					detectionFilter: '**/someDirectory/**.test',
-					detection: true
+					detectionFilter: ['**/someDirectory/**.test'],
+					detection: true,
+					expectedDiff: {
+						isEmpty: false,
+						addedPatches: [],
+						deletedPatches: [{ file: 'someDirectory/someNewFile.test' }],
+						modifiedPatches: [],
+						renamedPatches: []
+					}
 				}, {
 					msg: 'successfully with file modification',
 					initialCommit: {
@@ -386,11 +467,18 @@ describe('Repository module', function () {
 						file: 'someDirectory/someNewFile.test',
 						fileContent: 'Some new file content'
 					},
-					deletion: {
-						file: null
-					},
-					detectionFilter: '**/someDirectory/**.test',
-					detection: true
+					detectionFilter: ['**/someDirectory/**.test'],
+					detection: true,
+					expectedDiff: {
+						isEmpty: false,
+						addedPatches: [],
+						deletedPatches: [],
+						modifiedPatches: [{
+							file: 'someDirectory/someNewFile.test',
+							newFile: 'someDirectory/someNewFile.test'
+						}],
+						renamedPatches: []
+					}
 				}, {
 					msg: 'no detection without test file matching',
 					initialCommit: {
@@ -403,11 +491,15 @@ describe('Repository module', function () {
 						file: 'someDirectory/someNewFile.test',
 						fileContent: 'Some new file content'
 					},
-					deletion: {
-						file: null
-					},
-					detectionFilter: '**/nonExistantDirectory/**.test',
-					detection: false
+					detectionFilter: ['**/nonExistantDirectory/**.test'],
+					detection: false,
+					expectedDiff: {
+						isEmpty: false,
+						addedPatches: [],
+						deletedPatches: [],
+						modifiedPatches: [],
+						renamedPatches: []
+					}
 				}, {
 					msg: 'no detection without modification',
 					initialCommit: {
@@ -415,10 +507,38 @@ describe('Repository module', function () {
 						file: 'someNewFile.test',
 						fileContent: 'Some file content'
 					},
-					addition: {},
-					deletion: {},
-					detectionFilter: '**/nonExistantDirectory/**.test',
-					detection: false
+					detectionFilter: ['**/nonExistantDirectory/**.test'],
+					detection: false,
+					expectedDiff: {
+						isEmpty: true,
+						addedPatches: [],
+						deletedPatches: [],
+						modifiedPatches: [],
+						renamedPatches: []
+					}
+				}, {
+					msg: 'successfully when a file moves from a non-matching point to a matching point',
+					initialCommit: {
+						dir: 'someDirectory',
+						file: 'someNewFile.notest',
+						fileContent: 'Some file content'
+					},
+					move: {
+						from: 'someDirectory/someNewFile.notest',
+						to: 'someDirectory/someNewFile.test'
+					},
+					detectionFilter: ['**/someDirectory/**.test'],
+					detection: true,
+					expectedDiff: {
+						isEmpty: false,
+						addedPatches: [],
+						deletedPatches: [],
+						modifiedPatches: [],
+						renamedPatches: [{
+							file: 'someDirectory/someNewFile.notest',
+							newFile: 'someDirectory/someNewFile.test'
+						}]
+					}
 				}], () => {
 					it('{msg}', async function (ctx) {
 						// given
@@ -430,28 +550,39 @@ describe('Repository module', function () {
 						});
 						await newRepo.init({forceInit: true, waitForClone: true});
 						// when
-						const signatures = await gitRepository.defaultSignature();
-						if (ctx.addition.dir) {
-							await fsExtra.mkdirp(Path.join(repositoryPath, ctx.addition.dir));
+
+						if (ctx.addition) {
+							if (ctx.addition.dir) {
+								await fsExtra.mkdirp(Path.join(repositoryPath, ctx.addition.dir));
+							}
+							if (ctx.addition.file) {
+								await utils.writeFile(Path.join(repositoryPath, ctx.addition.file), ctx.addition.fileContent || '');
+								await commitFilesManually(gitRepository, [], [ctx.addition.file]);
+							}
 						}
-						if (ctx.addition.file) {
-							await utils.writeFile(Path.join(repositoryPath, ctx.addition.file), ctx.addition.fileContent || '');
-							await gitRepository.createCommitOnHead([ctx.addition.file], signatures, signatures, 'Some commit');
+
+						if (ctx.move) {
+							const from = Path.join(repositoryPath, ctx.move.from);
+							const to = Path.join(repositoryPath, ctx.move.to);
+							await utils.renameFile(from, to);
+							await commitFilesManually(gitRepository, [ctx.move.from], [ctx.move.to]);
 						}
-						const curRepoIndex = await gitRepository.refreshIndex();
-						if (ctx.deletion.file) {
-							curRepoIndex.removeByPath(ctx.deletion.file);
-							await curRepoIndex.write();
-							const oid = await curRepoIndex.writeTree();
-							const head = await NodeGit.Reference.nameToId(gitRepository, "HEAD");
-							const parent = await gitRepository.getCommit(head);
-							await gitRepository.createCommit("HEAD", signatures, signatures, 'Some deletion commit', oid, [parent]);
+						if (ctx.deletion && ctx.deletion.file) {
+							await commitFilesManually(gitRepository, [ctx.deletion.file]);
 						}
 						// and
 						await newRepo.fetchRepository();
 						// then
-						const detectedChanges = await newRepo.lookupForChanges([ctx.detectionFilter]);
+						const detectedChanges = await newRepo.lookupForChanges(ctx.detectionFilter);
 						detectedChanges.should.eql(ctx.detection);
+
+						const upstreamCommit = await newRepo.getRecentCommitOfBranch(newRepo._curBranch);
+						const mockedTestSuite = {
+							testDirs: ctx.detectionFilter,
+							getTestCaseByFilePath: () => mockedTestCase
+						};
+						const diff = await newRepo.getRepositoryDiff(mockedTestSuite, upstreamCommit);
+						cleanDiffFromUnpredictableKeys(diff).should.deep.eql(ctx.expectedDiff);
 					});
 				});
 			});
