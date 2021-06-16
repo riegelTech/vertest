@@ -269,7 +269,6 @@ async function watchTestSuitesChanges() {
 			}
 			const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 			try {
-				await testSuite.repository.fetchRepository();
 				await testSuite.repository.refreshAvailableGitBranches();
 				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testSuite.testDirs)
 					|| await testSuite.repository.lookupForChanges(testSuite.testDirs, true);

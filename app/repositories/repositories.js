@@ -116,7 +116,7 @@ class Repository {
         // if repository exists just open it
         if (await fsExtra.pathExists(this._repoDir) && !forceInit) {
             this._gitRepository = await NodeGitRepository.open(this._repoDir);
-            await this.refreshAvailableGitBranches();
+            await this.refreshAvailableGitBranches(false);
             return;
         }
         if (this.authMethod === Repository.authMethods.SSH) {
@@ -161,11 +161,7 @@ class Repository {
                     return Cred.sshKeyNew(url.user || this.user, this.sshKey.pubKey, this.sshKey.privKey, this.sshKey.getPrivKeyPass());
                 }
                 if (this.authMethod === Repository.authMethods.HTTP) {
-                    if (this.user && this.pass) {
-                        return Cred.userpassPlaintextNew(this.user, this.pass);
-                    } else if (this.user) {
-                        return Cred.usernameNew(this.user);
-                    }
+                    return Cred.userpassPlaintextNew(this.user, this.pass);
                 }
             }
         }
@@ -210,10 +206,13 @@ class Repository {
         if (this._gitRepository.isEmpty()) {
             return;
         }
-        return this.refreshAvailableGitBranches();
+        return this.refreshAvailableGitBranches(false);
     }
 
-    async refreshAvailableGitBranches() {
+    async refreshAvailableGitBranches(doFetch = true) {
+        if (doFetch) {
+            await this.fetchRepository();
+        }
         this._curCommit = await this._gitRepository.getHeadCommit();
         this._curBranch = (await this._gitRepository.getCurrentBranch()).name().replace(LOCAL_REF_PATH, '');
         this._gitBranches = (await this._gitRepository.getReferenceNames(Reference.TYPE.ALL))
@@ -250,7 +249,7 @@ class Repository {
         if (!patches.length) {
             return false;
         }
-        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testDirs));
+        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testDirs).globalMatch());
         return matchedPatches.length > 0;
     }
 
@@ -259,29 +258,57 @@ class Repository {
         return (await this._gitRepository.getReferenceCommit(`${FULL_REF_PATH}${branchName}`)).sha();
     }
 
-    static patchMatchTest(patch, testDirs, considerOnlyNewFilePath = false) {
-        let selected = false;
+    static patchMatchTest(patch, testDirs) {
         const newPath = patch.newFile().path();
-        const oldPath = considerOnlyNewFilePath ? patch.newFile().path() : patch.oldFile().path();
+        const oldPath = patch.oldFile().path();
+
+		const result = {
+			newFileMatch: false,
+			oldFileMatch: false
+		};
+
         testDirs.forEach(filePattern => {
             const isNegativePattern = filePattern.startsWith('!');
-            if (!selected && !isNegativePattern
-                && (minimatch(oldPath, filePattern) || minimatch(newPath, filePattern))
+            if (!result.newFileMatch && !isNegativePattern
+                && (minimatch(newPath, filePattern))
             ) { // if unselected anymore and positively matched
-                selected = true;
-            } else if (selected && isNegativePattern
-                && (!minimatch(oldPath, filePattern) && !minimatch(newPath, filePattern))
+				result.newFileMatch = true;
+            } else if (result.newFileMatch && isNegativePattern
+                && (!minimatch(newPath, filePattern))
             ) { // if already selected and negatively matched (rejected)
-                selected = false;
+				result.newFileMatch = false;
             }
             // could use this case to select files that are available against a negative pattern ("some-file.jpg" should be selected by the pattern "!**/**.md")
             // however user will most likely select some files with a first positive pattern and then add negative patterns to exclude some of them
             // in this case, negative patterns should not be interpreted in their "positive" dimension
-            // else if (!selected && isNegativePattern && !minimatch(filePath, filePattern)) {
+			// in a nutshell, negative patterns means "all the previous selected files except those that match the pattern"
+            // else if (!result.newFileMatch && isNegativePattern && !minimatch(newPath, filePattern)) {
             // 	selected = true;
             // }
+			if (!result.oldFileMatch && !isNegativePattern
+				&& (minimatch(oldPath, filePattern))
+			) { // if unselected anymore and positively matched
+				result.oldFileMatch = true;
+			} else if (result.oldFileMatch && isNegativePattern
+				&& (!minimatch(oldPath, filePattern))
+			) { // if already selected and negatively matched (rejected)
+				result.oldFileMatch = false;
+			}
         });
-        return selected;
+
+
+
+        return {
+        	globalMatch() {
+        		return result.newFileMatch || result.oldFileMatch
+			},
+			newFileMatch() {
+        		return result.newFileMatch;
+			},
+			oldFileMatch() {
+        		return result.oldFileMatch;
+			}
+		};
     }
 
     async getRepositoryDiff(testSuite, commitSha) {
@@ -335,11 +362,19 @@ class Repository {
             let test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
-        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs)).map(enrichWithTest);
+        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).globalMatch()).map(enrichWithTest);
 
         let addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
             .map(patch => ({file: patch.newFile().path(), test: patch.test}));
+        // Some renaming patches make the file to match the test suite file selector must considered as added patch
+		const movedSoAddedPatches = (await Promise.all(matchedPatches
+			.filter(patch => patch.isRenamed())
+			.filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs).oldFileMatch() && Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch())
+			.map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}))));
+		// Some modified patches are newly integrated files that match the test dirs, but are not a test yet : they have no corresponding test object
+		addedPatches = addedPatches.concat(movedSoAddedPatches);
+
         let deletedPatches = matchedPatches
             .filter(patch => patch.isDeleted())
             .map(patch => ({file: patch.oldFile().path(), test: patch.test}));
@@ -347,7 +382,7 @@ class Repository {
         // Some renaming patches make the file to not match the test suite file selector anymore, must considered as deleted patch
         const movedSoDeletedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isRenamed())
-            .filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs, true))
+            .filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch())
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), test: patch.test}))));
         deletedPatches = deletedPatches.concat(movedSoDeletedPatches);
 
@@ -356,12 +391,9 @@ class Repository {
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
 
-        // Some modified patches are newly integrated files that match the test dirs, but are not a test yet : they have no corresponding test object
-        addedPatches = addedPatches.concat(modifiedPatches.filter(patch => !patch.test))
-
         const renamedPatches = matchedPatches
             .filter(patch => patch.isRenamed())
-            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs, true))
+            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch())
             .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
         return Object.assign(result, {
@@ -414,7 +446,7 @@ class Repository {
         await this._gitRepository.checkoutRef(ref, {
             checkoutStrategy: Checkout.STRATEGY.FORCE
         });
-        await this.refreshAvailableGitBranches();
+        await this.refreshAvailableGitBranches(false);
         return this._curCommit.sha();
     }
 

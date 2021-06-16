@@ -7,6 +7,7 @@ const chai = require('chai');
 const dataDriven = require('data-driven');
 const fsExtra = require('fs-extra');
 const NodeGit= require('nodegit');
+const {Branch, Checkout, Reference} = NodeGit;
 const tmp = require('tmp-promise');
 const uuid = require('uuidv4');
 
@@ -48,7 +49,7 @@ describe('Repository module', function () {
 
 			await utils.writeFile(file, fileContent);
 			const signatures = await gitRepository.defaultSignature();
-			await gitRepository.createCommitOnHead([Path.join(fileDir ? fileDir : '', fileName)], signatures, signatures, commitMsg);
+			return gitRepository.createCommitOnHead([Path.join(fileDir ? fileDir : '', fileName)], signatures, signatures, commitMsg);
 		}
 
 
@@ -497,6 +498,172 @@ describe('Repository module', function () {
 				(await newRepo.getRecentCommitOfBranch('master')).should.not.eql(lastCommit);
 			});
 
+			it('should detect a GIT branch removal throwing an error', async function () {
+				// given
+				const branchNameToDelete = 'some-branch';
+				await addContentToTestRepository();
+				const oid = await addContentToTestRepository(null, 'otherTestFile', 'some other data', 'Some new commit');
+				let branchToDelete = await gitRepository.createBranch(branchNameToDelete, oid, false);
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repoTestPath
+				});
+				await newRepo.init({forceInit: true, waitForClone: true});
+				await newRepo.checkoutBranch(branchNameToDelete);
+				// when
+				const masterBranch = await gitRepository.getBranch('master');
+				await gitRepository.checkoutRef(masterBranch, {
+					checkoutStrategy: Checkout.STRATEGY.FORCE
+				});
+				// when
+				Branch.delete(branchToDelete);
+				await newRepo.refreshAvailableGitBranches();
+
+				return newRepo.lookupForChanges([repoModule.Repository.CATCH_ALL_FILES_PATTERN]).should.eventually.be.rejectedWith(`Branch "${branchNameToDelete}" seems to be remotely deleted on repository "${newRepo.name}"`);
+			});
+
+			describe('should determine if a patch is filtered by the file selectors', function () {
+				dataDriven([{
+					msg: 'with simple selection',
+					selectors: [
+						'**/**.test'
+					],
+					patches: [{
+						newFile: 'some-dir/some-file.test',
+						oldFile: 'some-dir/some-file.test'
+					}, {
+						newFile: 'some-dir/some-file.notest',
+						oldFile: 'some-dir/some-file.notest'
+					}],
+					expectedResults: [{
+						withWholePatch: true,
+						withNewFilesOnly: true,
+						withOldFilesOnly: true
+					}, {
+						withWholePatch: false,
+						withNewFilesOnly: false,
+						withOldFilesOnly: false
+					}]
+				}, {
+					msg: 'with simple selection and negative selectors',
+					selectors: [
+						'!**/**.test'
+					],
+					patches: [{
+						newFile: 'some-dir/some-file.test',
+						oldFile: 'some-dir/some-file.test'
+					}, {
+						newFile: 'some-dir/some-file.notest',
+						oldFile: 'some-dir/some-file.notest'
+					}],
+					expectedResults: [{
+						withWholePatch: false,
+						withNewFilesOnly: false,
+						withOldFilesOnly: false
+					}, {
+						withWholePatch: false, // note that negative selectors means "all the previous selected files except those matching..."
+						withNewFilesOnly: false,
+						withOldFilesOnly: false
+					}]
+				}, {
+					msg: 'with simple selection, matching only new file',
+					selectors: [
+						'**/**.test'
+					],
+					patches: [{
+						newFile: 'some-dir/some-file.notest',
+						oldFile: 'some-dir/some-file.test'
+					}],
+					expectedResults: [{
+						withWholePatch: true,
+						withNewFilesOnly: false,
+						withOldFilesOnly: true
+					}]
+				}, {
+					msg: 'with multiple selection, and positive selectors',
+					selectors: [
+						'**/**.foo',
+						'**/**.bar'
+					],
+					patches: [{
+						newFile: 'some-dir/some-file.foo',
+						oldFile: 'some-dir/some-file.foo'
+					}, {
+						newFile: 'some-dir/some-file.bar',
+						oldFile: 'some-dir/some-file.bar'
+					}, {
+						newFile: 'some-dir/some-file.foobar',
+						oldFile: 'some-dir/some-file.foobar'
+					}],
+					expectedResults: [{
+						withWholePatch: true,
+						withNewFilesOnly: true,
+						withOldFilesOnly: true
+					}, {
+						withWholePatch: true,
+						withNewFilesOnly: true,
+						withOldFilesOnly: true
+					}, {
+						withWholePatch: false,
+						withNewFilesOnly: false,
+						withOldFilesOnly: false
+					}]
+				}, {
+					msg: 'with multiple selection, and negative selectors',
+					selectors: [
+						'**/**.foo',
+						'!**/bar/**.foo'
+					],
+					patches: [{
+						newFile: 'some-dir/some-file.foo',
+						oldFile: 'some-dir/some-file.foo'
+					}, {
+						newFile: 'bar/some-file.foo',
+						oldFile: 'bar/some-file.foo'
+					}, {
+						newFile: 'some-dir/some-file.foobar',
+						oldFile: 'some-dir/some-file.foobar'
+					}],
+					expectedResults: [{
+						withWholePatch: true,
+						withNewFilesOnly: true,
+						withOldFilesOnly: true
+					}, {
+						withWholePatch: false,
+						withNewFilesOnly: false,
+						withOldFilesOnly: false
+					}, {
+						withWholePatch: false,
+						withNewFilesOnly: false,
+						withOldFilesOnly: false
+					}]
+				}], () => {
+					it('{msg}', async function (ctx) {
+						// given
+						const patches = ctx.patches.map(patch => ({
+							newFile: () => ({
+								path: () => patch.newFile
+							}),
+							oldFile: () => ({
+								path: () => patch.oldFile
+							})
+						}));
+
+						ctx.expectedResults.forEach((expectedResult, index) => {
+							const wholePatchResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).globalMatch();
+							const newFileOnlyResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).newFileMatch();
+							const oldFileOnlyResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).oldFileMatch();
+
+							// expect
+							wholePatchResult.should.eql(expectedResult.withWholePatch);
+							newFileOnlyResult.should.eql(expectedResult.withNewFilesOnly);
+							oldFileOnlyResult.should.eql(expectedResult.withOldFilesOnly);
+						});
+					});
+				})
+			});
+
 			describe('should detect or not changes in repository', function () {
 
 				async function commitFilesManually(gitRepository, filesToDelete = [], filesToAdd = []) {
@@ -644,13 +811,39 @@ describe('Repository module', function () {
 					detection: true,
 					expectedDiff: {
 						isEmpty: false,
-						addedPatches: [],
+						addedPatches: [{
+							file: 'someDirectory/someNewFile.notest',
+							newFile: 'someDirectory/someNewFile.test'
+						}],
 						deletedPatches: [],
 						modifiedPatches: [],
 						renamedPatches: [{
 							file: 'someDirectory/someNewFile.notest',
 							newFile: 'someDirectory/someNewFile.test'
 						}]
+					}
+				}, {
+					msg: 'successfully when a file moves from a matching point to a non-matching point',
+					initialCommit: {
+						dir: 'someDirectory',
+						file: 'someNewFile.test',
+						fileContent: 'Some file content'
+					},
+					move: {
+						from: 'someDirectory/someNewFile.test',
+						to: 'someDirectory/someNewFile.notest'
+					},
+					detectionFilter: ['**/someDirectory/**.test'],
+					detection: true,
+					expectedDiff: {
+						isEmpty: false,
+						addedPatches: [],
+						deletedPatches: [{
+							file: 'someDirectory/someNewFile.test',
+							newFile: 'someDirectory/someNewFile.notest'
+						}],
+						modifiedPatches: [],
+						renamedPatches: []
 					}
 				}], () => {
 					it('{msg}', async function (ctx) {
