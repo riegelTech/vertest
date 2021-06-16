@@ -466,6 +466,48 @@ describe('Repository module', function () {
 			});
 		});
 
+		describe('should manipulate GIT repository', function () {
+			it('checkouting a branch', async function () {
+				// given
+				const newBranchName = 'some-new-branch';
+				await addContentToTestRepository();
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repositoryPath
+				});
+				await newRepo.init({forceInit: false, waitForClone: true});
+				const oid = await addContentToTestRepository(null, 'otherTestFile', 'some other data', 'Some new commit');
+				await gitRepository.createBranch(newBranchName, oid, false);
+				newRepo.gitBranch.should.eql('master');
+				// when
+				await newRepo.checkoutBranch(newBranchName);
+				// then
+				newRepo.gitBranch.should.eql(newBranchName);
+				(await gitRepository.getCurrentBranch()).name().should.contains(newBranchName);
+			});
+
+			it('checkouting a commit', async function () {
+				// given
+				await addContentToTestRepository();
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repositoryPath
+				});
+				await newRepo.init({forceInit: false, waitForClone: true});
+				const firstCommit = await gitRepository.getReferenceCommit('master');
+				await addContentToTestRepository(null, 'otherTestFile', 'some other data', 'Some new commit');
+				const newCommit = await gitRepository.getReferenceCommit(`master`);
+				newCommit.sha().should.not.eql(firstCommit.sha());
+				// when
+				await newRepo.checkoutCommit(firstCommit.sha());
+				// then
+				const lastPretendingCommit = await gitRepository.getReferenceCommit(`master`);
+				lastPretendingCommit.sha().should.eql(firstCommit.sha());
+			});
+		});
+
 		describe('refresh repository infos', function () {
 
 			let repoTestPath;
