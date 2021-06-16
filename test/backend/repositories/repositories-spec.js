@@ -7,13 +7,14 @@ const chai = require('chai');
 const dataDriven = require('data-driven');
 const fsExtra = require('fs-extra');
 const NodeGit= require('nodegit');
-const {Branch, Checkout, Reference} = NodeGit;
+const {Branch, Checkout} = NodeGit;
+const proxyquire = require('proxyquire');
 const tmp = require('tmp-promise');
 const uuid = require('uuidv4');
 
 const sshGitServer = require('../testUtils/git/sshGitServer');
 const httpGitServer = require('../testUtils/git/httpGitServer');
-const repoModule = require('../../../app/repositories/repositories');
+let repoModule = require('../../../app/repositories/repositories');
 const {SshKey} = require('../../../app/sshKeys/ssh-keys');
 const utils = require('../../../app/utils');
 
@@ -651,9 +652,9 @@ describe('Repository module', function () {
 						}));
 
 						ctx.expectedResults.forEach((expectedResult, index) => {
-							const wholePatchResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).globalMatch();
-							const newFileOnlyResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).newFileMatch();
-							const oldFileOnlyResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).oldFileMatch();
+							const wholePatchResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).globalMatch;
+							const newFileOnlyResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).newFileMatch;
+							const oldFileOnlyResult = repoModule.Repository.patchMatchTest(patches[index], ctx.selectors).oldFileMatch;
 
 							// expect
 							wholePatchResult.should.eql(expectedResult.withWholePatch);
@@ -774,7 +775,7 @@ describe('Repository module', function () {
 					detectionFilter: ['**/nonExistantDirectory/**.test'],
 					detection: false,
 					expectedDiff: {
-						isEmpty: false,
+						isEmpty: true,
 						addedPatches: [],
 						deletedPatches: [],
 						modifiedPatches: [],
@@ -893,6 +894,82 @@ describe('Repository module', function () {
 				});
 			});
 
+			describe('should generate a diff for test suite file selector change', function () {
+
+				let globMockResponse = [];
+
+				beforeEach(function () {
+
+					const globMock = () => globMockResponse;
+
+					repoModule = proxyquire('../../../app/repositories/repositories', {
+						'../utils': {
+							glob: globMock
+						}
+					});
+				});
+
+				it('resulting a diff instance', async function () {
+					// given
+					globMockResponse = [
+						'some-dir/some-file.test',
+						'some-dir/another-file.test',
+						'some-dir/not-a-test-file.notest'
+					];
+					const mockedTestSuite = {
+						testDirs: [
+							'**/**.test',
+							'!**/**.notest'
+						],
+						getTestCaseByFilePath() {
+							return {}
+						}
+					};
+					const newFileSelectors = [
+						'**/**.notest',
+						'!**/**.test'
+					];
+					const repo = new repoModule.Repository({
+						name: 'some name',
+						address: repositoryPath,
+						repoPath: repositoryPath
+					});
+					repo.getCurrentCommit = async function () {
+						return {
+							sha() {
+								return 'some-commit-sha'
+							}
+						}
+					};
+					// when
+					const diff = await repo.getRepositoryFilesDiff(mockedTestSuite, newFileSelectors);
+					// then
+					diff.constructor.should.eql(repoModule.TestSuiteDiff);
+					diff.addedPatches.should.eql([{
+						file: 'some-dir/not-a-test-file.notest', test: {}
+					}]);
+					diff.deletedPatches.should.eql([{
+						file: 'some-dir/some-file.test', test: {}
+					}, {
+						file: 'some-dir/another-file.test', test: {}
+					}]);
+				});
+			});
+
+			describe('TestSuiteDiff class', function () {
+				it('should instantiate a TestSuiteDiff', function () {
+					// when
+					const diff = new repoModule.TestSuiteDiff({});
+					// then
+					diff.isEmpty.should.be.true;
+				});
+				it('should not be empty if one of the diff entry is not empty', function () {
+					// when
+					const diff = new repoModule.TestSuiteDiff({addedPatches: ['some-patch']});
+					// then
+					diff.isEmpty.should.be.false;
+				});
+			});
 		});
 	});
 });

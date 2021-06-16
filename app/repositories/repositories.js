@@ -18,6 +18,21 @@ const DEFAULT_REMOTE_NAME = 'origin';
 const FULL_REF_PATH = `refs/remotes/${DEFAULT_REMOTE_NAME}/`;
 const LOCAL_REF_PATH = 'refs/heads/';
 
+class TestSuiteDiff {
+	constructor({currentCommit = '', targetCommit = '', addedPatches = [], deletedPatches = [], modifiedPatches = [], renamedPatches = []}) {
+		this.currentCommit = currentCommit;
+		this.targetCommit = targetCommit;
+		this.addedPatches = addedPatches;
+		this.deletedPatches = deletedPatches;
+		this.modifiedPatches = modifiedPatches;
+		this.renamedPatches = renamedPatches;
+		this.isEmpty = this.addedPatches.length === 0 &&
+			this.deletedPatches.length === 0 &&
+			this.modifiedPatches.length === 0 &&
+			this.renamedPatches.length === 0;
+	}
+}
+
 class Repository {
     constructor({name = '', address = '', sshKey = null,  user = '', pass = '', repoPath = ''}) {
         if (!name) {
@@ -249,7 +264,7 @@ class Repository {
         if (!patches.length) {
             return false;
         }
-        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testDirs).globalMatch());
+        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testDirs).globalMatch);
         return matchedPatches.length > 0;
     }
 
@@ -299,15 +314,9 @@ class Repository {
 
 
         return {
-        	globalMatch() {
-        		return result.newFileMatch || result.oldFileMatch
-			},
-			newFileMatch() {
-        		return result.newFileMatch;
-			},
-			oldFileMatch() {
-        		return result.oldFileMatch;
-			}
+        	globalMatch: result.newFileMatch || result.oldFileMatch,
+			newFileMatch: result.newFileMatch,
+			oldFileMatch: result.oldFileMatch
 		};
     }
 
@@ -322,20 +331,12 @@ class Repository {
             flags: Diff.FIND.RENAMES
         });
 
-        const result = {
-            currentCommit: currentCommit.sha(),
-            targetCommit: mostRecentCommit.sha(),
-            isEmpty: true
-        };
-
         const patches = await diff.patches();
         if (!patches.length) {
-            return Object.assign(result, {
-                addedPatches: [],
-                deletedPatches: [],
-                modifiedPatches: [],
-                renamedPatches: []
-            });
+			return new TestSuiteDiff({
+				currentCommit: currentCommit.sha(),
+				targetCommit: mostRecentCommit.sha()
+			});
         }
 
 
@@ -362,7 +363,7 @@ class Repository {
             let test = testSuite.getTestCaseByFilePath(diffObject.oldFile().path());
             return Object.assign(diffObject, {test});
         }
-        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).globalMatch()).map(enrichWithTest);
+        const matchedPatches = patches.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).globalMatch).map(enrichWithTest);
 
         let addedPatches = matchedPatches
             .filter(patch => patch.isAdded())
@@ -370,7 +371,7 @@ class Repository {
         // Some renaming patches make the file to match the test suite file selector must considered as added patch
 		const movedSoAddedPatches = (await Promise.all(matchedPatches
 			.filter(patch => patch.isRenamed())
-			.filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs).oldFileMatch() && Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch())
+			.filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs).oldFileMatch && Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch)
 			.map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}))));
 		// Some modified patches are newly integrated files that match the test dirs, but are not a test yet : they have no corresponding test object
 		addedPatches = addedPatches.concat(movedSoAddedPatches);
@@ -382,27 +383,29 @@ class Repository {
         // Some renaming patches make the file to not match the test suite file selector anymore, must considered as deleted patch
         const movedSoDeletedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isRenamed())
-            .filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch())
+            .filter(patch => !Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch)
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), test: patch.test}))));
         deletedPatches = deletedPatches.concat(movedSoDeletedPatches);
 
         const modifiedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isModified() || patch.isRenamed())
+			.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).oldFileMatch)
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
 
         const renamedPatches = matchedPatches
             .filter(patch => patch.isRenamed())
-            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch())
+            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch)
             .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
 
-        return Object.assign(result, {
-            addedPatches,
-            deletedPatches,
-            modifiedPatches: modifiedPatches.filter(patch => patch.test),
-            renamedPatches,
-            isEmpty: false
-        });
+		return new TestSuiteDiff({
+			currentCommit: currentCommit.sha(),
+			targetCommit: mostRecentCommit.sha(),
+			addedPatches,
+			deletedPatches,
+			modifiedPatches,
+			renamedPatches
+		});
     }
 
     async getRepositoryFilesDiff(testSuite, newFileSelectors) {
@@ -421,17 +424,12 @@ class Repository {
 
         const currentCommit = await this.getCurrentCommit(this.gitBranch);
 
-        // TODO diff object should be properly described as a class
-        // TODO diff object should include a "non-tracked-anymore" section, for the files that are not deleted by GIT, but that does not match the test suite file selector anymore
-        return {
-            currentCommit: currentCommit.sha(),
-            targetCommit: currentCommit.sha(),
-            addedPatches,
-            deletedPatches,
-            modifiedPatches: [],
-            renamedPatches: [],
-            isEmpty: addedPatches.length === 0 && deletedPatches.length === 0
-        };
+		return new TestSuiteDiff({
+			currentCommit: currentCommit.sha(),
+			targetCommit: currentCommit.sha(),
+			addedPatches,
+			deletedPatches
+		});
     }
 
     async checkoutBranch(branchName) {
@@ -520,6 +518,7 @@ function getTempRepository(repoName) {
 
 module.exports = {
     Repository,
+    TestSuiteDiff,
     createTempRepository,
     getTempRepository
 };
