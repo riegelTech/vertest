@@ -566,6 +566,45 @@ describe('Repository module', function () {
 				return newRepo.lookupForChanges([repoModule.Repository.CATCH_ALL_FILES_PATTERN]).should.eventually.be.rejectedWith(`Branch "${branchNameToDelete}" seems to be remotely deleted on repository "${newRepo.name}"`);
 			});
 
+			it('should generate a GIT log', async function () {
+				// given
+				const commits = [];
+				const nbCommits = 5;
+				await addContentToTestRepository();
+				for(let i = 1, j = nbCommits; i <= j; i++) {
+					const oid = await addContentToTestRepository(null, `otherTestFile-${i}`, 'some other data', `Some new commit-${i}`);
+					commits.push(await gitRepository.getCommit(oid));
+				}
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repoTestPath
+				});
+				await newRepo.init({forceInit: true, waitForClone: true});
+				// when
+				const gitLog = await newRepo.getGitLog(nbCommits);
+				gitLog.map(commit => commit.sha()).should.deep.eql(_.reverse(commits.map(commit => commit.sha())));
+			});
+
+			it('Should not fail if try to generate a longer git log than the repository contains', async function () {
+				// given
+				const commits = [];
+				const nbCommits = 3;
+				const limit = nbCommits + 5;
+				for(let i = 1, j = nbCommits; i <= j; i++) {
+					const oid = await addContentToTestRepository(null, `otherTestFile-${i}`, 'some other data', `Some new commit-${i}`);
+					commits.push(await gitRepository.getCommit(oid));
+				}
+				const newRepo = new repoModule.Repository({
+					name: 'some name',
+					address: repositoryPath,
+					repoPath: repoTestPath
+				});
+				await newRepo.init({forceInit: true, waitForClone: true});
+				// when
+				expect(async () => await newRepo.getGitLog(limit)).to.not.throw();
+			});
+
 			describe('should determine if a patch is filtered by the file selectors', function () {
 				dataDriven([{
 					msg: 'with simple selection',

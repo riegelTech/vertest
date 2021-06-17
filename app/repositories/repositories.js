@@ -455,10 +455,15 @@ class Repository {
 
     async getGitLog(limit) {
         const ancestors = [];
-        for (let i = 1; i <= limit; i++) {
-            const ancestor = await this._curCommit.nthGenAncestor(i);
-            if (ancestor) {
-                ancestors.push(ancestor);
+        ancestors.push(this._curCommit);
+        for (let i = 1; i < limit; i++) {
+            try {
+                const ancestor = await this._curCommit.nthGenAncestor(i);
+                if (ancestor) {
+                    ancestors.push(ancestor);
+                }
+            } catch (e) {
+                break;
             }
         }
 
