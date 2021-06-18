@@ -8,6 +8,7 @@ const express = require('express');
 
 const appConfig = require('./appConfig/config');
 const logsModule = require('./logsModule/logsModule');
+const migration = require('./migration');
 
 const app = express();
 app.use(express.json());
@@ -22,12 +23,11 @@ app.use((req, res, next) => {
 	});
 });
 
-
-
-
 const startApp = async () => {
 	const config = await appConfig.getAppConfig();
 	const logs = await logsModule.getDefaultLogger();
+	await migration.startMigration();
+
 	const port = config.server.port;
 
 	const testSuiteModule = require('./testSuites/testSuite');

@@ -16,7 +16,6 @@ const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
 
-const TEST_SUITE_COLL_NAME = 'testSuites';
 
 class TestCase extends EventEmitter {
 	constructor({testFilePath = '', basePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
@@ -168,7 +167,7 @@ let initialized = false;
 const testSuites = new Map();
 
 async function fetchTestSuites() {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 	const cursor = await coll.find();
 	const itemsCount = await cursor.count();
 	let itemsList = [];
@@ -203,7 +202,7 @@ async function initTestSuiteRepositories() {
 }
 
 async function updateTestSuite(testSuite) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 	const filter = {_id: testSuite._id};
 	const cursor = await coll.find(filter);
 	const itemsCount = await cursor.count();
@@ -215,14 +214,14 @@ async function updateTestSuite(testSuite) {
 }
 
 async function addTestSuite(testSuite){
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 
 	await coll.insertOne(testSuite);
 	testSuites.set(testSuite._id, testSuite);
 }
 
 async function removeTestSuite(testSuite) {
-	const coll = await dbConnector.getCollection(TEST_SUITE_COLL_NAME);
+	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 	const filter = {_id: testSuite._id};
 	const cursor = await coll.find(filter);
 	const itemsCount = await cursor.count();
