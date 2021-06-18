@@ -12,18 +12,19 @@ const appConfig = require('../appConfig/config');
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
+const testCaseStatuses = require('./testCaseStatuses');
 const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
 
 
 class TestCase extends EventEmitter {
-	constructor({testFilePath = '', basePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
+	constructor({testFilePath = '', basePath = '', content= '', status = testCaseStatuses.getStatuses().getStatusByIndex(0), user = null}) {
 		super();
 		this.basePath = basePath;
 		this.testFilePath = testFilePath;
 		this.content = content;
-		this.status = status;
+		this.setStatus(status);
 		this.user = user;
 	}
 
@@ -46,17 +47,15 @@ class TestCase extends EventEmitter {
 	}
 
 	get isFinished() {
-		return this.status === TestCase.STATUSES.SUCCESS
-			|| this.status === TestCase.STATUSES.FAILED;
+		return this.status.testCaseIsDone;
 	}
 
 	setStatus(newStatus, user = null) {
-		const availableStatuses = Object.values(TestCase.STATUSES);
-		if (!availableStatuses.includes(newStatus)) {
-			throw new Error(`Status "${newStatus}" is not a valid status`);
+		if (!(newStatus instanceof testCaseStatuses.Status)) {
+			throw new Error(`New status must be a Status instance, "${newStatus.constructor.name}" given`);
 		}
 		this.status = newStatus;
-		if (user && this.status !== TestCase.STATUSES.TODO) {
+		if (user && !this.status.isDefaultStatus) {
 			this.user = user;
 		}
 		this.emit('statusUpdated', newStatus);
@@ -166,15 +165,19 @@ class TestSuite {
 let initialized = false;
 const testSuites = new Map();
 
-async function fetchTestSuites() {
+async function fetchRawTestSuites() {
 	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 	const cursor = await coll.find();
 	const itemsCount = await cursor.count();
-	let itemsList = [];
 	if (itemsCount > 0){
-		itemsList = await cursor.toArray();
+		return cursor.toArray();
 	}
-	itemsList.forEach(testSuite => {
+	return [];
+}
+
+async function fetchTestSuites() {
+	const rawTestSuites = await fetchRawTestSuites();
+	rawTestSuites.forEach(testSuite => {
 		const testSuiteInstance = new TestSuite(Object.assign(testSuite, {repository: testSuite.repository}));
 		testSuites.set(testSuiteInstance._id, testSuiteInstance);
 	});
@@ -296,6 +299,7 @@ module.exports = {
 	// start test suite CRUD
 	addTestSuite,
 	getTestSuites,
+	fetchRawTestSuites,
 	getTestSuiteByUuid,
 	updateTestSuite,
 	removeTestSuite,

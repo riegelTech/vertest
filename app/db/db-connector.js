@@ -39,10 +39,36 @@ async function getCollection(collName) {
 	return db.collection(collName);
 }
 
+async function getTablesContent() {
+	const result = {};
+	for (let tableKey in DB_TABLES) {
+		const tableName = DB_TABLES[tableKey];
+		const coll = await getCollection(tableName);
+		const cursor = await coll.find();
+		const itemsCount = await cursor.count();
+		if (itemsCount > 0) {
+			result[tableName] = await cursor.toArray();
+		} else {
+			result[tableName] = [];
+		}
+	}
+	return result;
+}
+
+async function replaceTablesContent(tablesContent) {
+	for (let tableName in tablesContent) {
+		let coll = await getCollection(tableName);
+		await coll.drop();
+		coll = await getCollection(tableName);
+		coll.insertMany(tablesContent[tableName]);
+	}
+}
+
 module.exports = {
 	connect,
-	getDb,
 	getCollection,
+	getTablesContent,
+	replaceTablesContent,
 	close,
 	DB_TABLES
 };

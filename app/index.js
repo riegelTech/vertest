@@ -8,7 +8,7 @@ const express = require('express');
 
 const appConfig = require('./appConfig/config');
 const logsModule = require('./logsModule/logsModule');
-const migration = require('./migration');
+const migration = require('./db/migration');
 
 const app = express();
 app.use(express.json());
