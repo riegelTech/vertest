@@ -18,19 +18,17 @@ async function setMetadata() {
 		});
 	} else {
 		await coll.updateOne({_id: APPLICATION_METADATA_ID}, {
-			$set: Object.assign({}, existingMetadata, {
-				applicationVersion: pjson.version
-			})
+			$set: { applicationVersion: pjson.version }
 		});
 	}
 }
 
 async function getMetadata() {
 	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.METADATA);
-	const cursor = await coll.find();
+	const cursor = await coll.find({});
 	const itemsCount = await cursor.count();
 	if (itemsCount > 0){
-		return await cursor.toArray()[0];
+		return (await cursor.toArray())[0];
 	}
 	return null;
 }
