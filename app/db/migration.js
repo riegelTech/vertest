@@ -57,7 +57,7 @@ async function startMigration() {
 
 	logger.info(`Starting migration of data from version ${dataVersion} to ${applicationVersion}`);
 	const backup = await dbConnector.getTablesContent();
-	await utils.writeFile(path.join(__dirname, '../backup.json'), JSON.stringify(backup));
+	await utils.writeFile(path.join(__dirname, '../../backup.json'), JSON.stringify(backup));
 	logger.info('Backup wrote in file backup.json');
 
 	async function migrationExecutionWrapper(migrationFunctionName, targetVersion, migrationFunction) {
