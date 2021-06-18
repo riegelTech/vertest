@@ -22,9 +22,9 @@ async function setMetadata() {
 		});
 	} else {
 		await coll.updateOne({_id: APPLICATION_METADATA_ID}, {
-			$set: Object.assign({}, existingMetadata, {
+			$set: {
 				applicationVersion: pjson.version
-			})
+			}
 		});
 	}
 }

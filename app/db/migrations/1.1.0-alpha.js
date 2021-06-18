@@ -12,7 +12,8 @@ module.exports = {
 			const newTestCases = [];
 			for (let testCase of testSuite.tests) {
 				if (typeof testCase.status === 'number') {
-					testCase.status = defaultStatuses.getStatusByIndex(testCase.status);
+					const convertedStatusIndex = testCase.status <= 1 ? testCase.status : testCase.status - 1;
+					testCase.status = defaultStatuses.getStatusByIndex(convertedStatusIndex);
 				}
 				newTestCases.push(new testSuiteModule.TestCase(testCase));
 			}

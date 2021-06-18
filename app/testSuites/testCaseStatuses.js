@@ -1,43 +1,50 @@
 'use strict';
 
-const _ = require('lodash');
-
 const configModule = require('../appConfig/config');
 const logsModule = require('../logsModule/logsModule');
-const testSuiteModule = require('./testSuite');
 
 const logger = logsModule.getDefaultLoggerSync();
 
 const DEFAULT_STATUSES = [{
 	name: 'todo', // The test case isn't affected
 	done: false,
-	en: 'To do',
-	fr: 'A faire',
-	color: '#b0bec5'
+	color: '#b0bec5',
+	lang: {
+		en: 'To do',
+		fr: 'A faire'
+	}
 }, {
 	name: 'in progress', // The test case is affected to a user, so he is working on it
 	done: false,
 	color: '#90caf9',
-	en: 'In progress',
-	fr: 'En cours'
+	lang: {
+		en: 'In progress',
+		fr: 'En cours'
+	}
 }, {
 	name: 'blocked', // The test case can't be achieved
 	done: false,
 	color: '#ffcc80',
-	en: 'Blocked',
-	fr: 'Bloqué'
+	lang: {
+		en: 'Blocked',
+		fr: 'Bloqué'
+	}
 }, {
 	name: 'success', // Test pass !
 	done: true,
 	color: '#a5d6a7',
-	en: 'Successful',
-	fr: 'Réussi'
+	lang: {
+		en: 'Successful',
+		fr: 'Réussi'
+	}
 }, {
 	name: 'failed', // Test failed !
 	done: true,
 	color: '#ef9a9a',
-	en: 'Failed',
-	fr: 'En échec'
+	lang: {
+		en: 'Failed',
+		fr: 'En échec'
+	}
 }];
 
 class Status {
@@ -116,9 +123,7 @@ class Statuses {
 const statuses = new Statuses();
 
 // detect a status discordance when configuration changed but existing test cases already have statuses
-async function reviewExistingStatuses() {
-	const testSuites = await testSuiteModule.getTestSuites();
-
+async function reviewExistingStatuses(testSuites) {
 	const problems = [];
 
 	for(let testSuite of testSuites) {

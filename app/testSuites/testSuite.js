@@ -13,6 +13,7 @@ const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
 const testCaseStatuses = require('./testCaseStatuses');
+const Status = testCaseStatuses.Status;
 const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
@@ -24,7 +25,7 @@ class TestCase extends EventEmitter {
 		this.basePath = basePath;
 		this.testFilePath = testFilePath;
 		this.content = content;
-		this.setStatus(status);
+		this.setStatus(new Status(status));
 		this.user = user;
 	}
 
@@ -51,7 +52,7 @@ class TestCase extends EventEmitter {
 	}
 
 	setStatus(newStatus, user = null) {
-		if (!(newStatus instanceof testCaseStatuses.Status)) {
+		if (newStatus.constructor.name !== 'Status') {
 			throw new Error(`New status must be a Status instance, "${newStatus.constructor.name}" given`);
 		}
 		this.status = newStatus;
