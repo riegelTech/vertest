@@ -9,6 +9,7 @@ const express = require('express');
 const appConfig = require('./appConfig/config');
 const logsModule = require('./logsModule/logsModule');
 const migration = require('./db/migration');
+const statusesModule = require('./testSuites/testCaseStatuses');
 
 const app = express();
 app.use(express.json());
@@ -40,6 +41,9 @@ const startApp = async () => {
 	const sshKeysModule = require('./sshKeys/ssh-keys');
 
 	try {
+		await statusesModule.loadStatusesFromConfig();
+		const statusProblems = await statusesModule.reviewExistingStatuses(await testSuiteModule.getTestSuites());
+		console.log('statusProblems', statusProblems);
 		await testSuiteModule.initTestSuiteRepositories();
 		await sshKeysModule.initSshKeys();
 		await testSuiteModule.watchTestSuitesChanges();

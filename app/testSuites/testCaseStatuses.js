@@ -3,8 +3,6 @@
 const configModule = require('../appConfig/config');
 const logsModule = require('../logsModule/logsModule');
 
-const logger = logsModule.getDefaultLoggerSync();
-
 const DEFAULT_STATUSES = [{
 	name: 'todo', // The test case isn't affected
 	done: false,
@@ -128,10 +126,10 @@ async function reviewExistingStatuses(testSuites) {
 
 	for(let testSuite of testSuites) {
 		for (let testCase of testSuite.tests) {
-			if (!statuses.getStatusByName(testCase.status)) {
+			if (!statuses.getStatusByName(testCase.status.name)) {
 				problems.push({
 					testSuiteId: testSuite._id,
-					testCaseId: testCase._id,
+					testCaseId: testCase.testFilePath,
 					currentStatus: testCase.status
 				})
 			}
@@ -143,6 +141,7 @@ async function reviewExistingStatuses(testSuites) {
 
 
 async function loadStatusesFromConfig() {
+	const logger = logsModule.getDefaultLoggerSync();
 	const config = await configModule.getAppConfig();
 
 	if (!config.testCaseStatuses) {
@@ -151,7 +150,7 @@ async function loadStatusesFromConfig() {
 
 	statuses.clear();
 	try {
-		for (let key of config.testCaseStatuses) {
+		for (let key in config.testCaseStatuses) {
 			if (key !== 'defaultStatus') {
 				const confEntry = config.testCaseStatuses[key];
 				const status = new Status({
@@ -164,19 +163,24 @@ async function loadStatusesFromConfig() {
 			}
 		}
 		if (config.testCaseStatuses.defaultStatus) {
-			statuses.setDefaultStatus(config.testCaseStatuses.defaultStatus);
+			if (!statuses.getStatusByName(config.testCaseStatuses.defaultStatus)) {
+				throw new Error(`Failed to define default status, "${config.testCaseStatuses.defaultStatus}" does not exist among configured statuses list`);
+			} else {
+				statuses.setDefaultStatus(statuses.getStatusByName(config.testCaseStatuses.defaultStatus));
+			}
 		} else {
 			statuses.setDefaultStatus(statuses.getStatusByIndex(0));
 		}
 	} catch (e) {
-		logger.error(`Failed to load statuses from configuration, the default one will be loaded instead`);
+		logger.error(`Failed to load statuses from configuration, the default one will be loaded instead: ${e.message}`);
 		statuses.loadDefaultStatuses();
 	}
-	return reviewExistingStatuses();
 }
 
 module.exports = {
 	Status,
 	getStatuses: () => statuses,
-	loadDefaultStatuses: () => statuses.loadDefaultStatuses()
+	loadDefaultStatuses: () => statuses.loadDefaultStatuses(),
+	loadStatusesFromConfig,
+	reviewExistingStatuses
 };
