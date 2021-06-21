@@ -18,6 +18,8 @@ const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
 
+const INCLUDE_RE = /!{3}\s*include(.+?)!{3}/i;
+const BRACES_RE = /\((.+?)\)/i;
 
 class TestCase extends EventEmitter {
 	constructor({testFilePath = '', basePath = '', content= '', status = testCaseStatuses.getStatuses().getStatusByIndex(0), user = null}) {
@@ -27,6 +29,7 @@ class TestCase extends EventEmitter {
 		this.content = content;
 		this.setStatus(new Status(status));
 		this.user = user;
+		this.linkedFilesByInclusion = {};
 	}
 
 	static get STATUSES() {
@@ -44,7 +47,31 @@ class TestCase extends EventEmitter {
 	}
 
 	async fetchTestContent() {
-		this.content = await utils.readFile(Path.resolve(this.basePath, this.testFilePath), 'utf8');
+		const testFilePath = Path.resolve(this.basePath, this.testFilePath);
+		this.content = await utils.readFile(testFilePath, 'utf8');
+
+		async function getInclusionTree(filePath) {
+			const content = await utils.readFile(filePath, 'utf8');
+			const inclusionsResult = {
+				filePath,
+				content,
+				inclusions: []
+			};
+			let cap;
+			while ((cap = INCLUDE_RE.exec(content))) {
+				let includePath = cap[1].trim();
+				const sansBracesMatch = BRACES_RE.exec(includePath);
+				includePath = sansBracesMatch[1].trim();
+				inclusionsResult.inclusions.push({
+					start: cap.index,
+					end: cap.index + cap[0].length,
+					file: getInclusionTree(Path.join(Path.dirname(filePath), includePath))
+				});
+			}
+			return inclusionsResult;
+		}
+
+		this.linkedFilesByInclusion = getInclusionTree(testFilePath);
 	}
 
 	get isFinished() {
