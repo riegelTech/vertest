@@ -29,7 +29,7 @@ class TestCase extends EventEmitter {
 		this.content = content;
 		this.setStatus(new Status(status));
 		this.user = user;
-		this.linkedFilesByInclusion = {};
+		this.linkedFilesByInclusion = [];
 	}
 
 	static get STATUSES() {
@@ -50,28 +50,34 @@ class TestCase extends EventEmitter {
 		const testFilePath = Path.resolve(this.basePath, this.testFilePath);
 		this.content = await utils.readFile(testFilePath, 'utf8');
 
-		async function getInclusionTree(filePath) {
-			const content = await utils.readFile(filePath, 'utf8');
+		async function getInclusionTree(fileContent, filePath) {
 			const inclusionsResult = {
 				filePath,
-				content,
+				content: fileContent,
 				inclusions: []
 			};
+			if (!fileContent.match(INCLUDE_RE)) {
+				return inclusionsResult;
+			}
 			let cap;
-			while ((cap = INCLUDE_RE.exec(content))) {
+			while ((cap = INCLUDE_RE.exec(fileContent))) {
 				let includePath = cap[1].trim();
 				const sansBracesMatch = BRACES_RE.exec(includePath);
 				includePath = sansBracesMatch[1].trim();
+				const includedFilePath = Path.join(Path.dirname(filePath), includePath);
+				const includedFileContent = await utils.readFile(includedFilePath, 'utf8');
 				inclusionsResult.inclusions.push({
 					start: cap.index,
 					end: cap.index + cap[0].length,
-					file: getInclusionTree(Path.join(Path.dirname(filePath), includePath))
+					file: await getInclusionTree(includedFileContent, includedFilePath)
 				});
+				fileContent = fileContent.slice(0, cap.index) + includedFileContent + fileContent.slice(cap.index + cap[0].length, fileContent.length);
 			}
 			return inclusionsResult;
 		}
 
-		this.linkedFilesByInclusion = getInclusionTree(testFilePath);
+		const inclusionTree = await getInclusionTree(this.content, testFilePath);
+		this.linkedFilesByInclusion = inclusionTree.inclusions.length ? inclusionTree.inclusions : [];
 	}
 
 	get isFinished() {
