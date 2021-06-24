@@ -18,18 +18,18 @@ const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
 
-const INCLUDE_RE = /!{3}\s*include(.+?)!{3}/i;
+const INCLUDE_RE = /!{3}\s*include(.+?)!{3}/gi;
 const BRACES_RE = /\((.+?)\)/i;
 
 class TestCase extends EventEmitter {
-	constructor({testFilePath = '', basePath = '', content= '', status = testCaseStatuses.getStatuses().getStatusByIndex(0), user = null}) {
+	constructor({testFilePath = '', basePath = '', content= '', status = testCaseStatuses.getStatuses().getStatusByIndex(0), user = null, linkedFilesByInclusion = []}) {
 		super();
 		this.basePath = basePath;
 		this.testFilePath = testFilePath;
 		this.content = content;
 		this.setStatus(new Status(status));
 		this.user = user;
-		this.linkedFilesByInclusion = [];
+		this.linkedFilesByInclusion = linkedFilesByInclusion;
 	}
 
 	static get STATUSES() {
@@ -47,37 +47,89 @@ class TestCase extends EventEmitter {
 	}
 
 	async fetchTestContent() {
-		const testFilePath = Path.resolve(this.basePath, this.testFilePath);
-		this.content = await utils.readFile(testFilePath, 'utf8');
+		const testFilePathFull = Path.resolve(this.basePath, this.testFilePath);
+		this.content = await utils.readFile(testFilePathFull, 'utf8');
 
-		async function getInclusionTree(fileContent, filePath) {
-			const inclusionsResult = {
+		const basePath = this.basePath;
+		const testFilePath = this.testFilePath;
+
+		async function getInclusionTree(fileContent, filePath, ancestors = []) {
+			const absoluteFilePath = Path.resolve(basePath, filePath);
+			ancestors.push(absoluteFilePath);
+			const inclusions = [];
+			let cap;
+			while ((cap = INCLUDE_RE.exec(fileContent)) !== null) {
+				let includePath = cap[1].trim();
+				includePath = includePath.replace(BRACES_RE, '$1').trim();
+				const includedFilePath = Path.join(Path.dirname(filePath), includePath);
+				const absoluteIncludedFilePath = Path.join(basePath, Path.dirname(filePath), includePath);
+
+				if (ancestors.find(ancestorPath => ancestorPath === absoluteIncludedFilePath)) {
+					throw new Error(`Infinite recursion in markdown inclusions while parsing ${testFilePath} content`);
+				}
+				if (Path.relative(basePath, absoluteIncludedFilePath).startsWith('..')) {
+					throw new Error(`A markdown file includes a document outside of the test scope`);
+				}
+				const contentBeforeCap = fileContent.slice(0, cap.index);
+				inclusions.push({
+					line: contentBeforeCap.split(/\r\n|\r|\n/).length,
+					filePath: includedFilePath,
+					mdMarker: cap[0]
+				});
+			}
+			return {
 				filePath,
 				content: fileContent,
-				inclusions: []
+				inclusions: await Promise.all(inclusions.map(async inclusion => {
+					const includedFileContent = await utils.readFile(Path.join(basePath, inclusion.filePath), 'utf8');
+					return Object.assign({}, inclusion, await getInclusionTree(includedFileContent, inclusion.filePath, ancestors));
+				}))
 			};
-			if (!fileContent.match(INCLUDE_RE)) {
-				return inclusionsResult;
-			}
-			let cap;
-			while ((cap = INCLUDE_RE.exec(fileContent))) {
-				let includePath = cap[1].trim();
-				const sansBracesMatch = BRACES_RE.exec(includePath);
-				includePath = sansBracesMatch[1].trim();
-				const includedFilePath = Path.join(Path.dirname(filePath), includePath);
-				const includedFileContent = await utils.readFile(includedFilePath, 'utf8');
-				inclusionsResult.inclusions.push({
-					start: cap.index,
-					end: cap.index + cap[0].length,
-					file: await getInclusionTree(includedFileContent, includedFilePath)
-				});
-				fileContent = fileContent.slice(0, cap.index) + includedFileContent + fileContent.slice(cap.index + cap[0].length, fileContent.length);
-			}
-			return inclusionsResult;
 		}
 
-		const inclusionTree = await getInclusionTree(this.content, testFilePath);
+		const inclusionTree = await getInclusionTree(this.content, this.testFilePath);
 		this.linkedFilesByInclusion = inclusionTree.inclusions.length ? inclusionTree.inclusions : [];
+	}
+
+	get includedFiles() {
+		return this.linkedFilesByInclusion;
+	}
+
+	getInclusionsTreeSegment(tree, assertionFunc) {
+		const treeCopy = tree ?
+			Object.assign({}, tree) :
+			Object.assign({}, {
+				filePath: this.testFilePath,
+				inclusions: this.linkedFilesByInclusion
+			});
+
+		function assertInTree(tree) {
+			const inclusions = tree.inclusions.filter(inclusion => assertInTree(inclusion));
+			if (!assertionFunc(tree) && inclusions.length === 0) {
+				return null;
+			}
+			tree.inclusions = inclusions;
+			return tree;
+		}
+		return assertInTree(treeCopy);
+	}
+
+	async applyOnEachTreeItem(tree, applyFunc, childKeyNameTarget = 'inclusions') {
+
+		const treeCopy = tree ?
+			Object.assign({}, tree) :
+			Object.assign({}, {
+				filePath: this.testFilePath,
+				inclusions: this.linkedFilesByInclusion
+			});
+
+		async function applyInTree(treeItem) {
+			treeItem[childKeyNameTarget] = await Promise.all(treeItem[childKeyNameTarget].map(async inclusion => await applyInTree(inclusion)));
+			let segment = await applyFunc(treeItem);
+			return segment;
+		}
+
+		return applyInTree(treeCopy);
 	}
 
 	get isFinished() {
