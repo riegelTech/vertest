@@ -1,7 +1,7 @@
 <template>
     <div class="diff-viewer">
         <table>
-            <tbody v-for="hunk in hunks">
+            <tbody v-for="hunk in sortedHunks">
                 <tr v-for="(oldLine, oldLineIndex) in hunk.oldLines.content" class="less">
                     <td class="num-line">{{ oldLineIndex + hunk.oldLines.start }}</td>
                     <td class="sign-line">-</td>
@@ -75,15 +75,21 @@
         props: {
             hunks: Array
         },
+        data() {
+        	return {
+        		sortedHunks: []
+            }
+        },
         mounted() {
-			this.hunks = this.hunks.map(hunk => {
+			this.sortedHunks = this.hunks.map(hunk => {
 				return Object.assign({
 					oldLines: {},
 					newLines: {},
 					existingLines: {}
 				}, hunk);
             });
-			this.hunks.sort((hunkA, hunkB) => {
+
+			this.sortedHunks.sort((hunkA, hunkB) => {
 				const startA = hunkA.oldLines.start || hunkA.newLines.start || hunkA.existingLines.start;
 				const startB = hunkB.oldLines.start || hunkB.newLines.start || hunkB.existingLines.start;
 
@@ -92,7 +98,6 @@
                 }
 				return startA < startB ? -1 : 1;
             });
-            console.log(this.hunks);
         }
     };
 </script>

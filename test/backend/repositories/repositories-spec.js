@@ -778,7 +778,10 @@ describe('Repository module', function () {
 					return _.omit(cleanedDiff, ['currentCommit', 'targetCommit']);
 				}
 
-				const mockedTestCase = {someTestKey: 'some test value'};
+				const mockedTestCase = {
+					someTestKey: 'some test value',
+					getIncludedFilesFlat: () => ['some/file']
+				};
 
 				dataDriven([{
 					msg: 'successfully with file addition',
@@ -967,7 +970,8 @@ describe('Repository module', function () {
 						const upstreamCommit = await newRepo.getRecentCommitOfBranch(newRepo._curBranch);
 						const mockedTestSuite = {
 							testDirs: ctx.detectionFilter,
-							getTestCaseByFilePath: () => mockedTestCase
+							getTestCaseByFilePath: () => mockedTestCase,
+							tests: [mockedTestCase]
 						};
 						const diff = await newRepo.getRepositoryDiff(mockedTestSuite, upstreamCommit);
 						cleanDiffFromUnpredictableKeys(diff).should.deep.eql(ctx.expectedDiff);

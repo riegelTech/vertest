@@ -91,8 +91,13 @@ class TestCase extends EventEmitter {
 		this.linkedFilesByInclusion = inclusionTree.inclusions.length ? inclusionTree.inclusions : [];
 	}
 
-	get includedFiles() {
-		return this.linkedFilesByInclusion;
+	async getIncludedFilesFlat() {
+		const res = [];
+		await this.applyOnEachTreeItem(null, inclusion => {
+			res.push(inclusion.filePath);
+			return inclusion;
+		});
+		return res;
 	}
 
 	getInclusionsTreeSegment(tree, assertionFunc) {
@@ -183,6 +188,14 @@ class TestSuite {
 		}));
 		this.bindTestCasesStates();
 		await this.collectTests();
+	}
+
+	async getInvolvedFiles() {
+		let res = [].concat(this.testDirs);
+		await Promise.all(this.tests.map(async testCase => {
+			res = res.concat(await testCase.getIncludedFilesFlat());
+		}));
+		return _.uniq(res);
 	}
 
 	bindTestCasesStates() {
@@ -360,8 +373,10 @@ async function watchTestSuitesChanges() {
 			const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 			try {
 				await testSuite.repository.refreshAvailableGitBranches();
-				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testSuite.testDirs)
-					|| await testSuite.repository.lookupForChanges(testSuite.testDirs, true);
+
+				const testDirs = await testSuite.getInvolvedFiles();
+				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testDirs)
+					|| await testSuite.repository.lookupForChanges(testDirs, true);
 				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
 					testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Repository change detected for test suite ${testSuite.name}`);
 					testSuite.status = TestSuite.STATUSES.TO_UPDATE;

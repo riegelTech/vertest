@@ -404,21 +404,39 @@ class Repository {
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
 
-        // Add the included files with markdown special syntax
+        // Add the files that are included with markdown special syntax
         const potentialPatches = patches.filter(patch => patch.isModified());
-        modifiedPatches = await Promise.all(modifiedPatches.map(async modifiedPatch => {
+        let additionalPatches = [];
+        await Promise.all(potentialPatches.map(async patch => {
+                const testCases = (await Promise.all(testSuite.tests.map(async testCase => {
+                    const testCaseInvolvedFiles = await testCase.getIncludedFilesFlat();
+                    const involvedTestCase = testCaseInvolvedFiles.find(involvedFile => involvedFile === patch.oldFile().path() || involvedFile === patch.newFile().path());
+                    return involvedTestCase ? testCase : undefined;
+                }))).filter(testCase => testCase !== undefined);
 
-			let modifiedIncludedFiles = await modifiedPatch.test.applyOnEachTreeItem(null ,modifiedIncludedFile => {
-				const patch = potentialPatches.find(patch => modifiedIncludedFile.filePath === patch.oldFile().path() || modifiedIncludedFile.filePath === patch.newFile().path());
-				if (patch) {
-					modifiedIncludedFile.patch = patch;
-				} else {
+                await Promise.all(testCases.map(async testCase => {
+                    additionalPatches.push({
+                        file: patch.oldFile().path(),
+                        newFile: patch.newFile().path(),
+                        hunks: await getHunks(patch),
+                        test: testCase
+                    });
+                }));
+            }));
+
+        additionalPatches = await Promise.all(additionalPatches.map(async additionalPatch => {
+
+            let modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(null ,modifiedIncludedFile => {
+                const patch = potentialPatches.find(patch => modifiedIncludedFile.filePath === patch.oldFile().path() || modifiedIncludedFile.filePath === patch.newFile().path());
+                if (patch) {
+                    modifiedIncludedFile.patch = patch;
+                } else {
                     modifiedIncludedFile.patch = null;
                 }
-				return modifiedIncludedFile;
-			});
+                return modifiedIncludedFile;
+            });
 
-            modifiedIncludedFiles = modifiedPatch.test.getInclusionsTreeSegment(modifiedIncludedFiles, includedFile => {
+            modifiedIncludedFiles = additionalPatch.test.getInclusionsTreeSegment(modifiedIncludedFiles, includedFile => {
                 return includedFile.patch !== null;
             });
 
@@ -455,7 +473,7 @@ class Repository {
             }
 
             if (modifiedIncludedFiles) {
-                modifiedIncludedFiles = await modifiedPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
+                modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
                     inclusion.hunks = inclusion.patch ? await getHunks(inclusion.patch) : [];
 
                     inclusion.inclusions.forEach(child => {
@@ -477,7 +495,7 @@ class Repository {
                     return inclusion;
                 });
 
-                modifiedIncludedFiles = await modifiedPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
+                modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
                     return {
                         newLines: inclusion.newLines,
                         oldLines: inclusion.oldLines,
@@ -486,21 +504,19 @@ class Repository {
                     };
                 }, 'hunks');
 
-                modifiedPatch.hunks = modifiedIncludedFiles.hunks;
+                additionalPatch.hunks = modifiedIncludedFiles.hunks;
             }
 
 
-            return modifiedPatch;
+            return additionalPatch;
         }));
-
-
 
 		return new TestSuiteDiff({
 			currentCommit: currentCommit.sha(),
 			targetCommit: mostRecentCommit.sha(),
 			addedPatches,
 			deletedPatches,
-			modifiedPatches,
+			modifiedPatches: modifiedPatches.concat(additionalPatches),
 			renamedPatches
 		});
     }
