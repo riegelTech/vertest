@@ -10,6 +10,7 @@ const appConfig = require('./appConfig/config');
 const logsModule = require('./logsModule/logsModule');
 const migration = require('./db/migration');
 const statusesModule = require('./testSuites/testCaseStatuses');
+const utils = require('./utils');
 
 const app = express();
 app.use(express.json());
@@ -55,8 +56,8 @@ const startApp = async () => {
 	app.all('/api/*', async function (req, res, next) {
 		const sessIdCookie = req.cookies && req.cookies.sessId;
 
-		function sendUnauthorized(res) {
-			return res.status(401).send('Unauthorized');
+		function sendUnauthorized(res, httpCode = utils.RESPONSE_HTTP_CODES.UNAUTHORIZED, message = 'Unauthorized') {
+			return res.status(httpCode).send(message);
 		}
 
 		try {
@@ -65,7 +66,7 @@ const startApp = async () => {
 				res.cookie('sessId', usersModule.getSessId());
 				const isPathForUserMod = req.path.startsWith('/api/users/') && req.method === 'PUT';
 				if (req.method !== 'GET' && curUser && curUser.readOnly && !isPathForUserMod) { // general protection against read only users
-					return sendUnauthorized(res);
+					return sendUnauthorized(res, utils.RESPONSE_HTTP_CODES.REFUSED, `User "${curUser.login}" (${curUser._id}) is readonly`);
 				}
 				return next();
 			}

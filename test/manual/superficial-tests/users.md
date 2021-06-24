@@ -27,7 +27,7 @@ Test of the users management page
 
 1. Click on the "add" button (top left corner of the screen)
 2. A popin should appear
-   ![popin view](./screen-captures/user-creation-popin.png)
+   ![popin view](../screen-captures/user-creation-popin.png)
 3. Fill the fields in order to create a new user
 4. Validate
 5. The new user should appear on the grid

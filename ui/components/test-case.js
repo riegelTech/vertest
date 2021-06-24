@@ -3,10 +3,6 @@
 import {userMixin} from '../pages/users/userMixin';
 import TestCaseState from './testCaseState.vue';
 
-const md = require('markdown-it')();
-const url = require('url');
-const Path = require('path-browserify');
-
 const TEST_SUITE_PATH = '/api/test-suites/';
 
 export const TEST_CASE_STATUSES = {
@@ -67,58 +63,12 @@ export default {
 	},
 	async mounted() {
 		return this.initTestCase();
-;	},
+	},
 	methods: {
 		async initTestCase() {
 			if (!this.testCaseLocal) {
 				return;
 			}
-
-			const testCaseBasePath = this.testCaseLocal.basePath;
-			const relativeTestFile = this.testCaseLocal.testFilePath;
-			const siblingTestCases = this.siblingTestCases;
-			const currentUrl = window.location;
-
-			const defaultImageRender = md.renderer.rules.image;
-			md.renderer.rules.image = function (tokens, idx, options, env, self) {
-				const token = tokens[idx];
-				const src = token.attrs[token.attrIndex('src')][1];
-				const resourceUrl = url.parse(src);
-
-				if (!resourceUrl.protocol && !resourceUrl.host) {
-					token.attrs[token.attrIndex('src')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${src}`;
-				}
-				// pass token to default renderer.
-				return defaultImageRender(tokens, idx, options, env, self);
-			};
-
-			const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
-				return self.renderToken(tokens, idx, options);
-			};
-			md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
-				const token = tokens[idx];
-				const href = token.attrs[token.attrIndex('href')][1];
-				const resourceUrl = url.parse(href);
-
-				if (!resourceUrl.protocol && !resourceUrl.host) {
-					const resourceRelativePath = Path.join(Path.dirname(relativeTestFile), href);
-					const isASibling = siblingTestCases.find(testCase => testCase.testFilePath === resourceRelativePath);
-					if (isASibling) { // document also included in the test suite's regular and tracked tests
-						const hashPath = currentUrl.hash;
-						token.attrs[token.attrIndex('href')][1] = url.resolve(currentUrl.href, Path.join(hashPath, `../${encodeURIComponent(encodeURIComponent(resourceRelativePath))}`));
-					} else {
-						if (Path.extname(href) === '.md') {
-							const resourceIdentifier = encodeURIComponent(encodeURIComponent(`${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${href}`));
-							token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/#/mdvisu/${resourceIdentifier}`;
-						} else {
-							token.attrs[token.attrIndex('href')][1] = `${currentUrl.origin}/repositoriesStatics/${Path.basename(testCaseBasePath)}/${Path.dirname(relativeTestFile)}/${href}`;
-						}
-					}
-				}
-				// pass token to default renderer.
-				return defaultLinkRender(tokens, idx, options, env, self);
-			};
-
 
 			let testCase;
 
@@ -131,7 +81,7 @@ export default {
 				// do nothing
 			}
 			if (testCase) {
-				testCase.mdContent = md.render(testCase.content);
+				testCase.mdContent = testCase.htmlContent;
 				this.testCaseLocal = testCase;
 			}
 			try {

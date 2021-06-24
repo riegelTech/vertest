@@ -46,4 +46,9 @@ workspace:
   repositoriesDir: ./cloneDir # can be also absolute
   temporaryRepositoriesDir: ./tempDir # can be also absolute
   logsDir: ./logs # can be also absolute
+  xssConfigFile: ./config/xss-white-list-sample.json # can be also absolute
 ```
+
+> Note: Vertest gives a protection against XSS attack with a default HTML tags and attributes
+> whitelist that the markdown render can output.
+> You can modify the filter editing the xss-white-list-sample.json and linking it in the configuration file
