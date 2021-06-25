@@ -120,7 +120,7 @@
                                 :displayCurrentState="true"
                                 :displayStateSwitch="true"
                                 :user="patch.test.user"
-                                v-on:change-test-status="(...args)=>changeTestStatus(patch.newFile, ...args)"
+                                v-on:change-test-status="(...args)=>changeTestStatus(patch.test.testFilePath, ...args)"
                         >
                         </test-case-state>
                         <diff-viewer :hunks="patch.hunks"></diff-viewer>

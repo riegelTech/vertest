@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const express = require('express');
 const router = express.Router();
 
@@ -159,12 +160,6 @@ async function solveTestSuiteDiff(req, res) {
 			if (!testSuite.getTestCaseByFilePath(patch.newFile)) {
 				test.testFilePath = patch.newFile;
 			}
-			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
-				modificationsToLog.push({
-					message: `Test file "${test.testFilePath}" status changed from "${test.status.name}" to "${newStatuses[test.testFilePath].name}"`
-				});
-				test.setStatus(new statusModule.Status(newStatuses[test.testFilePath]), curUser);
-			}
 		});
 
 		addedPatches.forEach(patch => {
@@ -194,6 +189,20 @@ async function solveTestSuiteDiff(req, res) {
 				message: `Rename test case into "${testSuite.name}" due to git update, from "${patch.file}" to "${patch.newFile}"`,
 				testFilePath: patch.newFile // add another log line to retrieve the renaming action with both file names
 			});
+		});
+
+
+		_.forEach(newStatuses, (newStatus, filePath) => {
+			const testCase = testSuite.getTestCaseByFilePath(filePath);
+			if (testCase && testCase.status.name !== newStatus.name) {
+				const newStatus = statusModule.getStatuses().getStatusByName(newStatuses[testCase.testFilePath].name);
+				if (newStatus) {
+					modificationsToLog.push({
+						message: `Test file "${testCase.testFilePath}" status changed from "${testCase.status.name}" to "${newStatus.name}"`
+					});
+					testCase.setStatus(newStatus, curUser);
+				}
+			}
 		});
 
 		if (targetBranch) {
