@@ -320,7 +320,7 @@ class Repository {
 		};
     }
 
-    async getRepositoryDiff(testSuite, commitSha) {
+    async getRepositoryDiff(testSuite, commitSha, wtIncludedFiles = true) {
         const currentCommit = await this.getCurrentCommit(this.gitBranch);
         const mostRecentCommit = await this._gitRepository.getCommit(commitSha);
 
@@ -407,7 +407,9 @@ class Repository {
         // Add the files that are included with markdown special syntax
         const potentialPatches = patches.filter(patch => patch.isModified());
         let additionalPatches = [];
-        await Promise.all(potentialPatches.map(async patch => {
+        if (wtIncludedFiles) {
+
+            await Promise.all(potentialPatches.map(async patch => {
                 const testCases = (await Promise.all(testSuite.tests.map(async testCase => {
                     const testCaseInvolvedFiles = await testCase.getIncludedFilesFlat();
                     const involvedTestCase = testCaseInvolvedFiles.find(involvedFile => involvedFile === patch.oldFile().path() || involvedFile === patch.newFile().path());
@@ -424,92 +426,93 @@ class Repository {
                 }));
             }));
 
-        additionalPatches = await Promise.all(additionalPatches.map(async additionalPatch => {
+            additionalPatches = await Promise.all(additionalPatches.map(async additionalPatch => {
 
-            let modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(null ,modifiedIncludedFile => {
-                const patch = potentialPatches.find(patch => modifiedIncludedFile.filePath === patch.oldFile().path() || modifiedIncludedFile.filePath === patch.newFile().path());
-                if (patch) {
-                    modifiedIncludedFile.patch = patch;
-                } else {
-                    modifiedIncludedFile.patch = null;
-                }
-                return modifiedIncludedFile;
-            });
-
-            modifiedIncludedFiles = additionalPatch.test.getInclusionsTreeSegment(modifiedIncludedFiles, includedFile => {
-                return includedFile.patch !== null;
-            });
-
-            function hunkContainsInclusion(hunk, inclusion) {
-                if (hunk.existingLines) {
-                    const existingLinesRange = {
-                        start: hunk.existingLines.start,
-                        end: hunk.existingLines.start + hunk.existingLines.numLines
-                    };
-                    if (existingLinesRange.start <= inclusion.line && existingLinesRange.end >= inclusion.line) {
-                        return true;
+                let modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(null, modifiedIncludedFile => {
+                    const patch = potentialPatches.find(patch => modifiedIncludedFile.filePath === patch.oldFile().path() || modifiedIncludedFile.filePath === patch.newFile().path());
+                    if (patch) {
+                        modifiedIncludedFile.patch = patch;
+                    } else {
+                        modifiedIncludedFile.patch = null;
                     }
-                }
-                if (hunk.oldLines) {
-                    const oldLinesRange = {
-                        start: hunk.oldLines.start ,
-                        end: hunk.oldLines.start + hunk.oldLines.numLines
-                    };
-                    if (oldLinesRange.start <= inclusion.line && oldLinesRange.end >= inclusion.line) {
-                        return true;
-                    }
-                }
-                if (hunk.newLines) {
-                    const newLinesRange = {
-                        start: hunk.newLines.start,
-                        end: hunk.newLines.start + hunk.newLines.numLines
-                    };
-                    if (newLinesRange.start <= inclusion.line && newLinesRange.end >= inclusion.line) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            if (modifiedIncludedFiles) {
-                modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
-                    inclusion.hunks = inclusion.patch ? await getHunks(inclusion.patch) : [];
-
-                    inclusion.inclusions.forEach(child => {
-                        const existingHunk = inclusion.hunks.find(hunk => hunkContainsInclusion(hunk, child));
-                        if (!existingHunk) {
-                            inclusion.hunks.push({
-                                existingLines: {
-                                    start: child.line,
-                                    numLines: 1,
-                                    content: [child.mdMarker]
-                                },
-                                hunks: child.hunks
-                            });
-                        } else {
-                            existingHunk.hunks = child.hunks;
-                        }
-                    });
-
-                    return inclusion;
+                    return modifiedIncludedFile;
                 });
 
-                modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
-                    return {
-                        newLines: inclusion.newLines,
-                        oldLines: inclusion.oldLines,
-                        existingLines: inclusion.existingLines,
-                        hunks: inclusion.hunks || []
-                    };
-                }, 'hunks');
+                modifiedIncludedFiles = additionalPatch.test.getInclusionsTreeSegment(modifiedIncludedFiles, includedFile => {
+                    return includedFile.patch !== null;
+                });
 
-                additionalPatch.hunks = modifiedIncludedFiles.hunks;
-            }
+                function hunkContainsInclusion(hunk, inclusion) {
+                    if (hunk.existingLines) {
+                        const existingLinesRange = {
+                            start: hunk.existingLines.start,
+                            end: hunk.existingLines.start + hunk.existingLines.numLines
+                        };
+                        if (existingLinesRange.start <= inclusion.line && existingLinesRange.end >= inclusion.line) {
+                            return true;
+                        }
+                    }
+                    if (hunk.oldLines) {
+                        const oldLinesRange = {
+                            start: hunk.oldLines.start,
+                            end: hunk.oldLines.start + hunk.oldLines.numLines
+                        };
+                        if (oldLinesRange.start <= inclusion.line && oldLinesRange.end >= inclusion.line) {
+                            return true;
+                        }
+                    }
+                    if (hunk.newLines) {
+                        const newLinesRange = {
+                            start: hunk.newLines.start,
+                            end: hunk.newLines.start + hunk.newLines.numLines
+                        };
+                        if (newLinesRange.start <= inclusion.line && newLinesRange.end >= inclusion.line) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                if (modifiedIncludedFiles) {
+                    modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
+                        inclusion.hunks = inclusion.patch ? await getHunks(inclusion.patch) : [];
+
+                        inclusion.inclusions.forEach(child => {
+                            const existingHunk = inclusion.hunks.find(hunk => hunkContainsInclusion(hunk, child));
+                            if (!existingHunk) {
+                                inclusion.hunks.push({
+                                    existingLines: {
+                                        start: child.line,
+                                        numLines: 1,
+                                        content: [child.mdMarker]
+                                    },
+                                    hunks: child.hunks
+                                });
+                            } else {
+                                existingHunk.hunks = child.hunks;
+                            }
+                        });
+
+                        return inclusion;
+                    });
+
+                    modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
+                        return {
+                            newLines: inclusion.newLines,
+                            oldLines: inclusion.oldLines,
+                            existingLines: inclusion.existingLines,
+                            hunks: inclusion.hunks || []
+                        };
+                    }, 'hunks');
+
+                    additionalPatch.hunks = modifiedIncludedFiles.hunks;
+                }
 
 
-            return additionalPatch;
-        }));
+                return additionalPatch;
+            }));
+        }
 
 		return new TestSuiteDiff({
 			currentCommit: currentCommit.sha(),

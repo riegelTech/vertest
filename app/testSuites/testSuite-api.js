@@ -10,8 +10,8 @@ const logsModule = require('../logsModule/logsModule');
 const logs = logsModule.getDefaultLoggerSync();
 const repoModule = require('../repositories/repositories');
 const testSuiteModule = require('./testSuite');
-const TestCase = testSuiteModule.TestCase;
 const TestSuite = testSuiteModule.TestSuite;
+const statusModule = require('../testCase/testCaseStatuses');
 const usersModule = require('../users/users');
 
 
@@ -145,7 +145,7 @@ async function solveTestSuiteDiff(req, res) {
 			await testSuite.init();
 		}
 		if (targetCommit) {
-			const diff = await repository.getRepositoryDiff(testSuite, targetCommit);
+			const diff = await repository.getRepositoryDiff(testSuite, targetCommit, false);
 			addedPatches = diff.addedPatches;
 			deletedPatches = diff.deletedPatches;
 			modifiedPatches = diff.modifiedPatches;
@@ -163,7 +163,7 @@ async function solveTestSuiteDiff(req, res) {
 				modificationsToLog.push({
 					message: `Test file "${test.testFilePath}" status changed from "${test.status.name}" to "${newStatuses[test.testFilePath].name}"`
 				});
-				test.setStatus(newStatuses[test.testFilePath], curUser);
+				test.setStatus(new statusModule.Status(newStatuses[test.testFilePath]), curUser);
 			}
 		});
 

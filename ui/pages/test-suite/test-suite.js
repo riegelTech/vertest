@@ -135,7 +135,11 @@ export default {
 					}
 				});
 				this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
-				appConfigEventBus.$on('testCaseStatusesLoaded', this.testSuiteStatusChartData);
+				if (this.$store.state.testCaseStatuses) {
+					this.testSuiteStatusChartData()
+				} else {
+					appConfigEventBus.$on('testCaseStatusesLoaded', this.testSuiteStatusChartData);
+				}
 				await this.initTestSuiteGitLog();
 			}
 			if (testCaseId) {
@@ -250,6 +254,7 @@ export default {
 		testSuiteStatusChartData() {
 			const tests = this.testSuite.tests;
 			const total = tests.length;
+			const lang = this.$i18n.locale;
 
 			const statuses = this.$store.state.testCaseStatuses.statuses;
 
@@ -258,7 +263,7 @@ export default {
 				const percent = Math.round((part / total) * 100);
 				if (percent > 0) {
 					return {
-						name: status.name,
+						name: status.lang[lang] || status.name,
 						total: percent
 					};
 				}
@@ -266,9 +271,13 @@ export default {
 
 			const colorsKeys = {};
 			for (let status of statuses) {
-				colorsKeys[status.name] = status.color;
-			}
+				if (status.lang[lang]) {
+					colorsKeys[status.lang[lang]] = status.color;
+				} else {
+					colorsKeys[status.name] = status.color;
+				}
 
+			}
 
 			this.testSuiteStatusChartConfig = Object.assign({}, DEFAULT_TEST_SUITE_CHART_CONFIG, {
 				key: 'name',

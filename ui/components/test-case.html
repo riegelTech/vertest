@@ -12,8 +12,9 @@
         <test-case-state
                 v-if="testCaseLocal.user && testCaseLocal.user._id === currentUser._id"
                 :currentTestStatus="testCaseLocal.status"
-                :display-current-state="false"
+                :display-current-state="true"
                 :display-state-switch="true"
+                :autoSelectCurrentStatus="true"
                 @change-test-status="(...args)=>changeTestStatus( ...args)"
         ></test-case-state>
     </div>

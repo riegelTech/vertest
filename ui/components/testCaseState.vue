@@ -3,12 +3,15 @@
         <div v-if="displayCurrentState && !displayMini" class="current-state">
             <label>{{ $t("testCaseState.Current test status") }}</label><br />
             <span class="status-color" :style="`background-color: ${currentStatus.color}`">&nbsp;</span>
-            <span v-if="currentStatus.nameHR" class="current-status-nameHR">{{ currentStatus.nameHR }}</span>
-            <span v-if="currentStatus.meaning" class="current-status-meaning">{{ currentStatus.meaning }}</span>
+            <span v-if="currentStatus.nameHR" class="current-status-nameHR">
+                {{ currentStatus.nameHR }}
+                <md-tooltip class="current-status-meaning">
+                    <span v-if="currentStatus.meaning">: {{ currentStatus.meaning }}</span>
+                </md-tooltip>
+            </span>
         </div>
         <div v-if="displayCurrentState && displayMini" class="current-state mini">
             <span class="status-color" :style="`background-color: ${currentStatus.color}`">
-                &nbsp;
                 <md-tooltip class="current-status-meaning">
                     <span v-if="currentStatus.nameHR">{{ currentStatus.nameHR }}</span>
                     <span v-if="currentStatus.meaning">: {{ currentStatus.meaning }}</span>
@@ -68,7 +71,7 @@
         	init() {
 				this.statuses = this.$store.state.testCaseStatuses.statuses.map(this.enrichStatus);
 				this.refreshCurrentTestStatus(this.currentTestStatus);
-				this.newStatus = this.autoSelectCurrentStatus ? this.statuses[0].name : null;
+				this.newStatus = this.autoSelectCurrentStatus ? this.currentTestStatus.name || this.statuses[0].name : null;
             },
         	enrichStatus(status) {
 				const locale = this.$i18n.lang;

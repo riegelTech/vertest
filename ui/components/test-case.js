@@ -97,9 +97,12 @@ export default {
 				alert('User attachment failed');
 			}
 		},
-		async changeTestStatus(oldStatus, newStatus) {
+		async changeTestStatus(oldStatus, newStatusRaw) {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath));
+
+			const newStatus = this.$store.state.testCaseStatuses.statuses.find(status => status.name === newStatusRaw.name);
+
 			try {
 				this.testCaseLocal.status = newStatus;
 				const response = await this.$http.put(`${TEST_SUITE_PATH}${testSuiteId}/test-case/${testCaseId}/set-status/`, {

@@ -116,7 +116,7 @@
                         <strong v-if="patch.file === patch.newFile" class="file-title">{{ patch.file }}</strong>
                         <strong v-if="patch.file !== patch.newFile" class="file-title">{{ $t("testSuitePage.File has been moved to new File and modified", {file: patch.file, newFile: patch.newFile}) }}</strong>
                         <test-case-state
-                                :testState="patch.test.status"
+                                :currentTestStatus="patch.test.status"
                                 :displayCurrentState="true"
                                 :displayStateSwitch="true"
                                 :user="patch.test.user"
