@@ -12,6 +12,7 @@ const appConfig = require('../appConfig/config');
 const logsModule = require('../logsModule/logsModule');
 const logs = logsModule.getDefaultLoggerSync();
 const testSuiteModule = require('../testSuites/testSuite');
+const statusModule = require('./testCaseStatuses');
 const usersModule = require('../users/users');
 const utils = require('../utils');
 
@@ -211,13 +212,16 @@ async function affectUser(req, res) {
 		res.status(utils.RESPONSE_HTTP_CODES.ENOTFOUND).send(e.message);
 	}
 
+	const defaultStatus = statusModule.getStatuses().defaultStatus;
+	const nextDefaultStatus = statusModule.getStatuses().getStatusByIndex(1);
+
 	if (req.body.userId !== null) {
 		const user = await usersModule.getUser(userId);
 		testCase.user = _.omit(user, ['password']);
-		testCase.setStatus(TestCase.STATUSES.IN_PROGRESS);
+		testCase.setStatus(nextDefaultStatus);
 	} else {
 		testCase.user = null;
-		testCase.setStatus(TestCase.STATUSES.TODO);
+		testCase.setStatus(defaultStatus);
 
 	}
 
@@ -225,10 +229,10 @@ async function affectUser(req, res) {
 		await testSuiteModule.updateTestSuite(testSuite);
 		if (testCase.user) {
 			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully affected to user "${testCase.user.login}"`, testCase.testFilePath);
-			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "${TestCase.STATUS_HR(TestCase.STATUSES.IN_PROGRESS)}"`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "${nextDefaultStatus.name}"`, testCase.testFilePath);
 		} else {
 			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully unaffected`, testCase.testFilePath);
-			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "${TestCase.STATUS_HR(TestCase.STATUSES.TODO)}"`, testCase.testFilePath);
+			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case status automatically switched to "${defaultStatus.name}"`, testCase.testFilePath);
 		}
 	} catch (e) {
 		logs.error(e.message);
@@ -242,23 +246,7 @@ async function affectUser(req, res) {
 
 async function updateTestStatus(req, res) {
 	const curUser = usersModule.getCurrentUser();
-	let newTestStatus;
-	switch (req.body.newStatus) {
-		case TestCase.STATUSES.SUCCESS:
-			newTestStatus = TestCase.STATUSES.SUCCESS;
-			break;
-		case TestCase.STATUSES.FAILED:
-			newTestStatus = TestCase.STATUSES.FAILED;
-			break;
-		case TestCase.STATUSES.BLOCKED:
-			newTestStatus = TestCase.STATUSES.BLOCKED;
-			break;
-		case TestCase.STATUSES.TODO:
-			newTestStatus = TestCase.STATUSES.TODO;
-			break;
-		default:
-			newTestStatus = TestCase.STATUSES.IN_PROGRESS;
-	}
+	const newTestStatus = new statusModule.Status(req.body.newStatus);
 
 	let testSuite;
 	let testCase;
@@ -277,16 +265,14 @@ async function updateTestStatus(req, res) {
 		return res.status(utils.RESPONSE_HTTP_CODES.LOCKED)
 			.send(errMessage);
 	}
-	const oldStatus = TestCase.STATUS_HR(testCase.status);
-	const newStatus = TestCase.STATUS_HR(newTestStatus);
 	try {
 		testCase.setStatus(newTestStatus);
-		if (testCase.status === TestCase.STATUSES.TODO) {
+		if (testCase.status.isDefaultStatus) {
 			testCase.user = null;
 		}
 
 		await testSuiteModule.updateTestSuite(testSuite);
-		await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatus}" to "${newStatus}"`, testCase.testFilePath);
+		await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" status successfully changed from "${testCase.status.name}" to "${newTestStatus.name}"`, testCase.testFilePath);
 		if (testCase.user === null) {
 			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully unaffected`, testCase.testFilePath);
 		}

@@ -5,30 +5,6 @@ import TestCaseState from './testCaseState.vue';
 
 const TEST_SUITE_PATH = '/api/test-suites/';
 
-export const TEST_CASE_STATUSES = {
-	TODO: 0,
-	IN_PROGRESS: 1,
-	BLOCKED: 3,
-	SUCCESS: 4,
-	FAILED: 5
-};
-const TEST_CASE_STATUSES_HR = {
-	[TEST_CASE_STATUSES.TODO]: 'To do',
-	[TEST_CASE_STATUSES.IN_PROGRESS]: 'In progress',
-	[TEST_CASE_STATUSES.BLOCKED]: 'Blocked',
-	[TEST_CASE_STATUSES.SUCCESS]: 'Successful',
-	[TEST_CASE_STATUSES.FAILED]: 'Failed',
-
-};
-
-export const getTestStateHR = function(status) {
-	const statusHr = TEST_CASE_STATUSES_HR[status];
-	if (statusHr) {
-		return window.app.$t(`testStatuses.${statusHr}`);
-	}
-	return window.app.$t('testStatuses.unknown');
-};
-
 export default {
 	components: {
 		TestCaseState
@@ -41,7 +17,6 @@ export default {
 	},
 	data: function () {
 		return {
-			testCaseStatuses: TEST_CASE_STATUSES,
 			testCaseLocal: this.testCase,
 			currentUser: {
 				readOnly: true
@@ -122,7 +97,7 @@ export default {
 				alert('User attachment failed');
 			}
 		},
-		async changeTestStatus(newStatus) {
+		async changeTestStatus(oldStatus, newStatus) {
 			const testSuiteId = this.$route.params.testSuiteId;
 			const testCaseId = encodeURIComponent(encodeURIComponent(this.testCaseLocal.testFilePath));
 			try {

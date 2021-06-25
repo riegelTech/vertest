@@ -1,61 +1,116 @@
 <template>
-    <div class="test-case-state">
-        <div v-if="displayCurrentState" class="current-state">
+    <div class="test-case-state" :class="{ 'switch-displayed' : displayStateSwitch}">
+        <div v-if="displayCurrentState && !displayMini" class="current-state">
             <label>{{ $t("testCaseState.Current test status") }}</label><br />
-            <span class="current-status-label">{{ statusHR(testState) }}</span>
+            <span class="status-color" :style="`background-color: ${currentStatus.color}`">&nbsp;</span>
+            <span v-if="currentStatus.nameHR" class="current-status-nameHR">{{ currentStatus.nameHR }}</span>
+            <span v-if="currentStatus.meaning" class="current-status-meaning">{{ currentStatus.meaning }}</span>
         </div>
-        <div v-if="displayStateSwitch" class="change-state">
+        <div v-if="displayCurrentState && displayMini" class="current-state mini">
+            <span class="status-color" :style="`background-color: ${currentStatus.color}`">
+                &nbsp;
+                <md-tooltip class="current-status-meaning">
+                    <span v-if="currentStatus.nameHR">{{ currentStatus.nameHR }}</span>
+                    <span v-if="currentStatus.meaning">: {{ currentStatus.meaning }}</span>
+                </md-tooltip>
+            </span>
+        </div>
+        <div v-if="displayStateSwitch && statuses.length > 0" class="change-state">
             <md-field class="md-adjustable md-no-border">
                 <label>{{ $t("testCaseState.New test status") }}</label>
-                <md-select v-model="curState" name="testStateSel" id="testStateSel" class="test-state-selector md-mini md-adjustable" @md-selected="changeTestStatus">
-                    <md-option :value="statuses.TODO" class="md-mini">{{ $t("testStatuses.To do") }}</md-option>
-                    <md-option :value="statuses.IN_PROGRESS" class="md-mini">{{ $t("testStatuses.In progress") }}</md-option>
-                    <md-option :value="statuses.FAILED" class="md-mini">{{ $t("testStatuses.Failed") }}</md-option>
-                    <md-option :value="statuses.BLOCKED" class="md-mini">{{ $t("testStatuses.Blocked") }}</md-option>
-                    <md-option :value="statuses.SUCCESS" class="md-mini">{{ $t("testStatuses.Successful") }}</md-option>
+                <md-select v-model="newStatus" name="testStateSel" id="testStateSel" class="test-state-selector md-mini md-adjustable"  @md-selected="changeTestStatus">
+                    <md-option v-for="status in statuses" :key="status.name" :value="status.name" class="md-mini">
+                        {{ status.nameHR }}
+                        <md-tooltip v-if="status.meaning">{{ status.meaning }}</md-tooltip>
+                    </md-option>
                 </md-select>
             </md-field>
         </div>
     </div>
 </template>
 <script>
-    import {TEST_CASE_STATUSES, getTestStateHR} from './test-case';
+    import {appConfigEventBus} from './appConfig';
     export default {
         name: 'test-case-state',
         props: {
-            testState: Number,
+        	displayMini: {
+        		type: Boolean,
+                default: false
+			},
+            currentTestStatus: Object,
             displayCurrentState: Boolean,
             displayStateSwitch: Boolean,
+			autoSelectCurrentStatus: {
+				type: Boolean,
+				default: true
+			},
             user: Object
         },
         data: function () {
-            return {
-                statuses: TEST_CASE_STATUSES,
-                curState: this.testState
-            }
-        },
-        watch: {
-            testState(newStatus) {
-                this.changeTestStatus(newStatus);
-            }
+			return {
+				statuses: [],
+				currentStatus: this.currentTestStatus,
+                newStatus: null
+			}
+		},
+		watch: {
+			currentTestStatus(newStatus) {
+				this.refreshCurrentTestStatus(newStatus);
+			}
+		},
+        mounted() {
+        	if (this.$store.state.testCaseStatuses) {
+				return this.init();
+			}
+        	appConfigEventBus.$on('testCaseStatusesLoaded', this.init);
         },
         methods: {
-            changeTestStatus(newStatus) {
-            	this.curState = newStatus;
-                this.$emit('change-test-status', newStatus);
+        	init() {
+				this.statuses = this.$store.state.testCaseStatuses.statuses.map(this.enrichStatus);
+				this.refreshCurrentTestStatus(this.currentTestStatus);
+				this.newStatus = this.autoSelectCurrentStatus ? this.statuses[0].name : null;
             },
-			statusHR(status) {
-            	return getTestStateHR(status);
+        	enrichStatus(status) {
+				const locale = this.$i18n.lang;
+				const fallbackLocale = this.$i18n.fallbackLocale;
+				const statusForDisplay = {
+					name: status.name,
+					color: status.color || '#b0bec5',
+                    nameHR: status.lang[locale] || status.lang[fallbackLocale] || status.name
+				};
+				if (status.meaning[locale] || status.meaning[fallbackLocale]) {
+					statusForDisplay.meaning = status.meaning[locale] || status.meaning[fallbackLocale];
+				}
+				return statusForDisplay
+            },
+			refreshCurrentTestStatus(newCurrentStatus) {
+				const existingCurrentStatus = this.statuses.find(status => status.name === newCurrentStatus.name);
+				if (existingCurrentStatus) {
+					this.currentStatus = existingCurrentStatus;
+				} else {
+					this.currentStatus = this.enrichStatus(newCurrentStatus);
+				}
+            },
+            changeTestStatus(newStatus) {
+				const existingCurrentStatus = this.statuses.find(status => status.name === newStatus);
+				if (existingCurrentStatus) {
+					this.$emit('change-test-status', this.currentStatus, existingCurrentStatus);
+				} else {
+					throw new Error(`Unable to find corresponding status with name "${newStatus}"`);
+                }
             }
         }
     }
 </script>
 <style scoped lang="scss">
 .test-case-state {
-    display: flex;
-    width: 50%;
-    min-width: 350px;
-    max-width: 450px;
+    display: inline-block;
+    &.switch-displayed {
+        display: flex;
+        width: 50%;
+        min-width: 350px;
+        max-width: 450px;
+    }
     .current-state, .change-state {
         flex: 1;
         label {
@@ -64,6 +119,30 @@
         }
         .current-status-label {
             font-size: 12px;
+        }
+    }
+    .current-state {
+        .status-color {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
+        }
+        &.mini {
+            .status-color {
+                display: block;
+            }
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    }
+    .md-field {
+        padding: 0;
+        margin: 0;
+        label {
+            display: block;
+            position: initial;
         }
     }
 }

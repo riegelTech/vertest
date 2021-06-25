@@ -86,8 +86,9 @@ export default {
 				this.initScreen();
 			}
 		});
-		userEventBus.$on('userLogin', () => {
+		userEventBus.$on('userLogin', async () => {
 			this.currentUser = this.$store.state.currentUser;
+			await this.$refs.mainLayout.initAppConfig();
 			this.hideLoginPopup();
 			this.initScreen();
 		});

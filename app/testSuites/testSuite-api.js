@@ -161,7 +161,7 @@ async function solveTestSuiteDiff(req, res) {
 			}
 			if (newStatuses[test.testFilePath] && newStatuses[test.testFilePath] != test.status) {
 				modificationsToLog.push({
-					message: `Test file "${test.testFilePath}" status changed from "${TestCase.STATUS_HR(test.status)}" to "${TestCase.STATUS_HR(newStatuses[test.testFilePath])}"`
+					message: `Test file "${test.testFilePath}" status changed from "${test.status.name}" to "${newStatuses[test.testFilePath].name}"`
 				});
 				test.setStatus(newStatuses[test.testFilePath], curUser);
 			}

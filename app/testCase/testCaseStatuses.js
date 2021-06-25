@@ -46,7 +46,7 @@ const DEFAULT_STATUSES = [{
 }];
 
 class Status {
-	constructor({name = '', isDefaultStatus = false, testCaseIsDone = false, lang = {}, color = ''}) {
+	constructor({name = '', isDefaultStatus = false, testCaseIsDone = false, lang = {}, meaning = {}, color = ''}) {
 		if (!name || name.length === 0) {
 			throw new Error('A status must have a name');
 		}
@@ -55,6 +55,7 @@ class Status {
 		this.isDefaultStatus = isDefaultStatus;
 		this.testCaseIsDone = testCaseIsDone;
 		this.lang = lang;
+		this.meaning = meaning;
 		this.color = color;
 	}
 
@@ -85,6 +86,10 @@ class Statuses {
 			throw new Error(`Unable to define status "${defaultStatus.name}" as default status, this status does not exists`);
 		}
 		existingDefaultStatus.setDefault();
+	}
+
+	get defaultStatus() {
+		return this.statuses.find(status => status.isDefaultStatus);
 	}
 
 	addStatus(statusToAdd) {
@@ -121,7 +126,7 @@ class Statuses {
 const statuses = new Statuses();
 
 // detect a status discordance when configuration changed but existing test cases already have statuses
-async function reviewExistingStatuses(testSuites) {
+function reviewExistingStatuses(testSuites) {
 	const problems = [];
 
 	for(let testSuite of testSuites) {
@@ -157,6 +162,7 @@ async function loadStatusesFromConfig() {
 					name: key,
 					testCaseIsDone: confEntry.done,
 					lang: confEntry.lang,
+					meaning: confEntry.meaning,
 					color: confEntry.color
 				});
 				statuses.addStatus(status);

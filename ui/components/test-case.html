@@ -11,10 +11,10 @@
         </span>
         <test-case-state
                 v-if="testCaseLocal.user && testCaseLocal.user._id === currentUser._id"
-                :test-state="testCaseLocal.status"
+                :currentTestStatus="testCaseLocal.status"
                 :display-current-state="false"
                 :display-state-switch="true"
-                @change-test-status="changeTestStatus($event)"
+                @change-test-status="(...args)=>changeTestStatus( ...args)"
         ></test-case-state>
     </div>
     <div v-html="testCaseLocal.mdContent"></div>

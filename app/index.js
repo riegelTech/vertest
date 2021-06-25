@@ -9,7 +9,7 @@ const express = require('express');
 const appConfig = require('./appConfig/config');
 const logsModule = require('./logsModule/logsModule');
 const migration = require('./db/migration');
-const statusesModule = require('./testSuites/testCaseStatuses');
+const statusesModule = require('./testCase/testCaseStatuses');
 const utils = require('./utils');
 
 const app = express();
@@ -33,6 +33,7 @@ const startApp = async () => {
 	const port = config.server.port;
 
 	const testSuiteModule = require('./testSuites/testSuite');
+	const testCaseStatusesRouting = require('./testCase/testCaseStatuses-api');
 	const testSuiteRouting = require('./testSuites/testSuite-api');
 	const usersRouting = require('./users/users-api');
 	const usersModule = require('./users/users');
@@ -43,8 +44,6 @@ const startApp = async () => {
 
 	try {
 		await statusesModule.loadStatusesFromConfig();
-		const statusProblems = await statusesModule.reviewExistingStatuses(await testSuiteModule.getTestSuites());
-		console.log('statusProblems', statusProblems);
 		await testSuiteModule.initTestSuiteRepositories();
 		await sshKeysModule.initSshKeys();
 		await testSuiteModule.watchTestSuitesChanges();
@@ -75,6 +74,7 @@ const startApp = async () => {
 			return sendUnauthorized(res);
 		}
 	});
+	app.use('/api/statuses/', testCaseStatusesRouting);
 	app.use('/api/test-suites/', testSuiteRouting);
 	app.use('/api/users/', usersRouting);
 	app.use('/api/repositories/', repositoriesRouting);

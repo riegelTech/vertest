@@ -1,5 +1,6 @@
 'use strict';
 
+import {appConfigEventBus} from '../../components/appConfig';
 import MainLayout from '../../layouts/main.vue';
 import TestCase from '../../components/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
@@ -134,7 +135,7 @@ export default {
 					}
 				});
 				this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
-				this.testSuiteStatusChartData();
+				appConfigEventBus.$on('testCaseStatusesLoaded', this.testSuiteStatusChartData);
 				await this.initTestSuiteGitLog();
 			}
 			if (testCaseId) {
@@ -195,7 +196,7 @@ export default {
 		toggleTestSuiteFileSelector() {
 			this.toggleFileSelectorPopin.show = true;
 		},
-		changeTestStatus(testCaseId, newTestStatus) {
+		changeTestStatus(testCaseId, oldTestStatus, newTestStatus) {
 			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
 		},
 		async submitNewTestsStatuses() {
@@ -250,63 +251,30 @@ export default {
 			const tests = this.testSuite.tests;
 			const total = tests.length;
 
-			const statuses = {
-				TODO: 0,
-				IN_PROGRESS: 1,
-				BLOCKED: 3,
-				SUCCESS: 4,
-				FAILED: 5
-			};
+			const statuses = this.$store.state.testCaseStatuses.statuses;
 
-			function getTestsStatusPercent(status, total) {
-				const part = tests.filter(test => test.status === status).length;
-				return Math.round((part / total) * 100);
-			}
-
-			const totalTodo = getTestsStatusPercent(statuses.TODO, total);
-			const totalProgress = getTestsStatusPercent(statuses.IN_PROGRESS, total);
-			const totalBlocked = getTestsStatusPercent(statuses.BLOCKED, total);
-			const totalSuccess = getTestsStatusPercent(statuses.SUCCESS, total);
-			const totalFailed = getTestsStatusPercent(statuses.FAILED, total);
-
-			this.testSuiteStatusChart = [];
-			function addStatus(statuses, statusChart) {
-				for (let status of statuses) {
-					if (status.total > 0) {
-						statusChart.push(status);
-					}
+			this.testSuiteStatusChart = statuses.map(status => {
+				const part = tests.filter(test => test.status.name === status.name).length;
+				const percent = Math.round((part / total) * 100);
+				if (percent > 0) {
+					return {
+						name: status.name,
+						total: percent
+					};
 				}
+			}).filter(status => status !== undefined);
+
+			const colorsKeys = {};
+			for (let status of statuses) {
+				colorsKeys[status.name] = status.color;
 			}
-			// TODO test case status can be found on test-case component
-			addStatus([{
-				name: "Success",
-				total: totalSuccess
-			}, {
-				name: "Failed",
-				total: totalFailed
-			}, {
-				name: "Blocked",
-				total: totalBlocked
-			}, {
-				name: "In progress",
-				total: totalProgress
-			}, {
-				name: "To do",
-				total: totalTodo
-			}], this.testSuiteStatusChart);
+
 
 			this.testSuiteStatusChartConfig = Object.assign({}, DEFAULT_TEST_SUITE_CHART_CONFIG, {
 				key: 'name',
 				value: 'total',
 				color: {
-					// colors based on https://material.io/resources/color/#!/?view.left=0&view.right=0 picked on material palette on the third column (200)
-					keys: {
-						'To do': '#b0bec5', // Blue Grey
-						'In progress': '#90caf9', // Blue
-						'Blocked': '#ffcc80', // Orange
-						'Success': '#a5d6a7', // Green
-						'Failed': '#ef9a9a' // Red
-					}
+					keys: colorsKeys
 				}
 			});
 		},

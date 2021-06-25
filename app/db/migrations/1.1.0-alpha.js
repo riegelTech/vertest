@@ -1,6 +1,6 @@
 'use strict';
 
-const statusesModule = require('../../testSuites/testCaseStatuses');
+const statusesModule = require('../../testCase/testCaseStatuses');
 const testSuiteModule = require('../../testSuites/testSuite');
 
 module.exports = {

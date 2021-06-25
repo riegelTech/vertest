@@ -12,7 +12,7 @@ const appConfig = require('../appConfig/config');
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
-const testCaseStatuses = require('./testCaseStatuses');
+const testCaseStatuses = require('../testCase/testCaseStatuses');
 const Status = testCaseStatuses.Status;
 const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
@@ -30,20 +30,6 @@ class TestCase extends EventEmitter {
 		this.setStatus(new Status(status));
 		this.user = user;
 		this.linkedFilesByInclusion = linkedFilesByInclusion;
-	}
-
-	static get STATUSES() {
-		return {
-			TODO: 0,
-			IN_PROGRESS: 1,
-			BLOCKED: 3,
-			SUCCESS: 4,
-			FAILED: 5
-		}
-	}
-
-	static STATUS_HR(statusNum) {
-		return _.invert(TestCase.STATUSES)[statusNum];
 	}
 
 	async fetchTestContent() {
@@ -218,7 +204,7 @@ class TestSuite {
 		const testCase = new TestCase({
 			testFilePath,
 			basePath,
-			status: TestCase.STATUSES.TODO
+			status: testCaseStatuses.getStatuses().defaultStatus
 		});
 		this.tests.push(testCase);
 		testCase.on('statusUpdated', () => this.updateProgress());
