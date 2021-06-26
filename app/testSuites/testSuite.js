@@ -168,10 +168,15 @@ class TestSuite {
 
 	async init() {
 		const testPaths = await this.repository.collectTestFilesPaths(this.testDirs);
-		this.tests = testPaths.filePaths.map(filePath => new TestCase({
-			basePath: testPaths.basePath,
-			testFilePath: filePath
-		}));
+		let newTests = testPaths.filePaths.map(filePath => {
+			const existingTest = this.tests.find(existingTest => existingTest.testFilePath === filePath);
+			return existingTest || new TestCase({
+				basePath: testPaths.basePath,
+				testFilePath: filePath
+			});
+		});
+		this.tests = newTests;
+
 		this.bindTestCasesStates();
 		await this.collectTests();
 	}
