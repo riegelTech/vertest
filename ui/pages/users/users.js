@@ -44,7 +44,7 @@ export default {
 			try {
 				this.users =  await this.getUsers(true);
 			} catch (resp) {
-				window.location.href = '/';
+				window.location.href = `/#/${this.$i18n.locale}`;
 			}
 		},
 		reinitUser() {

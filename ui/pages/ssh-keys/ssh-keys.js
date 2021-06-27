@@ -32,9 +32,10 @@ export const sshKeysMixin = {
 					return this.sshKeys;
 				}
 			} catch (resp) {
-				if (resp.status !== 401) {
-					throw resp;
+				if (resp.status === 401) {
+					window.location.href = `/#/${this.$i18n.locale}/`;
 				}
+				return;
 			}
 		}
 	}
