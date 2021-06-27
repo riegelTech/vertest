@@ -1,6 +1,5 @@
 'use strict';
 
-import {TEST_CASE_STATUSES} from './test-case';
 import TestCaseState from './testCaseState.vue';
 import Path from "path";
 import _ from "lodash";
@@ -92,8 +91,7 @@ export default {
 	},
 	data: function () {
 		return {
-			isOpen: true,
-			statuses: TEST_CASE_STATUSES
+			isOpen: true
 		}
 	},
 	computed: {

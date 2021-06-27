@@ -10,7 +10,7 @@
                 </md-tooltip>
             </span>
         </div>
-        <div v-if="displayCurrentState && displayMini" class="current-state mini">
+        <div v-if="displayCurrentState && displayMini" class="current-state" :class="{mini : displayMini, micro : displayMicro}">
             <span class="status-color" :style="`background-color: ${currentStatus.color}`">
                 <md-tooltip class="current-status-meaning">
                     <span v-if="currentStatus.nameHR">{{ currentStatus.nameHR }}</span>
@@ -40,6 +40,10 @@
         		type: Boolean,
                 default: false
 			},
+			displayMicro: {
+				type: Boolean,
+				default: false
+            },
             currentTestStatus: Object,
             displayCurrentState: Boolean,
             displayStateSwitch: Boolean,
@@ -138,6 +142,13 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+        }
+        &.micro .status-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 7px;
+            position: relative;
+            top: 2px;
         }
     }
     .md-field {

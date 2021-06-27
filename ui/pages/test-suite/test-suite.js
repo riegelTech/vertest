@@ -120,13 +120,15 @@ export default {
 				this.testSuite.tests.forEach(testCase => {
 					testFileMapping[`root/${testCase.testFilePath}`] = {
 						testFilePath: testCase.testFilePath,
-						basePath: testCase.basePath
+						basePath: testCase.basePath,
+						status: testCase.status
 					};
 				});
 				this.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
 				this.testsTree = fileTreeUtils.leafTransformer(this.testsTree, leaf => {
 					if (testFileMapping[leaf.fullPath]) {
 						const testCase = testFileMapping[leaf.fullPath];
+						console.log(testCase);
 						return Object.assign({}, leaf, {
 							status: testCase.status,
 							link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
