@@ -128,7 +128,6 @@ export default {
 				this.testsTree = fileTreeUtils.leafTransformer(this.testsTree, leaf => {
 					if (testFileMapping[leaf.fullPath]) {
 						const testCase = testFileMapping[leaf.fullPath];
-						console.log(testCase);
 						return Object.assign({}, leaf, {
 							status: testCase.status,
 							link: `/test-suites/${this.testSuite._id}/test-case/${encodeURIComponent(encodeURIComponent(testCase.testFilePath))}`,
