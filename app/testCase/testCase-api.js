@@ -266,13 +266,13 @@ async function updateTestStatus(req, res) {
 			.send(errMessage);
 	}
 	try {
+		const oldStatusName = testCase.status.name;
 		testCase.setStatus(newTestStatus);
 		if (testCase.status.isDefaultStatus) {
 			testCase.user = null;
 		}
-
 		await testSuiteModule.updateTestSuite(testSuite);
-		await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" status successfully changed from "${testCase.status.name}" to "${newTestStatus.name}"`, testCase.testFilePath);
+		await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" status successfully changed from "${oldStatusName}" to "${newTestStatus.name}"`, testCase.testFilePath);
 		if (testCase.user === null) {
 			await logsModule.auditLogForTestSuite(testSuite._id, curUser, `Test case "${testCase.testFilePath}" successfully unaffected`, testCase.testFilePath);
 		}
