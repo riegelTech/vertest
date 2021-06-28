@@ -54,7 +54,7 @@ Cool consequences are multiples:
 
 ### Passing a test
 
-
+[Test case page](./test-case-passing.md)
 
 ### Test suite lifecycle
 
