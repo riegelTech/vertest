@@ -5,6 +5,8 @@ to use correct sections and entries, you have a sample file named `config-sample
 
 Note that if no `config.yml` file is found, application will use `config-sample.yml` file instead.
 
+> Note: all changes that you make in this file requires a restart to apply.
+
 ## server
 
 Here are some global configuration values for the server.
@@ -101,3 +103,6 @@ testCaseStatuses:
 
 > Note: as Yaml format uses the `#` character for the comments, do not forget to wrap the colors
 > values with double quotes `"`
+
+> Note: if you delete a status that currently applies on test cases, the front-end application will ask
+> you to choose the replacing statuses to apply on these test cases.

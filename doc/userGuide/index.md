@@ -12,6 +12,8 @@ Welcome into the Vertest user guide !
 
 ## Manage users
 
+[Manage the users](./manage-users.md)
+
 ## Manage SSH keys
 
 ## Create a test suite
