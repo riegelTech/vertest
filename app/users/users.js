@@ -8,14 +8,23 @@ const uuidV4 = require('uuidv4');
 
 const dbConnector = require('../db/db-connector');
 
-const SESSION_EXPIRATION_DELAY_HOURS = 2;
-// TODO handle an inactivity period in addition to max session duration
+const minutesInHour = 60;
+const secondsInMinute= 60;
+const milliseconds = 1000;
+
+let sessionMaxDuration;
+let sessionInactivityDelay;
+
 const SUPER_ADMIN_LOGIN = 'admin';
 
 const sessions = new Map();
 
-const secondsInMinute= 60;
-const milliseconds = 1000;
+function setSessionDurations(maxDurationMinutes = 3 * minutesInHour, inactivityDelayMinutes = 10) {
+	sessionMaxDuration = maxDurationMinutes * secondsInMinute;
+	sessionInactivityDelay = inactivityDelayMinutes * secondsInMinute;
+}
+
+
 setInterval(() => {
 	const deprecatedSessionIds = [];
 	sessions.forEach((session, sessionId) => {
@@ -32,6 +41,7 @@ class Session {
 	constructor(user) {
 		this._user = user;
 		this._date = Date.now();
+		this._lastActivity = Date.now();
 	}
 
 	get user() {
@@ -39,12 +49,16 @@ class Session {
 	}
 
 	get isValid() {
-		const milliseconds = 1000;
-		const secondsMinuteHex = 60;
-		const delay = SESSION_EXPIRATION_DELAY_HOURS * secondsMinuteHex * secondsMinuteHex * milliseconds;
-		const expirationDate = this._date + delay;
+		const overallDelay = sessionMaxDuration * milliseconds;
+		const inactivityDelay = sessionInactivityDelay * milliseconds;
+		const expirationDate = this._date + overallDelay;
+		const inactivityMaxDate = this._lastActivity + inactivityDelay;
 
-		return expirationDate > Date.now();
+		return expirationDate > Date.now() && inactivityMaxDate > Date.now();
+	}
+
+	setLastActivity() {
+		this._lastActivity = Date.now()
 	}
 }
 
@@ -197,9 +211,12 @@ async function authenticate(login, pass, sessId) {
 		if (session.isValid) {
 			sessionCls.set('user', augmentUserProps(session.user));
 			sessionCls.set('sessId', sessId);
+			session.setLastActivity();
 			return true;
+		} else {
+			session.delete(sessId);
+			return false;
 		}
-		session.delete(sessId);
 	}
 
 	const users = await getUsers();
@@ -234,7 +251,6 @@ function deauthenticate(sessId) {
 }
 
 function getUserBySessId(sessId) {
-	const sessionCls = getNamespace('sessions');
 	if (sessId && sessions.has(sessId)) {
 		const session = sessions.get(sessId);
 		if (session.isValid) {
@@ -251,6 +267,7 @@ function getCurrentUser () {
 
 
 module.exports = {
+	setSessionDurations,
 	authenticate,
 	deauthenticate,
 	getUsers,

@@ -42,6 +42,8 @@ const startApp = async () => {
 	const sshKeyRouting = require('./sshKeys/ssh-keys-api');
 	const sshKeysModule = require('./sshKeys/ssh-keys');
 
+	usersModule.setSessionDurations(config.server.sessionExpiration, config.server.sessionInactivityExpiration);
+
 	try {
 		await statusesModule.loadStatusesFromConfig();
 		await testSuiteModule.initTestSuiteRepositories();
@@ -80,7 +82,7 @@ const startApp = async () => {
 	app.use('/api/repositories/', repositoriesRouting);
 	app.use('/api/ssh-keys/', sshKeyRouting);
 	app.use('/auth/', authRouting);
-// Static routes
+	// Static routes
 	const uiPath = path.join(__dirname, '../ui/');
 	app.use('/', express.static(uiPath));
 	app.use('/api/config', async function (req, res) {

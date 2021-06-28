@@ -1,5 +1,7 @@
 server:
-  port: 8080
+  port: 8080,
+  sessionExpiration: 180 # delay after which session will end anyway (in minutes)
+  sessionInactivityExpiration: 10 # delay of inactivity after which session will end (in minutes)
 
 sshKeys:
   - name: "some ssh key"
