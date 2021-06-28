@@ -34,7 +34,8 @@ export default {
 		return {
 			users: [],
 			userPopin: EMPTY_USER,
-			error: ''
+			error: '',
+			currentUser: null
 		};
 	},
 	mixins: [userMixin],
@@ -43,6 +44,7 @@ export default {
 	},
 	methods: {
 		async initUsers() {
+			this.currentUser = this.$store.state.currentUser;
 			try {
 				this.users =  await this.getUsers(true);
 			} catch (resp) {
