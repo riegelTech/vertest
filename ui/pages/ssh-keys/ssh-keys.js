@@ -5,41 +5,12 @@ import Vue from 'vue';
 import VueMaterial from 'vue-material';
 import VueResource from 'vue-resource';
 
+import {SSH_KEYS_API_PATH, sshKeysMixin} from './ssh-keys-mixin';
+
 Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
-
-const SSH_KEYS_API_PATH = '/api/ssh-keys/';
-
-export const sshKeysMixin = {
-	data() {
-		return {
-			sshKeys: []
-		};
-	},
-	methods: {
-		async getSshKeys(forceRefresh) {
-			if (!forceRefresh && this.$store.state.sshKeys.length > 0) {
-				this.sshKeys = this.$store.state.sshKeys;
-				return this.sshKeys;
-			}
-			try {
-				const response = await this.$http.get(SSH_KEYS_API_PATH);
-				if (response.status === 200) {
-					this.$store.commit('sshKeys', response.body);
-					this.sshKeys =  response.body;
-					return this.sshKeys;
-				}
-			} catch (resp) {
-				if (resp.status === 401) {
-					window.location.href = `/#/${this.$i18n.locale}/`;
-				}
-				return;
-			}
-		}
-	}
-};
 
 export default {
 	components: {
@@ -70,8 +41,7 @@ export default {
 					keyPass: this.keyPopin.keyPass
 				});
 				if (response.status !== 200) {
-					alert(response.body);
-					return;
+					return false;
 				}
 				this.keyPopin.show = false;
 				this.keyPopin.keyPass = '';

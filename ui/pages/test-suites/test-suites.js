@@ -9,11 +9,10 @@ Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import MainLayout from '../../layouts/main.vue';
-import {userEventBus} from '../users/userMixin';
-import {userMixin} from '../users/userMixin';
+import {mainWrapperEventBus} from '../../layouts/main-event-bus';
 import {fileTreeUtils} from '../../components/fileTree.js';
 import FileTree from '../../components/fileTree.vue';
-import sshKeysMixin from '../ssh-keys/ssh-keys';
+import {sshKeysMixin} from '../ssh-keys/ssh-keys-mixin';
 import FilePatternForm from '../../components/filePatternForm.vue';
 
 const defaultCurrentUser = null;
@@ -59,45 +58,20 @@ export default {
 		FileTree,
 		FilePatternForm
 	},
-	mixins: [userMixin, sshKeysMixin],
+	mixins: [sshKeysMixin],
 	data() {
 		return {
 			createPopin: getEmptyTestSuitePopin(),
 			authTypes: AUTHENTICATION_TYPES,
 			testSuites: [],
 			sshKeys: [],
-			loginPopup: {
-				show: false,
-				authError: null,
-				loginFieldMessageClass: '',
-				passwordFieldMessageClass: ''
-			},
 			currentUser: defaultCurrentUser,
 			appConfig: null,
 			waitSpinner: false
 		};
 	},
-	async mounted() {
-		userEventBus.$on('initCurrentUser', () => {
-			this.currentUser = this.$store.state.currentUser;
-			if (!this.$store.state.currentUser) {
-				this.showLoginPopup();
-			} else {
-				this.initScreen();
-			}
-		});
-		userEventBus.$on('userLogin', async () => {
-			this.currentUser = this.$store.state.currentUser;
-			await this.$refs.mainLayout.initAppConfig();
-			this.hideLoginPopup();
-			this.initScreen();
-		});
-		userEventBus.$on('userLoginFail', () => {
-			const errorClass = 'md-invalid';
-			this.loginPopup.loginFieldMessageClass = this.userLogin ? '' : errorClass;
-			this.loginPopup.passwordFieldMessageClass = this.userPassword ? '' : errorClass;
-			this.loginPopup.authError = this.$t("homePage.Invalid login or password, please retry");
-		});
+	mounted() {
+		mainWrapperEventBus.$once('appReady', this.initScreen);
 	},
 	methods: {
 		async initScreen() {
@@ -115,7 +89,6 @@ export default {
 				}
 				return true;
 			} catch (resp) {
-				this.showLoginPopup();
 				return false;
 			}
 		},
@@ -124,12 +97,6 @@ export default {
 		},
 		hideSpinner() {
 			this.waitSpinner = false;
-		},
-		hideLoginPopup() {
-			this.loginPopup.show = false;
-		},
-		showLoginPopup() {
-			this.loginPopup.show = true;
 		},
 		async sendCreateTestSuite() {
 			this.showSpinner();

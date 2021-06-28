@@ -1,7 +1,7 @@
 'use strict';
 
-import {appConfigEventBus} from '../../components/appConfig';
 import MainLayout from '../../layouts/main.vue';
+import {mainWrapperEventBus} from '../../layouts/main-event-bus';
 import TestCase from '../../components/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
 import TestSuiteHistory from '../../components/testSuiteHistory.vue';
@@ -89,8 +89,8 @@ export default {
 			}
 		}
 	},
-	async mounted() {
-		return this.initTestSuite();
+	mounted() {
+		mainWrapperEventBus.$once('appReady', this.initTestSuite);
 	},
 	watch: {
 		'$route.params.testCaseId': function (testCaseId) {
@@ -109,7 +109,7 @@ export default {
 			try {
 				response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			} catch (resp) {
-				window.location.href = '/';
+				return false;
 			}
 			if (response.status === 200) {
 				this.testSuite = response.body;
@@ -136,11 +136,7 @@ export default {
 					}
 				});
 				this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
-				if (this.$store.state.testCaseStatuses) {
-					this.testSuiteStatusChartData()
-				} else {
-					appConfigEventBus.$on('testCaseStatusesLoaded', this.testSuiteStatusChartData);
-				}
+				await this.testSuiteStatusChartData();
 				await this.initTestSuiteGitLog();
 			}
 			if (testCaseId) {

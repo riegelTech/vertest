@@ -41,6 +41,7 @@ export default {
 	},
 	methods: {
 		async initTestCase() {
+
 			if (!this.testCaseLocal) {
 				return;
 			}
@@ -53,7 +54,7 @@ export default {
 					testCase = response.body;
 				}
 			} catch (resp) {
-				// do nothing
+				return false
 			}
 			if (testCase) {
 				testCase.mdContent = testCase.htmlContent;
@@ -67,8 +68,9 @@ export default {
 					this.testCaseLocal.user = existingUser;
 				}
 			} catch (e) {
-				// do nothing
+				return false
 			}
+			this.currentUser = this.$store.state.currentUser;
 		},
 		showAffectUserPopin() {
 			if (this.currentUser.readOnly) {

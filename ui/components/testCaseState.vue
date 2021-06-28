@@ -6,7 +6,7 @@
             <span v-if="currentStatus.nameHR" class="current-status-nameHR">
                 {{ currentStatus.nameHR }}
                 <md-tooltip class="current-status-meaning">
-                    <span v-if="currentStatus.meaning">: {{ currentStatus.meaning }}</span>
+                    <span v-if="currentStatus.meaning">{{ currentStatus.meaning }}</span>
                 </md-tooltip>
             </span>
         </div>
@@ -32,7 +32,6 @@
     </div>
 </template>
 <script>
-    import {appConfigEventBus} from './appConfig';
     export default {
         name: 'test-case-state',
         props: {
@@ -66,10 +65,7 @@
 			}
 		},
         mounted() {
-        	if (this.$store.state.testCaseStatuses) {
-				return this.init();
-			}
-        	appConfigEventBus.$on('testCaseStatusesLoaded', this.init);
+			this.init();
         },
         methods: {
         	init() {
@@ -78,7 +74,7 @@
 				this.newStatus = this.autoSelectCurrentStatus ? this.currentTestStatus.name || this.statuses[0].name : null;
             },
         	enrichStatus(status) {
-				const locale = this.$i18n.lang;
+				const locale = this.$i18n.locale;
 				const fallbackLocale = this.$i18n.fallbackLocale;
 				const statusForDisplay = {
 					name: status.name,

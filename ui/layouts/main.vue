@@ -49,6 +49,27 @@
             <slot></slot>
         </md-content>
         <footer></footer>
+        <md-dialog :md-active.sync="loginPopup.show" :md-click-outside-to-close="false" :md-close-on-esc="false">
+            <md-dialog-title>{{ $t("homePage.Log in") }}</md-dialog-title>
+            <span class="error-msg" v-if="loginPopup.authError">{{ loginPopup.authError }}</span>
+            <form @submit="login">
+                <md-field :class="loginPopup.loginFieldMessageClass">
+                    <label for="login">{{ $t("common.Login") }}</label>
+                    <md-input id="login" name="login" v-model="userLogin" type="text" @keyup.enter.native="login" required />
+                    <span class="md-error">{{ $t("homePage.Required field, please enter a login") }}</span>
+                </md-field>
+                <md-field :class="loginPopup.passwordFieldMessageClass">
+                    <label for="password">{{ $t("common.Password") }}</label>
+                    <md-input id="password" name="password" v-model="userPassword" type="password" @keyup.enter.native="login" required />
+                    <span class="md-error">{{ $t("homePage.Required field, please enter a password") }}</span>
+                </md-field>
+                <md-dialog-actions>
+                    <router-link to="/fr/" class="country-flag"><gb-flag code="fr" size="small" /></router-link>
+                    <router-link to="/en/" class="country-flag"><gb-flag code="us" size="small" /></router-link>
+                    <md-button class="md-primary" @click="login">{{ $t("homePage.Log in") }}</md-button>
+                </md-dialog-actions>
+            </form>
+        </md-dialog>
         <md-dialog class="statusInconsistencies" :md-active.sync="statusesInconsistenciesPopin.show" :md-close-on-esc="false" :md-click-outside-to-close="false">
             <md-dialog-title>{{ $t("mainLayout.Remediation to changes in the statuses configuration") }}</md-dialog-title>
             <p class="cheer">
