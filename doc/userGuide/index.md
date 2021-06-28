@@ -48,6 +48,22 @@ Cool consequences are multiples:
 
 [Create a test suite](./create-test-suite.md)
 
+### Test suite page
+
+[Test suite page](./test-suite-page.md)
+
+### Passing a test
+
+
+
 ### Test suite lifecycle
+
+#### Read and pass the test cases
+
+#### Validate GIT modifications
+
+#### Changing the GIT branch
+
+#### Changing the file selector
 
 ## Advanced tricks

@@ -42,6 +42,8 @@ export default {
 	methods: {
 		async initTestCase() {
 
+			this.currentUser = this.$store.state.currentUser;
+
 			if (!this.testCaseLocal) {
 				return;
 			}
@@ -70,11 +72,11 @@ export default {
 			} catch (e) {
 				return false
 			}
-			this.currentUser = this.$store.state.currentUser;
 		},
 		showAffectUserPopin() {
 			if (this.currentUser.readOnly) {
 				alert('As read-only user, you do not have rights to do this');
+				return;
 			}
 			if (this.testCaseLocal.user) {
 				this.affectUserPopin.selectedUser = this.testCaseLocal.user._id;

@@ -1,7 +1,7 @@
 <div v-if="testCaseLocal">
     <h2>{{ testCaseLocal.testFilePath }}</h2>
     <div class="actions">
-        <md-button v-if="!currentUser.readOnly" class="md-icon-button md-raised" @click="showAffectUserPopin()">
+        <md-button :v-if="!currentUser.readOnly" class="md-icon-button md-raised" @click="showAffectUserPopin()">
             <md-icon>person_add</md-icon>
             <md-tooltip md-direction="top">{{ $t("testCaseState.Affect a user on this test case") }}</md-tooltip>
         </md-button>
