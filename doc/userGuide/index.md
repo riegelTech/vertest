@@ -68,4 +68,6 @@ Cool consequences are multiples:
 
 #### Changing the file selector
 
+[Change the file selector](./file-selector-modification.md)
+
 ### Tips and tricks

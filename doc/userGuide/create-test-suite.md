@@ -1,6 +1,6 @@
 # Creating a test suite step by step
 
-## Prepare the credentials
+## Prepare the credentials
 
 It is highly probable that your GIT repository has restricted access, so if your GIT repository uses
 SSH keys for authentication, please refer to [SSH keys management](./manage-ssh-keys.md) before.
