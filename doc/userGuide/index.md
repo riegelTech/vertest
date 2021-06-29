@@ -52,13 +52,11 @@ Cool consequences are multiples:
 
 [Test suite page](./test-suite-page.md)
 
-### Passing a test
-
-[Test case page](./test-case-passing.md)
-
 ### Test suite lifecycle
 
 #### Read and pass the test cases
+
+[Test case page](./test-case-passing.md)
 
 #### Validate GIT modifications
 
@@ -66,4 +64,4 @@ Cool consequences are multiples:
 
 #### Changing the file selector
 
-## Advanced tricks
+### Tips and tricks
