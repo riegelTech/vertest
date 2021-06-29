@@ -21,7 +21,7 @@ In most of cases, and particularly on Linux systems, the keyring stand on `/home
 recommend to not move your keys outside this folder.
 
 So to add a key, you have to reference it on the configuration file, as explained 
-in [configuration documentation](./configuration.md).
+in [configuration documentation](configuration.md).
 
 The only thing that you have to take care of is to give the read rights on keys to the user that will execute the
 application.
@@ -31,7 +31,7 @@ application.
 No, this is strongly not recommended. The application will shows you the locked keys to enter their
 passphrase, by clicking on the red locker icon.
 
-![ssh keys screen](./assets/ssh-keys-en.png)
+![ssh keys screen](assets/ssh-keys-en.png)
 
 > Note: to not take a risk of leak, the passphrase is not stored by the application, that means
 > that every time you restart the application, you will have to enter the passphrase again.

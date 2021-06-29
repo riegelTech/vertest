@@ -28,46 +28,46 @@ Cool consequences are multiples:
 
 ### Installation 
 
-[How to install and configure Vertest ?](./installation.md)
+[How to install and configure Vertest ?](installation.md)
 
 ### First start of the application
 
-[First start of Vertest](./first-start.md)
+[First start of Vertest](first-start.md)
 
 ### Manage users
 
-[Manage the users](./manage-users.md)
+[Manage the users](manage-users.md)
 
 ### Manage SSH keys
 
-[Manage SSH keys](./manage-ssh-keys.md)
+[Manage SSH keys](manage-ssh-keys.md)
 
 ## Howto
 
 ### Create a test suite
 
-[Create a test suite](./create-test-suite.md)
+[Create a test suite](create-test-suite.md)
 
 ### Test suite page
 
-[Test suite page](./test-suite-page.md)
+[Test suite page](test-suite-page.md)
 
 ### Test suite lifecycle
 
 #### Read and pass the test cases
 
-[Test case page](./test-case-passing.md)
+[Test case page](test-case-passing.md)
 
 #### Handle a GIT modification
 
-[Handle a GIT modification](./git-modification.md)
+[Handle a GIT modification](git-modification.md)
 
 #### Changing the GIT branch
 
-[Change the git branch](./git-branch-modification.md)
+[Change the git branch](git-branch-modification.md)
 
 #### Changing the file selector
 
-[Change the file selector](./file-selector-modification.md)
+[Change the file selector](file-selector-modification.md)
 
 ### Tips and tricks

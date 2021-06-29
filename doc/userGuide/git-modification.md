@@ -29,7 +29,7 @@ version. In this case, we would probably chang its status to indicate that the t
 In opposition, some test files have been most probably modified for typo correction purpose, so their
 status should not be modified.
 
-![Further git diff visualization](./assets/git-modification-4-en.png)
+![Further git diff visualization](assets/git-modification-4-en.png)
 
 It appears that `ssh-keys.md` and `users.md` have minor modifications, unlike `login.md` whose modification
 adds an important precision. Consequently, you should switch its status from `Successful` to `In progress`.

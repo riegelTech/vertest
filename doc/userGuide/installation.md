@@ -7,7 +7,7 @@ to use correct sections and entries, you have a sample file named `config-sample
 
 Note that if no `config.yml` file is found, application will use `config-sample.yml` file instead.
 
-> Please read the [detailed configuration documentation](./configuration.md) before going further.
+> Please read the [detailed configuration documentation](configuration.md) before going further.
 
 ## Installation
 
@@ -52,8 +52,8 @@ There is no official backup script, even if a `rollbak_demo.sh` script exists an
 The most important thing to know is that the data are located in three places :
 
 1. MongoDB
-2. the `repositoriesDir` directory (see the [configuration documentation](./configuration.md))
-3. the logs directory (see the [configuration documentation](./configuration.md))
+2. the `repositoriesDir` directory (see the [configuration documentation](configuration.md))
+3. the logs directory (see the [configuration documentation](configuration.md))
 
 To dump the repositories and the logs, I let you make an archive or a deep copy of the directories.
 

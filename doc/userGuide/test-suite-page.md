@@ -2,18 +2,18 @@
 
 When you click on a test suite you can see the test suite's dashboard.
 
-![test suite dashboard](./assets/display-test-suite-1-en.png)
+![test suite dashboard](assets/display-test-suite-1-en.png)
 
 ## Test cases tree
 
 On the left you can see the file tree of the test cases (each test case is a markdown file).
 
 At the left side of the filename, the test status is displayed as a coloured spot, corresponding
-to the status color (see [the statuses configuration page](./configuration.md)).
+to the status color (see [the statuses configuration page](configuration.md)).
 
 To read a test case, simply click on its name.
 
-## Progress chart
+## Progress chart
 
 The big pie chart represents the total test cases number of each status.
 
