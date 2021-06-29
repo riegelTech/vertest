@@ -70,4 +70,6 @@ Cool consequences are multiples:
 
 [Change the file selector](file-selector-modification.md)
 
-### Tips and tricks
+### Templatize your tests
+
+[Templatize your tests](templatize-your-tests.md)
