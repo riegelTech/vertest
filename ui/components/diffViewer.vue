@@ -34,6 +34,12 @@
             border: none;
             border-collapse: collapse;
             border-spacing: 0;
+            tbody {
+              border-top: 10px solid #fff;
+              &:first-child {
+                border: none;
+              }
+            }
             tr, td {
                 vertical-align: top;
                 border: none;
