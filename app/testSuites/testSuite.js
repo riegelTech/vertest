@@ -296,6 +296,11 @@ async function initTestSuiteRepositories() {
 	initialized = true;
 }
 
+async function initTestSuiteLoggers() {
+	const testSuites = await getTestSuites();
+	await Promise.all(testSuites.map(async testSuite => logsModule.getTestSuiteLogger(testSuite._id)));
+}
+
 async function updateTestSuite(testSuite) {
 	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 	const filter = {_id: testSuite._id};
@@ -399,5 +404,6 @@ module.exports = {
 	removeTestSuite,
 	// end test suite CRUD
 	initTestSuiteRepositories,
+	initTestSuiteLoggers,
 	watchTestSuitesChanges
 };

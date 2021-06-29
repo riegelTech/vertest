@@ -47,6 +47,7 @@ const startApp = async () => {
 	try {
 		await statusesModule.loadStatusesFromConfig();
 		await testSuiteModule.initTestSuiteRepositories();
+		await testSuiteModule.initTestSuiteLoggers();
 		await sshKeysModule.initSshKeys();
 		await testSuiteModule.watchTestSuitesChanges();
 	} catch (e) {

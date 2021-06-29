@@ -51,7 +51,7 @@ function getDefaultLoggerSync() {
 	return defaultLogger;
 }
 
-async function getTestSuiteLogger (testSuiteId) {
+async function getTestSuiteLogger(testSuiteId) {
 	if (loggers.has(testSuiteId)) {
 		return loggers.get(testSuiteId);
 	}

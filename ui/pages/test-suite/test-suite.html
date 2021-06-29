@@ -36,7 +36,7 @@
                                         <md-icon>warning</md-icon>
                                         <md-tooltip md-direction="top">{{ $t("testSuitePage.Choose a new branch for test suite, as current branch has been deleted") }}</md-tooltip>
                                     </md-button>
-                                    <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.gitBranch }}&nbsp;
+                                    <span class="i-code-git icon-flow-branch"></span>&nbsp;{{ testSuite.repository._curBranch }}&nbsp;
                                     <md-button class="md-primary md-dense md-elevation-1" @click="toggleTestSuiteGitBranch(testSuite._id)">{{ $t("testSuitePage.Change current GIT branch") }}</md-button>
                                 </p>
                             </div>
