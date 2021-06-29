@@ -58,9 +58,13 @@ Cool consequences are multiples:
 
 [Test case page](./test-case-passing.md)
 
-#### Validate GIT modifications
+#### Handle a GIT modification
+
+[Handle a GIT modification](./git-modification.md)
 
 #### Changing the GIT branch
+
+[Change the git branch](./git-branch-modification.md)
 
 #### Changing the file selector
 
