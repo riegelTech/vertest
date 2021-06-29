@@ -1,4 +1,4 @@
-# How to install Vertest ?
+# How to install VerTest ?
 
 ## Configuration
 
@@ -61,7 +61,7 @@ To dump the database, you have to exec the dump MongoDB command in the correspon
 
 1. Ensure the mongodb container is running, if not, type: `$ docker-compose up mongo`
 2. Get the container name `$ docker-compose ps | grep mongod | grep -Eo "^([A-Za-z0-9_-]*)"`
-3. Execute the dump command `$ docker exec "[YOUR_CONTAINER_NAME]" bash -c "cd /data/db/ && mongodump -d vertest -c users -o ./ && mongodump -d vertest -c testSuites -o ./"`
+3. Execute the dump command `$ docker exec "[YOUR_CONTAINER_NAME]" bash -c "cd /data/db/ && mongodump -d vertest -c users -o ./ && mongodump -d vertest -c testSuites -o ./ && mongodump -d vertest -c metadata -o ./"`
 4. You can now find in `mongoData` a new directory called `vertest` that contains the dump
 
 > Note that this will probably require super user rights
@@ -75,7 +75,7 @@ To restore the database, you have to exec the restore MongoDB command in the cor
 1. Copy the dump directory `vertest` in the `mongoData` directory
 2. Ensure the mongodb container is running, if not, type: `$ docker-compose up mongo`
 3. Get the container name `$ docker-compose ps | grep mongod | grep -Eo "^([A-Za-z0-9_-]*)"`
-4. Execute the restore command `docker exec "[YOUR_CONTAINER_NAME]" bash -c "cd /data/db/ && mongorestore -d vertest -c testSuites --drop vertest/testSuites.bson && mongorestore -d vertest -c users --drop vertest/users.bson"`
+4. Execute the restore command `docker exec "[YOUR_CONTAINER_NAME]" bash -c "cd /data/db/ && mongorestore -d vertest -c testSuites --drop vertest/testSuites.bson && mongorestore -d vertest -c users --drop vertest/users.bson && mongorestore -d vertest -c metadata --drop vertest/metadata.bson"`
 5. Now stop the container and restart `docker-compose down && docker-compose up`
 
 > Note that this will probably require super user rights

@@ -2,7 +2,7 @@
 
 When you click on a test suite you can see the test suite's dashboard.
 
-![test suite dashboard](assets/display-test-suite-1-en.png)
+![test suite dashboard](../assets/display-test-suite-1-en.png)
 
 ## Test cases tree
 
@@ -27,6 +27,6 @@ and the current GIT branch. You can control that the test suite is up-to-date.
 The panel "Current rules of file selection" displays the selector that is currently used: 
 you can control that you correctly selected all the wanted files in the file tree.
 
-## The tes suite history
+## The test suite history
 
 On the bottom of the page you can see the an extract of the logs related to the current test suite. 

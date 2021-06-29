@@ -1,4 +1,4 @@
-# How to configure your application ?
+# How to configure VerTest ?
 
 To configure your application, create a yaml file at ` <YOUR_APP_DIR>/config.yml` . To help you
 to use correct sections and entries, you have a sample file named `config-sample.yml`.
@@ -69,7 +69,7 @@ workspace:
 > Note: depending of the weight of your repositories, and the number of them, the `repositoriesDir`
 > can consume much memory, take that into account when you choose the directory.
 
-> Note: VerTest gives a protection against XSS attack with a default HTML tags and attributes
+> Note: VerTest provides a protection against XSS attack with a default HTML tags and attributes
 > whitelist that the markdown render can output.
 > You can modify the filter editing the xss-white-list-sample.json and linking it in the configuration file
 

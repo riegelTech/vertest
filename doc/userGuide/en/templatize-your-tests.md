@@ -23,7 +23,7 @@ VerTest will notify you exactly the same way it does for a modification of a tes
 
 VerTest will display the resulting diff in a recurse way:
 
-![Recursive diff](assets/inclusion-diff-en.png)
+![Recursive diff](../assets/inclusion-diff-en.png)
 
 In this example, the file `tests/inclusions/simple-content.md` has two inclusions:
 

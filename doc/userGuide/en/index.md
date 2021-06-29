@@ -1,6 +1,6 @@
-# Vertest user guide
+# VerTest user guide
 
-Welcome into the Vertest user guide !
+Welcome into the VerTest user guide !
 
 ## Basics
 
@@ -32,7 +32,7 @@ Cool consequences are multiples:
 
 ### First start of the application
 
-[First start of Vertest](first-start.md)
+[First start of VerTest](first-start.md)
 
 ### Manage users
 

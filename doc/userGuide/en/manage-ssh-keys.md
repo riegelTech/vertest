@@ -31,7 +31,7 @@ application.
 No, this is strongly not recommended. The application will shows you the locked keys to enter their
 passphrase, by clicking on the red locker icon.
 
-![ssh keys screen](assets/ssh-keys-en.png)
+![ssh keys screen](../assets/ssh-keys-en.png)
 
 > Note: to not take a risk of leak, the passphrase is not stored by the application, that means
 > that every time you restart the application, you will have to enter the passphrase again.

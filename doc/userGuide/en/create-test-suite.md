@@ -7,7 +7,7 @@ SSH keys for authentication, please refer to [SSH keys management](manage-ssh-ke
 
 ## Step 1: access to GIT repository
 
-![Access to the repository](assets/create-test-suite-step1-en.png)
+![Access to the repository](../assets/create-test-suite-step1-en.png)
 
 The three types of supported GIT repository address are :
 
@@ -23,13 +23,13 @@ available GIT branches and give you the choice.
 
 ## Step 2: choosing the branch
 
-![Choosing the branch](assets/create-test-suite-step2-en.png)
+![Choosing the branch](../assets/create-test-suite-step2-en.png)
 
 > Note: you will be able to change the GIT branch even after the test suite creation.
 
 ## Step 3: selecting the files to track and display
 
-![select files](assets/create-test-suite-step3-1-en.png)
+![select files](../assets/create-test-suite-step3-1-en.png)
 
 The files are displayed in two trees: the left tree contains all the repository files, and the right
 tree contains the result of your selector.
@@ -45,7 +45,7 @@ on the `-` sign in front of these files or folders.
 The selectors are interpreted in the order they appear. Each selector appear on top of the trees, and 
 you can remove them individually.
 
-![selectors modification](assets/create-test-suite-step3-2-en.png)
+![selectors modification](../assets/create-test-suite-step3-2-en.png)
 
 > Note: by default, if you do not create any selector, all the markdown files will be included
 
