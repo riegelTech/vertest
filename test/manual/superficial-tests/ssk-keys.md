@@ -2,7 +2,7 @@
 
 ![keys on desk](../assets/keys-deck.jpg)
 
-## Abstract
+## Abstract
 
 Test the ssh keys page, lock and unlock actions.
 
