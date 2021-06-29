@@ -408,7 +408,6 @@ class Repository {
         const potentialPatches = patches.filter(patch => patch.isModified());
         let additionalPatches = [];
         if (wtIncludedFiles) {
-
             await Promise.all(potentialPatches.map(async patch => {
                 const testCases = (await Promise.all(testSuite.tests.map(async testCase => {
                     const testCaseInvolvedFiles = await testCase.getIncludedFilesFlat();
@@ -519,7 +518,7 @@ class Repository {
 			targetCommit: mostRecentCommit.sha(),
 			addedPatches,
 			deletedPatches,
-			modifiedPatches: modifiedPatches.concat(additionalPatches),
+			modifiedPatches: additionalPatches.length ? additionalPatches : modifiedPatches,
 			renamedPatches
 		});
     }
