@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Test of the users management page
+Test of the user's management page
 
 ## Prerequisites
 

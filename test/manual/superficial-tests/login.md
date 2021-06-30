@@ -18,7 +18,7 @@ Test the login form, the login, logoff procedure and other displays involved.
 
 1. Go to http://[serverName]/
 2. You should be redirected to http://[serverName]/#/
-3. Some xhr requests should have been returned with code 401 (unauthorised)
+3. One xhr requests should have been returned with code 401 (unauthorised)
    ![Network panel](./screen-captures/login-network-panel.png)
 4. The login popin is displayed over a transparent grey layout mask
    ![login popin](./screen-captures/login-popin.png)

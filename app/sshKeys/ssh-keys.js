@@ -1,6 +1,7 @@
 'use strict';
 
 const EventEmitter = require('events');
+const fs = require('fs');
 const Path = require('path');
 
 const logs = require('../logsModule/logsModule').getDefaultLoggerSync();
@@ -18,7 +19,7 @@ const ERR_CODES = {
 const privKeyPassSymbol = Symbol('privKeyPass');
 
 class SshKey {
-	constructor({name = '', pubKey = '', privKey = '', privKeyPass = ''}) {
+	constructor({name = '', pubKey = '', privKey = '', privKeyPass = ''}, setPrivKeyPass = true) {
 		const err = new Error();
 
 		if (!name) {
@@ -36,8 +37,9 @@ class SshKey {
 		this.pubKey = pubKey;
 		this.privKey = privKey;
 
-		this[privKeyPassSymbol] = privKeyPass;
-		this.decryptedPrivKey = false;
+		if (setPrivKeyPass) {
+			this.setPrivKeyPass(privKeyPass);
+		}
 	}
 
 	async testFilesAccess() {
@@ -57,9 +59,9 @@ class SshKey {
 		return true;
 	}
 
-	async setPrivKeyPass(passPhrase) {
+	setPrivKeyPass(passPhrase) {
 		const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
-		const keyData = await utils.readFile(keyPath, 'utf8');
+		const keyData = fs.readFileSync(keyPath, 'utf8');
 
 		const result = ssh2Utils.parseKey(keyData, passPhrase);
 		if (result instanceof  Error) {
@@ -95,7 +97,7 @@ async function initSshKeys() {
 	}
 
 	config.sshKeys.forEach(async sshKeyProps => {
-		const sshKey = new SshKey(sshKeyProps);
+		const sshKey = new SshKey(sshKeyProps, false);
 
 		if (sshKeys.has(sshKey.name)) {
 			const err = new Error(`SSH key with name "${sshKey.name}" already exists`);
@@ -106,16 +108,16 @@ async function initSshKeys() {
 		try {
 			await sshKey.testFilesAccess();
 			sshKeys.set(sshKey.name, sshKey);
-			await setPrivKeyPass(sshKey.name,''); // automatically decrypt those that have no passphrase
+			setPrivKeyPass(sshKey.name,''); // automatically decrypt those that have no passphrase
 		} catch (e) {
 			logs.error({message: e.message});
 		}
 	});
 }
 
-async function setPrivKeyPass(sshKeyName, passPhrase) {
+function setPrivKeyPass(sshKeyName, passPhrase) {
 	const sshKey = getSshKeyByName(sshKeyName);
-	const success = await sshKey.setPrivKeyPass(passPhrase);
+	const success = sshKey.setPrivKeyPass(passPhrase);
 	if (success) {
 		sshKeyCollectionEventEmitter.emit('sshKeyDecrypted', sshKey);
 	}

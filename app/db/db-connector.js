@@ -10,7 +10,8 @@ const defaultDbName = 'vertest';
 
 const DB_TABLES = {
 	USERS: 'users',
-	TEST_SUITES: 'testSuites'
+	TEST_SUITES: 'testSuites',
+	METADATA: 'metadata'
 };
 
 const client = new MongoClient(mongoUrl, {
