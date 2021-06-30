@@ -5,12 +5,14 @@ import store from './store';
 import VueRouter from 'vue-router';
 import VueI18n from "vue-i18n";
 import VueFlags from '@growthbunker/vueflags';
+import VueCookies from 'vue-cookies';
 
 Vue.use(VueFlags, {
 	iconPath: '/assets/fonts/flags/',
 });
 Vue.use(VueRouter);
 Vue.use(VueI18n);
+Vue.use(VueCookies);
 
 import en from './locales/en';
 
@@ -82,8 +84,10 @@ window.app = new Vue({
 }).$mount('#app-wrapper');
 
 i18n.locale = router.currentRoute.params.lang;
+Vue.$cookies.set('lang', i18n.locale);
 router.beforeEach((to, from, next) => {
 	i18n.locale = to.params.lang;
+	Vue.$cookies.set('lang', i18n.locale);
 	window.app.$emit('lang-changed', i18n.locale);
 	next();
 });

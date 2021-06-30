@@ -1,6 +1,7 @@
 'use strict';
 
 import MainLayout from '../../layouts/main.vue';
+import {mainWrapperEventBus} from '../../layouts/main-event-bus';
 import TestCase from '../../components/test-case.vue';
 import FileTree from '../../components/fileTree.vue';
 import TestSuiteHistory from '../../components/testSuiteHistory.vue';
@@ -88,8 +89,8 @@ export default {
 			}
 		}
 	},
-	async mounted() {
-		return this.initTestSuite();
+	mounted() {
+		mainWrapperEventBus.$once('appReady', this.initTestSuite);
 	},
 	watch: {
 		'$route.params.testCaseId': function (testCaseId) {
@@ -108,7 +109,7 @@ export default {
 			try {
 				response = await this.$http.get(`${TEST_SUITE_PATH}${testSuiteId}`);
 			} catch (resp) {
-				window.location.href = '/';
+				return false;
 			}
 			if (response.status === 200) {
 				this.testSuite = response.body;
@@ -119,7 +120,8 @@ export default {
 				this.testSuite.tests.forEach(testCase => {
 					testFileMapping[`root/${testCase.testFilePath}`] = {
 						testFilePath: testCase.testFilePath,
-						basePath: testCase.basePath
+						basePath: testCase.basePath,
+						status: testCase.status
 					};
 				});
 				this.testsTree = fileTreeUtils.buildTree(filePaths, this.testSuite.repository._repoDir);
@@ -134,7 +136,7 @@ export default {
 					}
 				});
 				this.testDirs = this.testSuite.testDirs.map(testDir => filePatternSignification.getPatternSignification(testDir));
-				this.testSuiteStatusChartData();
+				await this.testSuiteStatusChartData();
 				await this.initTestSuiteGitLog();
 			}
 			if (testCaseId) {
@@ -195,7 +197,7 @@ export default {
 		toggleTestSuiteFileSelector() {
 			this.toggleFileSelectorPopin.show = true;
 		},
-		changeTestStatus(testCaseId, newTestStatus) {
+		changeTestStatus(testCaseId, oldTestStatus, newTestStatus) {
 			this.diffPopin.newStatuses[testCaseId] = newTestStatus;
 		},
 		async submitNewTestsStatuses() {
@@ -249,64 +251,36 @@ export default {
 		testSuiteStatusChartData() {
 			const tests = this.testSuite.tests;
 			const total = tests.length;
+			const lang = this.$i18n.locale;
 
-			const statuses = {
-				TODO: 0,
-				IN_PROGRESS: 1,
-				BLOCKED: 3,
-				SUCCESS: 4,
-				FAILED: 5
-			};
+			const statuses = this.$store.state.testCaseStatuses.statuses;
 
-			function getTestsStatusPercent(status, total) {
-				const part = tests.filter(test => test.status === status).length;
-				return Math.round((part / total) * 100);
-			}
-
-			const totalTodo = getTestsStatusPercent(statuses.TODO, total);
-			const totalProgress = getTestsStatusPercent(statuses.IN_PROGRESS, total);
-			const totalBlocked = getTestsStatusPercent(statuses.BLOCKED, total);
-			const totalSuccess = getTestsStatusPercent(statuses.SUCCESS, total);
-			const totalFailed = getTestsStatusPercent(statuses.FAILED, total);
-
-			this.testSuiteStatusChart = [];
-			function addStatus(statuses, statusChart) {
-				for (let status of statuses) {
-					if (status.total > 0) {
-						statusChart.push(status);
-					}
+			this.testSuiteStatusChart = statuses.map(status => {
+				const part = tests.filter(test => test.status.name === status.name).length;
+				const percent = Math.round((part / total) * 100);
+				if (percent > 0) {
+					return {
+						name: status.lang[lang] || status.name,
+						total: percent
+					};
 				}
+			}).filter(status => status !== undefined);
+
+			const colorsKeys = {};
+			for (let status of statuses) {
+				if (status.lang[lang]) {
+					colorsKeys[status.lang[lang]] = status.color;
+				} else {
+					colorsKeys[status.name] = status.color;
+				}
+
 			}
-			// TODO test case status can be found on test-case component
-			addStatus([{
-				name: "Success",
-				total: totalSuccess
-			}, {
-				name: "Failed",
-				total: totalFailed
-			}, {
-				name: "Blocked",
-				total: totalBlocked
-			}, {
-				name: "In progress",
-				total: totalProgress
-			}, {
-				name: "To do",
-				total: totalTodo
-			}], this.testSuiteStatusChart);
 
 			this.testSuiteStatusChartConfig = Object.assign({}, DEFAULT_TEST_SUITE_CHART_CONFIG, {
 				key: 'name',
 				value: 'total',
 				color: {
-					// colors based on https://material.io/resources/color/#!/?view.left=0&view.right=0 picked on material palette on the third column (200)
-					keys: {
-						'To do': '#b0bec5', // Blue Grey
-						'In progress': '#90caf9', // Blue
-						'Blocked': '#ffcc80', // Orange
-						'Success': '#a5d6a7', // Green
-						'Failed': '#ef9a9a' // Red
-					}
+					keys: colorsKeys
 				}
 			});
 		},

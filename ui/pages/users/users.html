@@ -3,7 +3,7 @@
         <md-table v-model="users" md-sort="name" md-sort-order="asc" md-card>
             <md-table-toolbar>
                 <h1 class="md-title">{{ $t("usersPage.Users") }}
-                    <md-button class="md-fab md-primary md-dense md-icon-button md-elevation-1" v-if="currentUser && currentUser.isSuperAdmin" @click="showCreatePopin">
+                    <md-button class="md-fab md-primary md-dense md-icon-button md-elevation-1" :v-if="currentUser && currentUser.isSuperAdmin" @click="showCreatePopin">
                         <md-icon>add</md-icon>
                     </md-button>
                 </h1>

@@ -12,7 +12,11 @@ from a GIT repository. Then you can affect them to team members and track tests 
 
 ## Documentation
 
-Find the complete documentation here : [./doc/home.md](./doc/home.md)
+Find the complete user's guides here: 
+* [English version](doc/userGuide/en/index.md)
+* [French version](doc/userGuide/fr/index.md)
+
+For the developers, some information are available here: [./doc/developerGuide/index.md](./doc/developerGuide/index.md)
 
 ## Demo
 

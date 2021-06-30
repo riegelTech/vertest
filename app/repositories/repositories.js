@@ -320,7 +320,7 @@ class Repository {
 		};
     }
 
-    async getRepositoryDiff(testSuite, commitSha) {
+    async getRepositoryDiff(testSuite, commitSha, wtIncludedFiles = true) {
         const currentCommit = await this.getCurrentCommit(this.gitBranch);
         const mostRecentCommit = await this._gitRepository.getCommit(commitSha);
 
@@ -347,15 +347,21 @@ class Repository {
             }
             return Promise.all(hunks.map(async hunk => {
                 const lines = await hunk.lines();
+                const oldLines = lines.filter(line => String.fromCharCode(line.origin()) === '-');
+                const newLines = lines.filter(line => String.fromCharCode(line.origin()) === '+');
+
                 return {
                     oldLines: {
-                        start: hunk.oldStart(),
-                        content: lines.filter(line => String.fromCharCode(line.origin()) === '-').map(line => line.content().trim())
+                        start: oldLines.length > 0 ? oldLines[0].oldLineno() : hunk.oldStart(),
+                        numLines: oldLines.length,
+                        content: oldLines.map(line => line.content().trim())
                     },
                     newLines: {
-                        start: hunk.newStart(),
-                        content: lines.filter(line => String.fromCharCode(line.origin()) === '+').map(line => line.content().trim())
-                    }
+                        start: newLines.length > 0 ? newLines[0].newLineno() : hunk.newStart(),
+                        numLines: newLines.length,
+                        content: newLines.map(line => line.content().trim())
+                    },
+                    hunks: []
                 }
             }));
         }
@@ -387,23 +393,132 @@ class Repository {
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), test: patch.test}))));
         deletedPatches = deletedPatches.concat(movedSoDeletedPatches);
 
-        const modifiedPatches = (await Promise.all(matchedPatches
+        const renamedPatches = matchedPatches
+            .filter(patch => patch.isRenamed())
+            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch)
+            .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
+
+        let modifiedPatches = (await Promise.all(matchedPatches
             .filter(patch => patch.isModified() || patch.isRenamed())
 			.filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).oldFileMatch)
             .map(async patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path(), hunks: await getHunks(patch), test: patch.test}))))
             .filter(patch => patch.hunks.length > 0);
 
-        const renamedPatches = matchedPatches
-            .filter(patch => patch.isRenamed())
-            .filter(patch => Repository.patchMatchTest(patch, testSuite.testDirs).newFileMatch)
-            .map(patch => ({file: patch.oldFile().path(), newFile: patch.newFile().path()}));
+        // Add the files that are included with markdown special syntax
+        const potentialPatches = patches.filter(patch => patch.isModified());
+        let additionalPatches = [];
+        if (wtIncludedFiles) {
+            await Promise.all(potentialPatches.map(async patch => {
+                const testCases = (await Promise.all(testSuite.tests.map(async testCase => {
+                    const testCaseInvolvedFiles = await testCase.getIncludedFilesFlat();
+                    const involvedTestCase = testCaseInvolvedFiles.find(involvedFile => involvedFile === patch.oldFile().path() || involvedFile === patch.newFile().path());
+                    return involvedTestCase ? testCase : undefined;
+                }))).filter(testCase => testCase !== undefined);
+
+                await Promise.all(testCases.map(async testCase => {
+                    additionalPatches.push({
+                        file: patch.oldFile().path(),
+                        newFile: patch.newFile().path(),
+                        hunks: await getHunks(patch),
+                        test: testCase
+                    });
+                }));
+            }));
+
+            additionalPatches = await Promise.all(additionalPatches.map(async additionalPatch => {
+
+                let modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(null, modifiedIncludedFile => {
+                    const patch = potentialPatches.find(patch => modifiedIncludedFile.filePath === patch.oldFile().path() || modifiedIncludedFile.filePath === patch.newFile().path());
+                    if (patch) {
+                        modifiedIncludedFile.patch = patch;
+                    } else {
+                        modifiedIncludedFile.patch = null;
+                    }
+                    return modifiedIncludedFile;
+                });
+
+                modifiedIncludedFiles = additionalPatch.test.getInclusionsTreeSegment(modifiedIncludedFiles, includedFile => {
+                    return includedFile.patch !== null;
+                });
+
+                function hunkContainsInclusion(hunk, inclusion) {
+                    if (hunk.existingLines) {
+                        const existingLinesRange = {
+                            start: hunk.existingLines.start,
+                            end: hunk.existingLines.start + hunk.existingLines.numLines
+                        };
+                        if (existingLinesRange.start <= inclusion.line && existingLinesRange.end >= inclusion.line) {
+                            return true;
+                        }
+                    }
+                    if (hunk.oldLines) {
+                        const oldLinesRange = {
+                            start: hunk.oldLines.start,
+                            end: hunk.oldLines.start + hunk.oldLines.numLines
+                        };
+                        if (oldLinesRange.start <= inclusion.line && oldLinesRange.end >= inclusion.line) {
+                            return true;
+                        }
+                    }
+                    if (hunk.newLines) {
+                        const newLinesRange = {
+                            start: hunk.newLines.start,
+                            end: hunk.newLines.start + hunk.newLines.numLines
+                        };
+                        if (newLinesRange.start <= inclusion.line && newLinesRange.end >= inclusion.line) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                if (modifiedIncludedFiles) {
+                    modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
+                        inclusion.hunks = inclusion.patch ? await getHunks(inclusion.patch) : [];
+
+                        inclusion.inclusions.forEach(child => {
+                            const existingHunk = inclusion.hunks.find(hunk => hunkContainsInclusion(hunk, child));
+                            if (!existingHunk) {
+                                inclusion.hunks.push({
+                                    existingLines: {
+                                        start: child.line,
+                                        numLines: 1,
+                                        content: [child.mdMarker]
+                                    },
+                                    hunks: child.hunks
+                                });
+                            } else {
+                                existingHunk.hunks = child.hunks;
+                            }
+                        });
+
+                        return inclusion;
+                    });
+
+                    modifiedIncludedFiles = await additionalPatch.test.applyOnEachTreeItem(modifiedIncludedFiles, async inclusion => {
+                        return {
+                            newLines: inclusion.newLines,
+                            oldLines: inclusion.oldLines,
+                            existingLines: inclusion.existingLines,
+                            hunks: inclusion.hunks || []
+                        };
+                    }, 'hunks');
+
+                    additionalPatch.hunks = modifiedIncludedFiles.hunks;
+                }
+
+
+                return additionalPatch;
+            }));
+        }
 
 		return new TestSuiteDiff({
 			currentCommit: currentCommit.sha(),
 			targetCommit: mostRecentCommit.sha(),
 			addedPatches,
 			deletedPatches,
-			modifiedPatches,
+			modifiedPatches: additionalPatches.length ? additionalPatches : modifiedPatches,
 			renamedPatches
 		});
     }

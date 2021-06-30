@@ -4,6 +4,16 @@
                 class="treeLine"
                 :class="{bold: isFolder}"
                 >
+            <span class="status-icon" v-if="!isFolder && item.status">
+                <test-case-state
+                        :currentTestStatus="item.status"
+                        :display-current-state="true"
+                        :display-state-switch="false"
+                        :displayMini="true"
+                        :displayMicro="true"
+                        :user="item.user"
+                ></test-case-state>
+            </span>
             <span class="folder" v-if="isFolder" @click="toggle">
                 {{ item.name }}
             </span>
@@ -12,14 +22,6 @@
             </router-link>
             <span class="file" v-else-if="!isFolder" @click="$emit('open-item', item)">
                 {{ item.name }}
-            </span>
-            <span class="status-icon" v-if="!isFolder && item.status">
-                <test-case-state
-                        :testState="item.status"
-                        :display-current-state="true"
-                        :display-state-switch="false"
-                        :user="item.user"
-                ></test-case-state>
             </span>
             <md-button v-if="displaySelectors" class="md-icon-button md-pico" @click="$emit('select-item', item)">
                 <md-icon>add</md-icon>

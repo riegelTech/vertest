@@ -15,6 +15,12 @@
     "Successful": "Successful",
     "Failed":  "Failed"
   },
+  "mainLayout": {
+    "Remediation to changes in the statuses configuration": "Remediation to changes in the statuses configuration",
+    "validation of statuses remediation": "It seems that you have changed the configuration od the test cases statuses.\nBut some of these new statuses do not match existing test cases statuses.\nPlease review the existing statuses to switch them to the configured ones.",
+    "Some deprecated statuses have no target status, please choose a target status for each one": "Some deprecated statuses have no target status, please choose a target status for each one",
+    "Something went wrong with the last operation, please retry": "Something went wrong with the last operation, please retry"
+  },
   "homePage": {
     "Home page": "Home page",
     "Log in": "Log in",

@@ -5,10 +5,12 @@ import Vue from 'vue';
 import VueMaterial from 'vue-material';
 import VueResource from 'vue-resource';
 
+
 Vue.use(VueMaterial);
 Vue.use(VueResource);
 
 import {userMixin} from './userMixin';
+import {mainWrapperEventBus} from '../../layouts/main-event-bus';
 import MainLayout from '../../layouts/main.vue';
 
 const EMPTY_USER = {
@@ -32,19 +34,21 @@ export default {
 		return {
 			users: [],
 			userPopin: EMPTY_USER,
-			error: ''
+			error: '',
+			currentUser: null
 		};
 	},
 	mixins: [userMixin],
 	mounted() {
-		return this.initUsers();
+		mainWrapperEventBus.$once('appReady', this.initUsers);
 	},
 	methods: {
 		async initUsers() {
+			this.currentUser = this.$store.state.currentUser;
 			try {
 				this.users =  await this.getUsers(true);
 			} catch (resp) {
-				window.location.href = '/';
+				return false;
 			}
 		},
 		reinitUser() {

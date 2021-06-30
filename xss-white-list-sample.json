@@ -1,0 +1,31 @@
+{
+    "whiteList": {
+        "a": [
+            "href",
+            "title",
+            "target"
+        ],
+        "img": [
+            "src",
+            "width",
+            "height",
+            "style"
+        ],
+        "div": [],
+        "p": [],
+        "ul": [],
+        "ol": [],
+        "li": [],
+        "em": [],
+        "strong": [],
+        "h1": [],
+        "h2": [],
+        "h3": [],
+        "h4": [],
+        "h5": [],
+        "h6": [],
+        "blockquote": [],
+        "code": [],
+        "pre": []
+    }
+}

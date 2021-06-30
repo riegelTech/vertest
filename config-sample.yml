@@ -1,5 +1,7 @@
 server:
-  port: 8080
+  port: 8080,
+  sessionExpiration: 180 # delay after which session will end anyway (in minutes)
+  sessionInactivityExpiration: 10 # delay of inactivity after which session will end (in minutes)
 
 sshKeys:
   - name: "some ssh key"
@@ -14,3 +16,52 @@ workspace:
   repositoriesDir: ./cloneDir # can be also absolute
   temporaryRepositoriesDir: ./tempDir # can be also absolute
   logsDir: ./logs # can be also absolute
+  xssConfigFile: ./xss-white-list-sample.json # can be also absolute
+
+testCaseStatuses:
+  defaultStatus: todo # The default status of a test case
+  todo: # The test case isn't affected
+    done: false # with this status; the test is considered as finished
+    color: "#b0bec5" # The status color to display on charts (pay attention to the double quotes around the value)
+    lang: # The localized signification of the status, the name will be used if not lang is not defined
+      en: To do
+      fr: A faire
+    meaning:
+      en: "The test isn't affected to a user"
+      fr: "Le test n'est pas affecté à un utilisateur"
+  in progress: # The test case is affected to a user, so he is working on it
+    done: false
+    color: "#90caf9"
+    lang:
+      en: In progress
+      fr: En cours
+    meaning:
+      en: "The test is affected to a user"
+      fr: "Le test est affecté à un utilisateur"
+  blocked: # The test case can't be achieved
+    done: false
+    color: "#ffcc80"
+    lang:
+      en: Blocked
+      fr: Bloqué
+    meaning:
+      en: "The test can't be completed"
+      fr: "Le test ne peut pas être achevé"
+  success: # Test pass !
+    done: true
+    color: "#a5d6a7"
+    lang:
+      en: Successful
+      fr: Réussi
+    meaning:
+      en: "The test is complete and successful"
+      fr: "Le test est terminé avec succès"
+  failed: # Test failed !
+    done: true
+    color: "#ef9a9a"
+    lang:
+      en: Failed
+      fr: En échec
+    meaning:
+      en: "The test is complete but has failed"
+      fr: "Le test est terminé et en échec"

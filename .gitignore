@@ -3,6 +3,7 @@ node_modules/
 testFilesRepo/
 mongoData/*
 backup
+backup.json
 !mongoData/.gitkeep
 logs/*
 !logs/.gitkeep

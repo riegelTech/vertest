@@ -15,22 +15,22 @@ export const userMixin = {
 			currentUser: null
 		};
 	},
-	async mounted() {
-		try {
-			const response = await this.$http.get(AUTH_API_PATH);
-			if (response.status === 200) {
-				this.currentUser = response.body;
-				this.$store.commit('currentUser', response.body);
-			}
-		} catch (resp) {
-			if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
-				window.location.href = `#/${this.$i18n.locale}/init`;
-				return;
-			}
-		}
-		userEventBus.$emit('initCurrentUser');
-	},
 	methods: {
+		async initUser() {
+			try {
+				const response = await this.$http.get(AUTH_API_PATH);
+				if (response.status === 200) {
+					this.currentUser = response.body;
+					this.$store.commit('currentUser', response.body);
+				}
+			} catch (resp) {
+				if (resp.body && resp.body.error && resp.body.error.code === 'ENOUSERFOUND') {
+					window.location.href = `#/${this.$i18n.locale}/init`;
+					return;
+				}
+			}
+			userEventBus.$emit('initCurrentUser');
+		},
 		async login() {
 			try {
 				const response = await this.$http.post('/auth/login', {
