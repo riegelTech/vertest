@@ -12,51 +12,127 @@ const appConfig = require('../appConfig/config');
 const dbConnector = require('../db/db-connector');
 const repoModule = require('../repositories/repositories');
 const {sshKeyCollectionEventEmitter} = require('../sshKeys/ssh-keys');
+const testCaseStatuses = require('../testCase/testCaseStatuses');
+const Status = testCaseStatuses.Status;
 const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
 
+const INCLUDE_RE = /!{3}\s*include(.+?)!{3}/gi;
+const BRACES_RE = /\((.+?)\)/i;
 
 class TestCase extends EventEmitter {
-	constructor({testFilePath = '', basePath = '', content= '', status = TestCase.STATUSES.TODO, user = null}) {
+	constructor({testFilePath = '', basePath = '', content= '', status = testCaseStatuses.getStatuses().getStatusByIndex(0), user = null, linkedFilesByInclusion = []}) {
 		super();
 		this.basePath = basePath;
 		this.testFilePath = testFilePath;
 		this.content = content;
-		this.status = status;
+		this.setStatus(new Status(status));
 		this.user = user;
-	}
-
-	static get STATUSES() {
-		return {
-			TODO: 0,
-			IN_PROGRESS: 1,
-			BLOCKED: 3,
-			SUCCESS: 4,
-			FAILED: 5
-		}
-	}
-
-	static STATUS_HR(statusNum) {
-		return _.invert(TestCase.STATUSES)[statusNum];
+		this.linkedFilesByInclusion = linkedFilesByInclusion;
 	}
 
 	async fetchTestContent() {
-		this.content = await utils.readFile(Path.resolve(this.basePath, this.testFilePath), 'utf8');
+		const testFilePathFull = Path.resolve(this.basePath, this.testFilePath);
+		this.content = await utils.readFile(testFilePathFull, 'utf8');
+
+		const basePath = this.basePath;
+		const testFilePath = this.testFilePath;
+
+		async function getInclusionTree(fileContent, filePath, ancestors = []) {
+			const absoluteFilePath = Path.resolve(basePath, filePath);
+			ancestors.push(absoluteFilePath);
+			const inclusions = [];
+			let cap;
+			while ((cap = INCLUDE_RE.exec(fileContent)) !== null) {
+				let includePath = cap[1].trim();
+				includePath = includePath.replace(BRACES_RE, '$1').trim();
+				const includedFilePath = Path.join(Path.dirname(filePath), includePath);
+				const absoluteIncludedFilePath = Path.join(basePath, Path.dirname(filePath), includePath);
+
+				if (ancestors.find(ancestorPath => ancestorPath === absoluteIncludedFilePath)) {
+					throw new Error(`Infinite recursion in markdown inclusions while parsing ${testFilePath} content`);
+				}
+				if (Path.relative(basePath, absoluteIncludedFilePath).startsWith('..')) {
+					throw new Error(`A markdown file includes a document outside of the test scope`);
+				}
+				const contentBeforeCap = fileContent.slice(0, cap.index);
+				inclusions.push({
+					line: contentBeforeCap.split(/\r\n|\r|\n/).length,
+					filePath: includedFilePath,
+					mdMarker: cap[0]
+				});
+			}
+			return {
+				filePath,
+				content: fileContent,
+				inclusions: await Promise.all(inclusions.map(async inclusion => {
+					const includedFileContent = await utils.readFile(Path.join(basePath, inclusion.filePath), 'utf8');
+					return Object.assign({}, inclusion, await getInclusionTree(includedFileContent, inclusion.filePath, ancestors));
+				}))
+			};
+		}
+
+		const inclusionTree = await getInclusionTree(this.content, this.testFilePath);
+		this.linkedFilesByInclusion = inclusionTree.inclusions.length ? inclusionTree.inclusions : [];
+	}
+
+	async getIncludedFilesFlat() {
+		const res = [];
+		await this.applyOnEachTreeItem(null, inclusion => {
+			res.push(inclusion.filePath);
+			return inclusion;
+		});
+		return res;
+	}
+
+	getInclusionsTreeSegment(tree, assertionFunc) {
+		const treeCopy = tree ?
+			Object.assign({}, tree) :
+			Object.assign({}, {
+				filePath: this.testFilePath,
+				inclusions: this.linkedFilesByInclusion
+			});
+
+		function assertInTree(tree) {
+			const inclusions = tree.inclusions.filter(inclusion => assertInTree(inclusion));
+			if (!assertionFunc(tree) && inclusions.length === 0) {
+				return null;
+			}
+			tree.inclusions = inclusions;
+			return tree;
+		}
+		return assertInTree(treeCopy);
+	}
+
+	async applyOnEachTreeItem(tree, applyFunc, childKeyNameTarget = 'inclusions') {
+
+		const treeCopy = tree ?
+			Object.assign({}, tree) :
+			Object.assign({}, {
+				filePath: this.testFilePath,
+				inclusions: this.linkedFilesByInclusion
+			});
+
+		async function applyInTree(treeItem) {
+			treeItem[childKeyNameTarget] = await Promise.all(treeItem[childKeyNameTarget].map(async inclusion => await applyInTree(inclusion)));
+			let segment = await applyFunc(treeItem);
+			return segment;
+		}
+
+		return applyInTree(treeCopy);
 	}
 
 	get isFinished() {
-		return this.status === TestCase.STATUSES.SUCCESS
-			|| this.status === TestCase.STATUSES.FAILED;
+		return this.status.testCaseIsDone;
 	}
 
 	setStatus(newStatus, user = null) {
-		const availableStatuses = Object.values(TestCase.STATUSES);
-		if (!availableStatuses.includes(newStatus)) {
-			throw new Error(`Status "${newStatus}" is not a valid status`);
+		if (newStatus.constructor.name !== 'Status') {
+			throw new Error(`New status must be a Status instance, "${newStatus.constructor.name}" given`);
 		}
 		this.status = newStatus;
-		if (user && this.status !== TestCase.STATUSES.TODO) {
+		if (user && !this.status.isDefaultStatus) {
 			this.user = user;
 		}
 		this.emit('statusUpdated', newStatus);
@@ -92,12 +168,25 @@ class TestSuite {
 
 	async init() {
 		const testPaths = await this.repository.collectTestFilesPaths(this.testDirs);
-		this.tests = testPaths.filePaths.map(filePath => new TestCase({
-			basePath: testPaths.basePath,
-			testFilePath: filePath
-		}));
+		let newTests = testPaths.filePaths.map(filePath => {
+			const existingTest = this.tests.find(existingTest => existingTest.testFilePath === filePath);
+			return existingTest || new TestCase({
+				basePath: testPaths.basePath,
+				testFilePath: filePath
+			});
+		});
+		this.tests = newTests;
+
 		this.bindTestCasesStates();
 		await this.collectTests();
+	}
+
+	async getInvolvedFiles() {
+		let res = [].concat(this.testDirs);
+		await Promise.all(this.tests.map(async testCase => {
+			res = res.concat(await testCase.getIncludedFilesFlat());
+		}));
+		return _.uniq(res);
 	}
 
 	bindTestCasesStates() {
@@ -120,7 +209,7 @@ class TestSuite {
 		const testCase = new TestCase({
 			testFilePath,
 			basePath,
-			status: TestCase.STATUSES.TODO
+			status: testCaseStatuses.getStatuses().defaultStatus
 		});
 		this.tests.push(testCase);
 		testCase.on('statusUpdated', () => this.updateProgress());
@@ -166,15 +255,19 @@ class TestSuite {
 let initialized = false;
 const testSuites = new Map();
 
-async function fetchTestSuites() {
+async function fetchRawTestSuites() {
 	const coll = await dbConnector.getCollection(dbConnector.DB_TABLES.TEST_SUITES);
 	const cursor = await coll.find();
 	const itemsCount = await cursor.count();
-	let itemsList = [];
 	if (itemsCount > 0){
-		itemsList = await cursor.toArray();
+		return cursor.toArray();
 	}
-	itemsList.forEach(testSuite => {
+	return [];
+}
+
+async function fetchTestSuites() {
+	const rawTestSuites = await fetchRawTestSuites();
+	rawTestSuites.forEach(testSuite => {
 		const testSuiteInstance = new TestSuite(Object.assign(testSuite, {repository: testSuite.repository}));
 		testSuites.set(testSuiteInstance._id, testSuiteInstance);
 	});
@@ -190,7 +283,9 @@ async function getTestSuites() {
 
 function getTestSuiteByUuid(testSuiteUuid) {
 	if (!testSuites.has(testSuiteUuid)) {
-		throw new Error(`No test suite found for UUID ${testSuiteUuid}`);
+		const err = new Error(`No test suite found for UUID ${testSuiteUuid}`);
+		err.code = 'ENOTFOUND';
+		throw err;
 	}
 	return testSuites.get(testSuiteUuid);
 }
@@ -199,6 +294,11 @@ async function initTestSuiteRepositories() {
 	const testSuites = await getTestSuites();
 	await Promise.all(testSuites.map(async testSuite => testSuite.repository.init({waitForClone: true})));
 	initialized = true;
+}
+
+async function initTestSuiteLoggers() {
+	const testSuites = await getTestSuites();
+	await Promise.all(testSuites.map(async testSuite => logsModule.getTestSuiteLogger(testSuite._id)));
 }
 
 async function updateTestSuite(testSuite) {
@@ -269,8 +369,10 @@ async function watchTestSuitesChanges() {
 			const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
 			try {
 				await testSuite.repository.refreshAvailableGitBranches();
-				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testSuite.testDirs)
-					|| await testSuite.repository.lookupForChanges(testSuite.testDirs, true);
+
+				const testDirs = await testSuite.getInvolvedFiles();
+				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testDirs)
+					|| await testSuite.repository.lookupForChanges(testDirs, true);
 				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
 					testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Repository change detected for test suite ${testSuite.name}`);
 					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
@@ -296,10 +398,12 @@ module.exports = {
 	// start test suite CRUD
 	addTestSuite,
 	getTestSuites,
+	fetchRawTestSuites,
 	getTestSuiteByUuid,
 	updateTestSuite,
 	removeTestSuite,
 	// end test suite CRUD
 	initTestSuiteRepositories,
+	initTestSuiteLoggers,
 	watchTestSuitesChanges
 };

@@ -51,7 +51,7 @@ function getDefaultLoggerSync() {
 	return defaultLogger;
 }
 
-async function getTestSuiteLogger (testSuiteId) {
+async function getTestSuiteLogger(testSuiteId) {
 	if (loggers.has(testSuiteId)) {
 		return loggers.get(testSuiteId);
 	}
@@ -80,6 +80,7 @@ async function getTestSuiteLogger (testSuiteId) {
 				new winston.transports.Console({level: 'error'})
 			]
 		});
+		defaultLogger.error(`Error accessing the test suite log file ${testSuiteId}.log, fallback to console`);
 	}
 
 	loggers.set(testSuiteId, idLogger);

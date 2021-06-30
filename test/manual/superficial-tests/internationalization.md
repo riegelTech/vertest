@@ -11,6 +11,8 @@ Test the internationalization of the application, and the language change.
 1. App is running
 2. You are logged in
 
+!!!include(../common-parts/login.md)!!!
+
 ## test
 
 ### Login page

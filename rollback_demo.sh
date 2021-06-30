@@ -14,7 +14,7 @@ function restore() {
     # 2- restore the backups
     cp -R ./backup/mongo/vertest mongoData/
     chmod -R a+r mongoData/vertest
-    docker exec "$CONTAINER_NAME" bash -c "cd /data/db/ && mongorestore -d vertest -c testSuites --drop vertest/testSuites.bson && mongorestore -d vertest -c users --drop vertest/users.bson"
+    docker exec "$CONTAINER_NAME" bash -c "cd /data/db/ && mongorestore -d vertest -c testSuites --drop vertest/testSuites.bson && mongorestore -d vertest -c users --drop vertest/users.bson && mongorestore -d vertest -c metadata --drop vertest/metadata.bson"
 
     # 3- restore the logs
     rm -rf ./logs/*
@@ -33,7 +33,7 @@ function backup() {
     echo "Creating backup..."
     # 2- clean data backup and dump
     rm -rf mongoData/vertest
-    docker exec "$CONTAINER_NAME" bash -c "cd /data/db/ && mongodump -d vertest -c users -o ./ && mongodump -d vertest -c testSuites -o ./"
+    docker exec "$CONTAINER_NAME" bash -c "cd /data/db/ && mongodump -d vertest -c users -o ./ && mongodump -d vertest -c testSuites -o ./ && mongodump -d vertest -c metadata -o ./"
     cp -R mongoData/vertest backup/mongo/
 
     # 3- clean logs and copy them from fresh

@@ -95,6 +95,7 @@ describe('Logs module', function () {
 	it('should create a log file per test suite if does not exist', async function () {
 		// given
 		const testSuiteUuid = uuid.uuid();
+		await logsModule.getDefaultLogger();
 		// when
 		await logsModule.getTestSuiteLogger(testSuiteUuid);
 		// then
@@ -104,6 +105,8 @@ describe('Logs module', function () {
 	it('should not create a new logger each time a test suite logger is called', async function () {
 		// given
 		const testSuiteUuid = uuid.uuid();
+		await logsModule.getDefaultLogger();
+		configMock.getAppConfig.resetHistory();
 		// when
 		await logsModule.getTestSuiteLogger(testSuiteUuid);
 		// then
@@ -122,6 +125,7 @@ describe('Logs module', function () {
 			}
 		};
 		const testSuiteUuid = uuid.uuid();
+		await logsModule.getDefaultLogger();
 		// when
 		await logsModule.getTestSuiteLogger(testSuiteUuid);
 		// then

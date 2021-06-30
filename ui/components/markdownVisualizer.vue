@@ -8,6 +8,7 @@
     const RESOURCE_PATH = 'repositoriesStatics';
 
 	import MainLayout from '../layouts/main.vue';
+
 	const md = require('markdown-it')();
 	export default {
 		name: 'markdown-visualizer',
