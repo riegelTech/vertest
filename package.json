@@ -1,6 +1,6 @@
 {
   "name": "VerTest",
-  "version": "1.0.2-alpha",
+  "version": "1.0.3-alpha",
   "engines": {
     "node": "12.16.2"
   },
