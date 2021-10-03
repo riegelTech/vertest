@@ -56,12 +56,17 @@ class TestCase extends EventEmitter {
 				if (Path.relative(basePath, absoluteIncludedFilePath).startsWith('..')) {
 					throw new Error(`A markdown file includes a document outside of the test scope`);
 				}
-				const contentBeforeCap = fileContent.slice(0, cap.index);
-				inclusions.push({
-					line: contentBeforeCap.split(/\r\n|\r|\n/).length,
-					filePath: includedFilePath,
-					mdMarker: cap[0]
-				});
+				try {
+					await utils.access(absoluteIncludedFilePath);
+					const contentBeforeCap = fileContent.slice(0, cap.index);
+					inclusions.push({
+						line: contentBeforeCap.split(/\r\n|\r|\n/).length,
+						filePath: includedFilePath,
+						mdMarker: cap[0]
+					});
+				} catch (e) {
+					// do nothing
+				}
 			}
 			return {
 				filePath,

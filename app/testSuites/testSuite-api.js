@@ -18,10 +18,15 @@ const usersModule = require('../users/users');
 
 async function getTestSuites(req, res) {
 	try {
-		const testSuites = (await testSuiteModule.getTestSuites()).map(testSuite => Object.assign(testSuite, {
-			repositoryAddress: testSuite.repository.address,
-			gitBranch: testSuite.repository.gitBranch
-		}));
+		const testSuites = (await testSuiteModule.getTestSuites()).map(testSuite => {
+			const testSuiteObj = Object.assign(testSuite, {
+				repositoryAddress: testSuite.repository.address,
+				gitBranch: testSuite.repository.gitBranch
+			});
+			testSuiteObj.repository.pass = undefined;
+			testSuiteObj.repository.user = undefined;
+			return testSuiteObj;
+		});
 
 		res.send(testSuites);
 	} catch(e) {
@@ -36,6 +41,8 @@ async function getTestSuites(req, res) {
 async function getTestSuite(req, res) {
 	try {
 		const testSuite = testSuiteModule.getTestSuiteByUuid(req.params.uuid);
+		testSuite.repository.pass = undefined;
+		testSuite.repository.user = undefined;
 		res.send(testSuite);
 	} catch(e) {
 		logs.error(e.message);

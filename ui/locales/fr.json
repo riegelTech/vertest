@@ -78,7 +78,9 @@
     "Renamed tests": "Tests déplaçés",
     "File has been moved to new File and modified": "{file} a été déplacé à {newFile} et modifié",
     "File has been moved to new File": "{file} a été déplaçé à {newFile}",
-    "There is no differences between current local and target tests suite state.": "Il n'y a pas de différence entre l'état courant et l'état cible de la suite de tests"
+    "There is no differences between current local and target tests suite state.": "Il n'y a pas de différence entre l'état courant et l'état cible de la suite de tests",
+    "Show only my tests": "Voir seulement mes tests",
+    "Show all tests": "Voir tous les tests"
   },
   "usersPage": {
     "Users": "Utilisateurs",

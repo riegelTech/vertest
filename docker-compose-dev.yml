@@ -7,3 +7,6 @@ services:
       - ./mongoData:/data/db
     ports:
       - "27017:27017"
+
+  node:
+    command: bash -c "npm install && npm run debug"

@@ -76,6 +76,22 @@ export const fileTreeUtils = {
 			return treeToTransform;
 		}
 		return recursiveTransformTree(treeToTransform);
+	},
+	filterTree(treeToFilter, filterFn) {
+		function recursiveFilterTree(treeToFilter) {
+			if (treeToFilter.children) {
+				treeToFilter.children = treeToFilter.children
+					.map(treeChild => recursiveFilterTree(treeChild))
+					.filter(child => child !== undefined);
+				if (treeToFilter.children.length === 0) {
+					return undefined;
+				}
+			} else {
+				treeToFilter = filterFn(treeToFilter);
+			}
+			return treeToFilter;
+		}
+		return recursiveFilterTree(treeToFilter);
 	}
 };
 

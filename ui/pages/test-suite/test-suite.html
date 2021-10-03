@@ -9,6 +9,8 @@
                     </router-link>
                 </h2>
                 <div class="test-file-tree">
+                    <md-button v-if="!treeFilteredByUser" @click="filterTestsTreeByUser"  class="md-dense md-micro">{{ $t('testSuitePage.Show only my tests') }}</md-button>
+                    <md-button v-if="treeFilteredByUser" @click="buildTestsTree">{{ $t('testSuitePage.Show all tests') }}</md-button>
                     <ul>
                         <file-tree
                                 class="item"

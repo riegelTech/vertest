@@ -78,7 +78,9 @@
     "Renamed tests": "Renamed tests",
     "File has been moved to new File and modified": "{file} has been moved to {newFile} and modified",
     "File has been moved to new File": "{file} has been moved to {newFile}",
-    "There is no differences between current local and target tests suite state.": "There is no differences between current local and target repository state."
+    "There is no differences between current local and target tests suite state.": "There is no differences between current local and target repository state.",
+    "Show only my tests": "Show my tests only",
+    "Show all tests": "Show all tests"
   },
   "usersPage": {
     "Users": "Users",
