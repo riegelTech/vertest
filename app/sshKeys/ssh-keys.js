@@ -62,9 +62,12 @@ class SshKey {
 	setPrivKeyPass(passPhrase) {
 		const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
 		const keyData = fs.readFileSync(keyPath, 'utf8');
-
-		const result = ssh2Utils.parseKey(keyData, passPhrase);
-		if (result instanceof  Error) {
+		let result;
+		try {
+			result = ssh2Utils.parseKey(keyData, passPhrase);
+		} catch (e) {
+			result = e;
+			if (result instanceof  Error) {
 			if (result.message.includes('Bad passphrase')) {
 				this.decryptedPrivKey = false;
 				return false;
