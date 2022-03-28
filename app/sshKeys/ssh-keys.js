@@ -68,9 +68,10 @@ class SshKey {
 		} catch (e) {
 			result = e;
 			if (result instanceof  Error) {
-			if (result.message.includes('Bad passphrase')) {
-				this.decryptedPrivKey = false;
-				return false;
+				if (result.message.includes('Bad passphrase')) {
+					this.decryptedPrivKey = false;
+					return false;
+				}
 			}
 			throw result;
 		}
