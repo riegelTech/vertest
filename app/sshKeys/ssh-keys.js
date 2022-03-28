@@ -62,19 +62,13 @@ class SshKey {
 	setPrivKeyPass(passPhrase) {
 		const keyPath = Path.isAbsolute(this.privKey) ? this.privKey : Path.join(__dirname, '../', '../', this.privKey);
 		const keyData = fs.readFileSync(keyPath, 'utf8');
-		let result;
-		try {
-			result = ssh2Utils.parseKey(keyData, passPhrase);
-		} catch (e) {
-			result = e;
-			if (result instanceof  Error) {
-				if (result.message.includes('Bad passphrase')) {
-					this.decryptedPrivKey = false;
-					return false;
-				}
-				throw result;
+		const result = ssh2Utils.parseKey(keyData, passPhrase);
+		if (result instanceof  Error) {
+			if (result.message.includes('Bad passphrase') || result.message.includes('Failed to generate information to decrypt key')) {
+				this.decryptedPrivKey = false;
+				return false;
 			}
-			throw e;
+			throw result;
 		}
 
 		this[privKeyPassSymbol] = passPhrase;
@@ -101,7 +95,7 @@ async function initSshKeys() {
 		return;
 	}
 
-	config.sshKeys.forEach(async sshKeyProps => {
+	await Promise.all(config.sshKeys.map(async sshKeyProps => {
 		const sshKey = new SshKey(sshKeyProps, false);
 
 		if (sshKeys.has(sshKey.name)) {
@@ -117,7 +111,7 @@ async function initSshKeys() {
 		} catch (e) {
 			logs.error({message: e.message});
 		}
-	});
+	}));
 }
 
 function setPrivKeyPass(sshKeyName, passPhrase) {

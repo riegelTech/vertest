@@ -30,7 +30,7 @@ const startApp = async () => {
 	const logs = await logsModule.getDefaultLogger();
 	await migration.startMigration();
 
-	const port = config.server.port;
+	const port = parseInt(config.server.port, 10);
 
 	const testSuiteModule = require('./testSuites/testSuite');
 	const testCaseStatusesRouting = require('./testCase/testCaseStatuses-api');

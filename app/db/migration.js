@@ -45,7 +45,8 @@ async function startMigration() {
 	const migrationDescriptor = JSON.parse(await utils.readFile(path.join(__dirname, './migrations/migration.json')));
 
 	const pjson = require(path.join(__dirname, '../../package.json'));
-	const dataVersion = (await getMetadata()).applicationVersion;
+	const metadata = await getMetadata();
+	const dataVersion = metadata ? metadata.applicationVersion : '0.0.0';
 	const applicationVersion = pjson.version;
 
 	if (compareVersion.compare(applicationVersion, dataVersion, '<')) {
