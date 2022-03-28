@@ -14,7 +14,6 @@ services:
       - mongo
     volumes:
       - ./:/home/node/vertest/
-      - /home/croquetteland/.ssh/:/home/node/vertest/.ssh/
     working_dir: /home/node/vertest/
     network_mode: host
     environment:
