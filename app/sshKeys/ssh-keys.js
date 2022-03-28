@@ -72,8 +72,9 @@ class SshKey {
 					this.decryptedPrivKey = false;
 					return false;
 				}
+				throw result;
 			}
-			throw result;
+			throw e;
 		}
 
 		this[privKeyPassSymbol] = passPhrase;
