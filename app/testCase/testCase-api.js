@@ -100,7 +100,7 @@ function overrideDefaultMdRenderers(testSuite, testCase, lang) {
 					const resourceIdentifier = encodeURIComponent(encodeURIComponent(`${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${href}`));
 					token.attrs[token.attrIndex('href')][1] = `/#/${lang}/mdvisu/${resourceIdentifier}`;
 				} else {
-					token.attrs[token.attrIndex('href')][1] = `/#/${lang}/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${href}`;
+					token.attrs[token.attrIndex('href')][1] = `/repositoriesStatics/${Path.basename(testCase.basePath)}/${Path.dirname(testCase.testFilePath)}/${href}`;
 				}
 			}
 		}
