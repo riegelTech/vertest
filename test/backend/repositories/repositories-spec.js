@@ -147,9 +147,14 @@ describe('Repository module', function () {
 
 				describe('with SSH server, using SSH keyring', function () {
 
-					let gitServerPort;
+					let gitServerPort, curSshKey;
 
 					beforeEach(async function () {
+						repoModule = proxyquire('../../../app/repositories/repositories', {
+							'../sshKeys/ssh-keys': {
+								getSshKeyByName: () => curSshKey
+							}
+						});
 						gitServerPort = await sshGitServer.createSshServer({
 							gitRepository,
 							allowedUser: 'foo',
@@ -167,18 +172,18 @@ describe('Repository module', function () {
 						// given
 						await addContentToTestRepository();
 						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
-						const decryptedSshKey = new SshKey({
+						curSshKey = new SshKey({
 							name: 'foo',
 							pubKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/unprotectedClientSshKey')
 						});
-						decryptedSshKey.setPrivKeyPass('');
+						curSshKey.setPrivKeyPass('');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
 							address: gitRespositorySshAddress,
 							repoPath: repoTestPath,
-							sshKey: decryptedSshKey,
+							sshKey: curSshKey,
 							user: 'foo'
 						});
 						return newRepo.init({forceInit: true, waitForClone: true});
@@ -188,18 +193,18 @@ describe('Repository module', function () {
 						// given
 						await addContentToTestRepository();
 						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
-						const decryptedSshKey = new SshKey({
+						curSshKey = new SshKey({
 							name: 'foo',
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
 						});
-						decryptedSshKey.setPrivKeyPass('foobar');
+						curSshKey.setPrivKeyPass('foobar');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
 							address: gitRespositorySshAddress,
 							repoPath: repoTestPath,
-							sshKey: decryptedSshKey,
+							sshKey: curSshKey,
 							user: 'foo'
 						});
 						return newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Failed to clone repository ${gitRespositorySshAddress}, please check your credentials`);
@@ -208,9 +213,14 @@ describe('Repository module', function () {
 
 				describe('With SSH server using protected ssh private keys', function () {
 
-					let gitServerPort;
+					let gitServerPort, curSshKey;
 
 					beforeEach(async function () {
+						repoModule = proxyquire('../../../app/repositories/repositories', {
+							'../sshKeys/ssh-keys': {
+								getSshKeyByName: () => curSshKey
+							}
+						});
 						gitServerPort = await sshGitServer.createSshServer({
 							gitRepository,
 							allowedUser: 'foo',
@@ -228,23 +238,29 @@ describe('Repository module', function () {
 						// given
 						await addContentToTestRepository();
 						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
-						const notDecryptedSshKey = new SshKey({
+						curSshKey = new SshKey({
 							name: 'foo',
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
 						});
-						notDecryptedSshKey.setPrivKeyPass('bad pass phrase');
 						// when
+						curSshKey.setPrivKeyPass('bad pass phrase');
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
 							address: gitRespositorySshAddress,
 							repoPath: repoTestPath,
-							sshKey: notDecryptedSshKey,
+							sshKey: curSshKey,
 							user: 'foo'
 						});
 						// then
 						await newRepo.init({forceInit: true, waitForClone: true}).should.eventually.be.rejectedWith(`Private key is encrypted for repository "some name", please decrypt it`);
 						// when
+						curSshKey = new SshKey({
+							name: 'foo',
+							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
+							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey'),
+							privKeyPass: 'foobar'
+						});
 						newRepo.setSshKey({
 							name: 'foo',
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
@@ -259,18 +275,18 @@ describe('Repository module', function () {
 						// given
 						await addContentToTestRepository();
 						const gitRespositorySshAddress = `ssh://foo@localhost:${gitServerPort}/test.git`;
-						const decryptedSshKey = new SshKey({
+						curSshKey = new SshKey({
 							name: 'foo',
 							pubKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey.pub'),
 							privKey: Path.resolve(__dirname, '../fixtures/protectedClientSshKey')
 						});
-						decryptedSshKey.setPrivKeyPass('foobar');
+						curSshKey.setPrivKeyPass('foobar');
 						// when
 						const newRepo = new repoModule.Repository({
 							name: 'some name',
 							address: gitRespositorySshAddress,
 							repoPath: repoTestPath,
-							sshKey: decryptedSshKey,
+							sshKey: curSshKey,
 							user: 'foo'
 						});
 						// then
