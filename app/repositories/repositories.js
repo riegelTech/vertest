@@ -102,7 +102,7 @@ class Repository {
 
     setSshKey(newSshKey) {
         if (newSshKey && !(newSshKey instanceof sshKeyModule.SshKey)) {
-            this.sshKey = new sshKeyModule.SshKey(newSshKey);
+            this.sshKey = sshKeyModule.getSshKeyByName(newSshKey.name);
         } else {
             this.sshKey = newSshKey;
         }

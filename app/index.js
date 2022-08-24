@@ -28,6 +28,14 @@ app.use((req, res, next) => {
 const startApp = async () => {
 	const config = await appConfig.getAppConfig();
 	const logs = await logsModule.getDefaultLogger();
+	const sshKeysModule = require('./sshKeys/ssh-keys');
+
+	try {
+		await sshKeysModule.initSshKeys();
+	} catch (e) {
+		logs.error(e.message);
+	}
+
 	await migration.startMigration();
 
 	const port = parseInt(config.server.port, 10);
@@ -40,18 +48,19 @@ const startApp = async () => {
 	const authRouting = require('./auth/auth-api');
 	const repositoriesRouting = require('./repositories/repositories-api');
 	const sshKeyRouting = require('./sshKeys/ssh-keys-api');
-	const sshKeysModule = require('./sshKeys/ssh-keys');
 
 	usersModule.setSessionDurations(config.server.sessionExpiration, config.server.sessionInactivityExpiration);
-
-	try {
-		await statusesModule.loadStatusesFromConfig();
-		await testSuiteModule.initTestSuiteRepositories();
-		await testSuiteModule.initTestSuiteLoggers();
-		await sshKeysModule.initSshKeys();
-		await testSuiteModule.watchTestSuitesChanges();
-	} catch (e) {
-		logs.error({message: e.message});
+	
+	const settlementsResults = await Promise.allSettled([
+		statusesModule.loadStatusesFromConfig(),
+		testSuiteModule.initTestSuiteRepositories(),
+		testSuiteModule.initTestSuiteLoggers(),
+		testSuiteModule.watchTestSuitesChanges()
+	]);
+	for (const settlementResult of settlementsResults) {
+		if (settlementResult.status === 'rejected') {
+			logs.error(settlementResult.reason);
+		}
 	}
 
 	// API routes

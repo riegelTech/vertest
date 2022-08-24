@@ -360,8 +360,13 @@ async function watchTestSuitesChanges() {
 		await Promise.all(unusedDirs.map(unusedDir => {
 			return fsExtra.remove(unusedDir.dirPath);
 		}));
-
-		const testSuites = await getTestSuites();
+		let testSuites;
+		try {
+			testSuites = await getTestSuites();
+		} catch (e) {
+			defaultLogger.error({message: e.message});
+			return;
+		}
 		await Promise.all(testSuites.map(async testSuite => {
 			if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && !testSuite.repository.sshKey.isDecrypted) {
 				return;
