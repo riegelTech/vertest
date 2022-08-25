@@ -9,6 +9,7 @@ const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
 const tmp = require('tmp-promise');
 
+const statusesModule = require('../../../app/testCase/testCaseStatuses');
 let testSuiteModule = require('../../../app/testSuites/testSuite');
 const repositoryModule = require('../../../app/repositories/repositories');
 
@@ -16,7 +17,9 @@ chai.should();
 chai.use(sinonChai);
 const expect = chai.expect;
 
-describe('Test Suites module', function () {
+describe('Test Suites module', async function () {
+
+    statusesModule.loadDefaultStatuses();
 
     let testSuitesColl = [];
     let findStub = sinon.stub().resolves({
@@ -46,6 +49,18 @@ describe('Test Suites module', function () {
             }
         });
     }
+
+    describe('Test Case class', function () {
+        it('Should instanciate', () => {
+            // given
+            const testCase = new testSuiteModule.TestCase({
+                testFilePath: 'some/file/path', 
+                basePath: '/some/root/path'
+            });
+            // then
+            testCase.should.be.instanceOf(testSuiteModule.TestCase)
+        });
+    });
 
     describe('Test suite class', function () {
         it('Should instanciate', () => {
