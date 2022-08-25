@@ -342,59 +342,71 @@ function setDecryptedKeyToRepository(sshKey) {
 	});
 }
 
-async function watchTestSuitesChanges() {
+async function cleanUnusedDirs() {
 	const config = await appConfig.getAppConfig();
 	const tempRepoDir = config.workspace.temporaryRepositoriesDir;
 	const HOUR_MS = 60 * 60 * 1000;
-	setInterval(async () => {
-		const tempsRepositories = await utils.readDir(tempRepoDir);
-		const unusedDirs = (await Promise.all(tempsRepositories
-			.map(async dirEntry => {
-				const dirPath = Path.join(tempRepoDir, dirEntry);
-				return {
-					stat: await utils.stat(dirPath),
-					dirPath
-				};
-			})))
-				.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
+	const tempsRepositories = await utils.readDir(tempRepoDir);
+	const unusedDirs = (await Promise.all(tempsRepositories
+		.map(async dirEntry => {
+			const dirPath = Path.join(tempRepoDir, dirEntry);
+			return {
+				stat: await utils.stat(dirPath),
+				dirPath
+			};
+		})))
+			.filter(({stat}) => stat.isDirectory() && Date.now() - stat.birthtimeMs > HOUR_MS);
+	await Promise.all(unusedDirs.map(unusedDir => {
+		return fsExtra.remove(unusedDir.dirPath);
+	}));
+}
 
-		await Promise.all(unusedDirs.map(unusedDir => {
-			return fsExtra.remove(unusedDir.dirPath);
-		}));
-		let testSuites;
-		try {
-			testSuites = await getTestSuites();
-		} catch (e) {
-			defaultLogger.error({message: e.message});
+async function watchTestSuites() {
+	let testSuites;
+	try {
+		testSuites = await getTestSuites();
+	} catch (e) {
+		defaultLogger.error({message: e.message});
+		return;
+	}
+	await Promise.all(testSuites.map(async testSuite => {
+		if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && !testSuite.repository.sshKey.isDecrypted) {
 			return;
 		}
-		await Promise.all(testSuites.map(async testSuite => {
-			if (testSuite.repository.authMethod === repoModule.Repository.authMethods.SSH && !testSuite.repository.sshKey.isDecrypted) {
+		const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
+		try {
+			await testSuite.repository.refreshAvailableGitBranches();
+
+			const testDirs = await testSuite.getInvolvedFiles();
+			const testFilesHasChanged = await testSuite.repository.lookupForChanges(testDirs)
+				|| await testSuite.repository.lookupForChanges(testDirs, true);
+			if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
+				testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Repository change detected for test suite ${testSuite.name}`);
+				testSuite.status = TestSuite.STATUSES.TO_UPDATE;
+				await updateTestSuite(testSuite);
+			}
+		} catch (e) {
+			if (e.code === 'EDELETEDBRANCH') {
+				testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Git branch deleted, please change destination branch for test suite ${testSuite.name}`);
+				testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
+				await updateTestSuite(testSuite);
+				await testSuite.repository.refreshAvailableGitBranches();
 				return;
 			}
-			const testSuiteLogger = await logsModule.getTestSuiteLogger(testSuite._id);
-			try {
-				await testSuite.repository.refreshAvailableGitBranches();
+			defaultLogger.error({message: e.message});
+		}
+	}));
+}
 
-				const testDirs = await testSuite.getInvolvedFiles();
-				const testFilesHasChanged = await testSuite.repository.lookupForChanges(testDirs)
-					|| await testSuite.repository.lookupForChanges(testDirs, true);
-				if (testFilesHasChanged && testSuite.status === TestSuite.STATUSES.UP_TO_DATE) {
-					testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Repository change detected for test suite ${testSuite.name}`);
-					testSuite.status = TestSuite.STATUSES.TO_UPDATE;
-					await updateTestSuite(testSuite);
-				}
-			} catch (e) {
-				if (e.code === 'EDELETEDBRANCH') {
-					testSuiteLogger.log(`test-suite-${testSuite._id}` ,`Git branch deleted, please change destination branch for test suite ${testSuite.name}`);
-					testSuite.status = TestSuite.STATUSES.TO_TOGGLE_BRANCH;
-					await updateTestSuite(testSuite);
-					await testSuite.repository.refreshAvailableGitBranches();
-					return;
-				}
-				defaultLogger.error({message: e.message});
-			}
-		}));
+async function watchTestSuitesChanges() {
+	let lock = false;
+	setInterval(async () => {
+		if (lock === true) {
+			return;
+		}
+		await cleanUnusedDirs();
+		await watchTestSuites();
+		lock = false;
 	}, 5000);
 }
 
@@ -411,5 +423,7 @@ module.exports = {
 	// end test suite CRUD
 	initTestSuiteRepositories,
 	initTestSuiteLoggers,
-	watchTestSuitesChanges
+	watchTestSuitesChanges,
+	cleanUnusedDirs,
+	watchTestSuites
 };

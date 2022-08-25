@@ -1,9 +1,13 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+
 const chai = require('chai');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
-var sinonChai = require('sinon-chai');
+const sinonChai = require('sinon-chai');
+const tmp = require('tmp-promise');
 
 let testSuiteModule = require('../../../app/testSuites/testSuite');
 const repositoryModule = require('../../../app/repositories/repositories');
@@ -13,6 +17,36 @@ chai.use(sinonChai);
 const expect = chai.expect;
 
 describe('Test Suites module', function () {
+
+    let testSuitesColl = [];
+    let findStub = sinon.stub().resolves({
+        count: async () => testSuitesColl.length,
+        toArray: () => testSuitesColl
+    });
+    let insertOneStub = sinon.stub().resolves(true);
+    let updateStub = sinon.stub().resolves(true);
+    let deleteStub = sinon.stub().resolves(true);
+
+    function overrideTestSuiteModule() {
+        insertOneStub.resetHistory();
+        updateStub.resetHistory();
+        deleteStub.resetHistory();
+        findStub.resetHistory();
+        testSuiteModule = proxyquire('../../../app/testSuites/testSuite', {
+            '../db/db-connector': {
+                DB_TABLES: {
+                    TEST_SUITES: 'Some DB table'
+                },
+                getCollection: async () => ({
+                    find: findStub,
+                    insertOne: insertOneStub,
+                    updateOne: updateStub,
+                    deleteOne: deleteStub
+                })
+            }
+        });
+    }
+
     describe('Test suite class', function () {
         it('Should instanciate', () => {
             // given
@@ -34,35 +68,6 @@ describe('Test Suites module', function () {
     });
 
     describe('Test suites collection', function () {
-
-        let testSuitesColl = [];
-        let findStub = sinon.stub().resolves({
-            count: async () => testSuitesColl.length,
-            toArray: () => testSuitesColl
-        });
-        let insertOneStub = sinon.stub().resolves(true);
-        let updateStub = sinon.stub().resolves(true);
-        let deleteStub = sinon.stub().resolves(true);
-
-        function overrideTestSuiteModule() {
-            insertOneStub.resetHistory();
-            updateStub.resetHistory();
-            deleteStub.resetHistory();
-            findStub.resetHistory();
-            testSuiteModule = proxyquire('../../../app/testSuites/testSuite', {
-                '../db/db-connector': {
-                    DB_TABLES: {
-                        TEST_SUITES: 'Some DB table'
-                    },
-                    getCollection: async () => ({
-                        find: findStub,
-                        insertOne: insertOneStub,
-                        updateOne: updateStub,
-                        deleteOne: deleteStub
-                    })
-                }
-            });
-        }
 
         beforeEach(function() {
             overrideTestSuiteModule();
@@ -234,10 +239,64 @@ describe('Test Suites module', function () {
             const testSuites = await testSuiteModule.getTestSuites();
             testSuites.should.have.lengthOf(0);
         });
-
     });
 
     describe('Test suite watcher', function () {
 
+        let currentConfig = {};
+        let clock;
+
+        beforeEach(function () {
+            clock = sinon.useFakeTimers({
+                now: Date.now(),
+                toFake: ['setInterval', 'Date'],
+            });
+            insertOneStub.resetHistory();
+            updateStub.resetHistory();
+            deleteStub.resetHistory();
+            findStub.resetHistory();
+            testSuiteModule = proxyquire('../../../app/testSuites/testSuite', {
+                '../appConfig/config': {
+                    getAppConfig: async () => currentConfig
+                },
+                '../db/db-connector': {
+                    DB_TABLES: {
+                        TEST_SUITES: 'Some DB table'
+                    },
+                    getCollection: async () => ({
+                        find: findStub,
+                        insertOne: insertOneStub,
+                        updateOne: updateStub,
+                        deleteOne: deleteStub
+                    })
+                }
+            });
+        });
+
+        afterEach(function () {
+            clock.restore();
+        });
+
+        it('Should regularly remove unused directories', async () => {
+            // given
+            const HOUR_MS = 60 * 60 * 1000;
+            const tmpDir = await tmp.dir();
+            currentConfig = {
+                workspace: {
+                    temporaryRepositoriesDir: tmpDir.path
+                }
+            };
+            // when
+            await fs.promises.mkdir(path.join(tmpDir.path, 'older-than-hour'));
+            // then
+            let remainingDirs = await fs.promises.readdir(tmpDir.path);
+            remainingDirs.should.have.lengthOf(1);
+            // when
+            await clock.setSystemTime(Date.now() + HOUR_MS + 10);
+            await testSuiteModule.cleanUnusedDirs();
+            // then
+            remainingDirs = await fs.promises.readdir(tmpDir.path);
+            remainingDirs.should.have.lengthOf(0);
+        });
     });
 });
