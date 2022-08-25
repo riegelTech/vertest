@@ -17,6 +17,8 @@ describe('SSH Key module', function () {
 				name: 'some ssh key',
 				pubKey: 'path/toPubkey.pub'
 			}, false);
+			// then
+			sshKey.should.be.instanceOf(sshKeyModule.SshKey);
 		});
 
 		it('should generate errors when name is missing', function () {

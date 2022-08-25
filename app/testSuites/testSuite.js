@@ -278,6 +278,7 @@ async function getTestSuites() {
 	if (!initialized) {
 		await fetchTestSuites();
 	}
+	initialized = true;
 	return Array.from(testSuites.values());
 }
 
@@ -307,7 +308,7 @@ async function updateTestSuite(testSuite) {
 	const cursor = await coll.find(filter);
 	const itemsCount = await cursor.count();
 	if (itemsCount === 0) {
-		throw new Error(`No test suite found with id ${testUuid}`);
+		throw new Error(`No test suite found with id ${testSuite._id}`);
 	}
 	await coll.updateOne(filter, {$set: testSuite});
 	testSuites.set(testSuite._id, testSuite);
