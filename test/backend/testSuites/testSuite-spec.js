@@ -60,6 +60,111 @@ describe('Test Suites module', async function () {
             // then
             testCase.should.be.instanceOf(testSuiteModule.TestCase)
         });
+
+        it('Should read the test case file', async () => {
+            // given
+            const testDir = await tmp.dir();
+            const fileContent = 'Some file content';
+            const fileName = 'some-file-name.md';
+            await fs.promises.writeFile(path.join(testDir.path, fileName), fileContent);
+            const testCase = new testSuiteModule.TestCase({
+                testFilePath: fileName, 
+                basePath: testDir.path
+            });
+            // when
+            await testCase.fetchTestContent();
+            // then
+            testCase.content.should.eql(fileContent);
+            testCase.linkedFilesByInclusion.should.have.lengthOf(0);
+        });
+
+        it('Should read recursive content in the test case file', async () => {
+            // given
+            const testDir = await tmp.dir();
+            const includedFileContent = 'Some inclusion';
+            const includedFileName = 'some-included-file.md';
+            const filePart = 'Some file content';
+            const fileContent = `${filePart} !!!include(./${includedFileName})!!!`;
+            const fileName = 'some-file-name.md';
+            await fs.promises.writeFile(path.join(testDir.path, fileName), fileContent);
+            await fs.promises.writeFile(path.join(testDir.path, includedFileName), includedFileContent);
+            const testCase = new testSuiteModule.TestCase({
+                testFilePath: fileName, 
+                basePath: testDir.path
+            });
+            // when
+            await testCase.fetchTestContent();
+            // then
+            testCase.linkedFilesByInclusion.should.have.lengthOf(1);
+            testCase.content.should.eql(fileContent);
+            testCase.linkedFilesByInclusion[0].filePath.should.eql(includedFileName);
+            testCase.linkedFilesByInclusion[0].content.should.eql(includedFileContent);
+            testCase.linkedFilesByInclusion[0].inclusions.should.have.lengthOf(0);
+            testCase.linkedFilesByInclusion[0].line.should.eql(1);
+            testCase.linkedFilesByInclusion[0].mdMarker.should.eql(`!!!include(./${includedFileName})!!!`);
+        });
+
+        it('should deliver a flat representation of the inclusions', async () => {
+            // given
+            const testDir = await tmp.dir();
+            const includedFileContent = 'Some inclusion';
+            const includedFileName = 'some-included-file.md';
+            const filePart = 'Some file content';
+            const fileContent = `${filePart} !!!include(./${includedFileName})!!!`;
+            const fileName = 'some-file-name.md';
+            await fs.promises.writeFile(path.join(testDir.path, fileName), fileContent);
+            await fs.promises.writeFile(path.join(testDir.path, includedFileName), includedFileContent);
+            const testCase = new testSuiteModule.TestCase({
+                testFilePath: fileName, 
+                basePath: testDir.path
+            });
+            // when
+            await testCase.fetchTestContent();
+            // then
+            const flatInclusions = await testCase.getIncludedFilesFlat();
+            flatInclusions.should.have.lengthOf(2);
+            flatInclusions[0].should.eql(includedFileName);
+            flatInclusions[1].should.eql(fileName);
+        });
+
+        it('Should throw error when recursion is infinite', async () => {
+            // given
+            const testDir = await tmp.dir();
+            const includedFileName = 'some-included-file.md';
+            const includedFilePart = 'Some inclusion';
+            const includedFileContent = `${includedFilePart} !!!include(./${includedFileName})!!!`;
+            const filePart = 'Some file content';
+            const fileContent = `${filePart} !!!include(./${includedFileName})!!!`;
+            const fileName = 'some-file-name.md';
+            await fs.promises.writeFile(path.join(testDir.path, fileName), fileContent);
+            await fs.promises.writeFile(path.join(testDir.path, includedFileName), includedFileContent);
+            const testCase = new testSuiteModule.TestCase({
+                testFilePath: fileName, 
+                basePath: testDir.path
+            });
+            // when
+            await testCase.fetchTestContent().should.eventually.be.rejectedWith(`Infinite recursion in markdown inclusions while parsing ${fileName} content`);
+        });
+
+        it('Should throw error when try to include a file that is out of the root directory', async () => {
+            // given
+            const testDir = await tmp.dir();
+            const testRootDir = 'some-test-dir';
+            await fs.promises.mkdir(path.join(testDir.path, testRootDir));
+            const includedFileName = 'some-included-file.md';
+            const includedFileContent = 'Some inclusion';
+            const filePart = 'Some file content';
+            const fileContent = `${filePart} !!!include(../${includedFileName})!!!`;
+            const fileName = 'some-file-name.md';
+            await fs.promises.writeFile(path.join(testDir.path, testRootDir, fileName), fileContent);
+            await fs.promises.writeFile(path.join(testDir.path, includedFileName), includedFileContent);
+            const testCase = new testSuiteModule.TestCase({
+                testFilePath: fileName, 
+                basePath: path.join(testDir.path, testRootDir)
+            });
+            // when
+            await testCase.fetchTestContent().should.eventually.be.rejectedWith(`A markdown file includes a document outside of the test scope`);
+        });
     });
 
     describe('Test suite class', function () {
@@ -295,6 +400,7 @@ describe('Test Suites module', async function () {
         it('Should regularly remove unused directories', async () => {
             // given
             const HOUR_MS = 60 * 60 * 1000;
+            const securityDelay = 1000;
             const tmpDir = await tmp.dir();
             currentConfig = {
                 workspace: {
@@ -307,7 +413,7 @@ describe('Test Suites module', async function () {
             let remainingDirs = await fs.promises.readdir(tmpDir.path);
             remainingDirs.should.have.lengthOf(1);
             // when
-            await clock.setSystemTime(Date.now() + HOUR_MS + 10);
+            await clock.setSystemTime(Date.now() + HOUR_MS + securityDelay);
             await testSuiteModule.cleanUnusedDirs();
             // then
             remainingDirs = await fs.promises.readdir(tmpDir.path);

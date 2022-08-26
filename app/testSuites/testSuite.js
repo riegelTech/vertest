@@ -18,7 +18,6 @@ const utils = require('../utils');
 const logsModule = require('../logsModule/logsModule');
 const defaultLogger = logsModule.getDefaultLoggerSync();
 
-const INCLUDE_RE = /!{3}\s*include(.+?)!{3}/gi;
 const BRACES_RE = /\((.+?)\)/i;
 
 class TestCase extends EventEmitter {
@@ -38,11 +37,11 @@ class TestCase extends EventEmitter {
 
 		const basePath = this.basePath;
 		const testFilePath = this.testFilePath;
-
 		async function getInclusionTree(fileContent, filePath, ancestors = []) {
 			const absoluteFilePath = Path.resolve(basePath, filePath);
 			ancestors.push(absoluteFilePath);
 			const inclusions = [];
+			const INCLUDE_RE = /!{3}\s*include(.+?)!{3}/gi;
 			let cap;
 			while ((cap = INCLUDE_RE.exec(fileContent)) !== null) {
 				let includePath = cap[1].trim();
